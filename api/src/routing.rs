@@ -257,6 +257,9 @@ pub fn routes(app: &mut CorsBuilder<AppState>) -> App<AppState> {
         r.method(Method::GET).with(organization_invites::index);
         r.method(Method::POST).with(organization_invites::create);
     })
+    .resource("/organizations/{id}/secrets", |r| {
+        r.method(Method::GET).with(organizations::secrets);
+    })
     .resource("/organizations/{id}/users", |r| {
         r.method(Method::POST)
             .with(organizations::add_or_replace_user);

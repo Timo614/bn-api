@@ -89,15 +89,26 @@ pub fn index_for_all_orgs(
     user.requires_scope(Scopes::OrgAdmin)?;
     let connection = connection.get();
     let organizations = Organization::all(connection)?;
-
+    let display_organizations: Vec<DisplayOrganization> =
+        organizations.into_iter().map(|o| o.into()).collect();
     Ok(HttpResponse::Ok().json(&Payload::from_data(
-        organizations,
+        display_organizations,
         query_parameters.page(),
         query_parameters.limit(),
     )))
 }
 
 pub fn show(
+    (connection, parameters, user): (Connection, Path<PathParameters>, User),
+) -> Result<HttpResponse, BigNeonError> {
+    let connection = connection.get();
+    let organization = Organization::find(parameters.id, connection)?;
+    user.requires_scope_for_organization(Scopes::OrgRead, &organization, connection)?;
+    let display_organization: DisplayOrganization = organization.into();
+    Ok(HttpResponse::Ok().json(&display_organization))
+}
+
+pub fn secrets(
     (state, connection, parameters, user): (
         State<AppState>,
         Connection,
@@ -107,11 +118,12 @@ pub fn show(
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let mut organization = Organization::find(parameters.id, connection)?;
-    user.requires_scope_for_organization(Scopes::OrgRead, &organization, connection)?;
+    user.requires_scope_for_organization(Scopes::OrgWrite, &organization, connection)?;
 
-    organization.decrypt(&state.config.api_keys_encryption_key)?;
+    let organization_secrets: OrganizationSecretData =
+        organization.secrets(&state.config.api_keys_encryption_key)?;
 
-    Ok(HttpResponse::Ok().json(&organization))
+    Ok(HttpResponse::Ok().json(&organization_secrets))
 }
 
 pub fn create(

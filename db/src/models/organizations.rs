@@ -63,6 +63,39 @@ pub struct Organization {
     pub slug_id: Option<Uuid>,
 }
 
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct OrganizationSecretData {
+    pub sendgrid_api_key: Option<String>,
+    pub google_ga_key: Option<String>,
+    pub facebook_pixel_key: Option<String>,
+    pub globee_api_key: Option<String>,
+}
+
+#[derive(Clone, QueryableByName, Queryable, Serialize, Deserialize, PartialEq, Debug)]
+#[table_name = "organizations"]
+pub struct DisplayOrganization {
+    pub id: Uuid,
+    pub name: String,
+    pub address: Option<String>,
+    pub city: Option<String>,
+    pub state: Option<String>,
+    pub country: Option<String>,
+    pub postal_code: Option<String>,
+    pub phone: Option<String>,
+    pub event_fee_in_cents: i64,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
+    pub fee_schedule_id: Uuid,
+    pub client_event_fee_in_cents: i64,
+    pub company_event_fee_in_cents: i64,
+    pub allowed_payment_providers: Vec<PaymentProviders>,
+    pub timezone: Option<String>,
+    pub cc_fee_percent: f32,
+    pub max_instances_per_ticket_type: i64,
+    pub max_additional_fee_in_cents: i64,
+    pub settlement_type: SettlementTypes,
+}
+
 #[derive(Serialize)]
 pub struct DisplayOrganizationLink {
     pub id: Uuid,
@@ -650,13 +683,34 @@ impl Organization {
     pub fn all_linked_to_user(
         user_id: Uuid,
         conn: &PgConnection,
-    ) -> Result<Vec<Organization>, DatabaseError> {
+    ) -> Result<Vec<DisplayOrganization>, DatabaseError> {
         let orgs = organization_users::table
             .filter(organization_users::user_id.eq(user_id))
             .inner_join(organizations::table)
-            .select(organizations::all_columns)
+            .select((
+                organizations::id,
+                organizations::name,
+                organizations::address,
+                organizations::city,
+                organizations::state,
+                organizations::country,
+                organizations::postal_code,
+                organizations::phone,
+                organizations::event_fee_in_cents,
+                organizations::created_at,
+                organizations::updated_at,
+                organizations::fee_schedule_id,
+                organizations::client_event_fee_in_cents,
+                organizations::company_event_fee_in_cents,
+                organizations::allowed_payment_providers,
+                organizations::timezone,
+                organizations::cc_fee_percent,
+                organizations::max_instances_per_ticket_type,
+                organizations::max_additional_fee_in_cents,
+                organizations::settlement_type,
+            ))
             .order_by(organizations::name.asc())
-            .load::<Organization>(conn)
+            .load(conn)
             .to_db_error(ErrorCode::QueryError, "Unable to load all organizations")?;
 
         Ok(orgs)
@@ -1173,6 +1227,19 @@ impl Organization {
         Ok(user_value_map)
     }
 
+    pub fn secrets(
+        &mut self,
+        encryption_key: &str,
+    ) -> Result<OrganizationSecretData, DatabaseError> {
+        self.decrypt(encryption_key)?;
+        Ok(OrganizationSecretData {
+            sendgrid_api_key: self.sendgrid_api_key.clone(),
+            google_ga_key: self.google_ga_key.clone(),
+            facebook_pixel_key: self.facebook_pixel_key.clone(),
+            globee_api_key: self.globee_api_key.clone(),
+        })
+    }
+
     pub fn decrypt(&mut self, encryption_key: &str) -> Result<(), DatabaseError> {
         if encryption_key.len() > 0 {
             if let Some(key) = self.sendgrid_api_key.clone() {
@@ -1220,4 +1287,31 @@ pub struct DisplayOrganization {
     pub phone: Option<String>,
     pub timezone: Option<String>,
     pub slug: String,
+}
+
+impl From<Organization> for DisplayOrganization {
+    fn from(organization: Organization) -> Self {
+        DisplayOrganization {
+            id: organization.id,
+            name: organization.name,
+            address: organization.address,
+            city: organization.city,
+            state: organization.state,
+            country: organization.country,
+            postal_code: organization.postal_code,
+            phone: organization.phone,
+            event_fee_in_cents: organization.event_fee_in_cents,
+            created_at: organization.created_at,
+            updated_at: organization.updated_at,
+            fee_schedule_id: organization.fee_schedule_id,
+            client_event_fee_in_cents: organization.client_event_fee_in_cents,
+            company_event_fee_in_cents: organization.company_event_fee_in_cents,
+            allowed_payment_providers: organization.allowed_payment_providers,
+            timezone: organization.timezone,
+            cc_fee_percent: organization.cc_fee_percent,
+            max_instances_per_ticket_type: organization.max_instances_per_ticket_type,
+            max_additional_fee_in_cents: organization.max_additional_fee_in_cents,
+            settlement_type: organization.settlement_type,
+        }
+    }
 }

@@ -137,6 +137,47 @@ fn for_display() {
 }
 
 #[test]
+fn secrets() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+    let fee_schedule = FeeSchedule::create(
+        Uuid::nil(),
+        format!("Zero fees",).into(),
+        vec![NewFeeScheduleRange {
+            min_price_in_cents: 0,
+            company_fee_in_cents: 0,
+            client_fee_in_cents: 0,
+        }],
+    )
+    .commit(None, connection)
+    .unwrap();
+
+    let mut organization = Organization::create("Organization", fee_schedule.id);
+    let sendgrid_api_key = Some("Key 1".to_string());
+    let google_ga_key = Some("Key 2".to_string());
+    let facebook_pixel_key = Some("Key 3".to_string());
+    let globee_api_key = Some("Key 4".to_string());
+    organization.sendgrid_api_key = sendgrid_api_key.clone();
+    organization.google_ga_key = google_ga_key.clone();
+    organization.facebook_pixel_key = facebook_pixel_key.clone();
+    organization.globee_api_key = globee_api_key.clone();
+    let mut organization = organization
+        .commit(&"encryption_key".to_string(), None, connection)
+        .unwrap();
+
+    let secrets = organization.secrets(&"encryption_key".to_string()).unwrap();
+    assert_eq!(
+        secrets,
+        OrganizationSecretData {
+            sendgrid_api_key,
+            google_ga_key,
+            facebook_pixel_key,
+            globee_api_key,
+        }
+    );
+}
+
+#[test]
 fn create() {
     let project = TestProject::new();
     let connection = project.get_connection();
@@ -907,15 +948,17 @@ fn all_linked_to_user() {
     let project = TestProject::new();
     let user = project.create_user().finish();
     let user2 = project.create_user().finish();
-    let org1 = project
+    let org1: DisplayOrganization = project
         .create_organization()
         .with_member(&user, Roles::OrgOwner)
-        .finish();
-    let org2 = project
+        .finish()
+        .into();
+    let org2: DisplayOrganization = project
         .create_organization()
         .with_member(&user2, Roles::OrgOwner)
         .with_member(&user, Roles::OrgMember)
-        .finish();
+        .finish()
+        .into();
     let _org3 = project
         .create_organization()
         .with_member(&user2, Roles::OrgOwner)

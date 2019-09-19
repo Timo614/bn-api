@@ -32,9 +32,13 @@ pub fn index(role: Roles) {
 
     let user = support::create_auth_user_from_user(&user, role, Some(&organization), &database);
     // reload organization
-    let organization = Organization::find(organization.id, database.connection.get()).unwrap();
+    let organization: DisplayOrganization =
+        Organization::find(organization.id, database.connection.get())
+            .unwrap()
+            .into();
+    let organization2: DisplayOrganization = organization2.into();
     let expected_organizations = if role != Roles::User {
-        vec![organization.clone(), organization2]
+        vec![organization, organization2]
     } else {
         Vec::new()
     };
@@ -62,6 +66,59 @@ pub fn index(role: Roles) {
     assert_eq!(body, expected_json);
 }
 
+pub fn secrets(role: Roles, should_succeed: bool) {
+    let database = TestDatabase::new();
+    let connection = database.connection.get();
+    let user = database.create_user().finish();
+    let organization = database.create_organization().finish();
+    let auth_user =
+        support::create_auth_user_from_user(&user, role, Some(&organization), &database);
+
+    let sendgrid_api_key = Some("Key 1".to_string());
+    let google_ga_key = Some("Key 2".to_string());
+    let facebook_pixel_key = Some("Key 3".to_string());
+    let globee_api_key = Some("Key 4".to_string());
+
+    // Update organization with secret values
+    let organization = organization
+        .update(
+            OrganizationEditableAttributes {
+                sendgrid_api_key: Some(sendgrid_api_key.clone()),
+                google_ga_key: Some(google_ga_key.clone()),
+                facebook_pixel_key: Some(facebook_pixel_key.clone()),
+                globee_api_key: Some(globee_api_key.clone()),
+                ..Default::default()
+            },
+            &"test_encryption_key".to_string(),
+            connection,
+        )
+        .unwrap();
+
+    let test_request = TestRequest::create();
+    let mut path = Path::<PathParameters>::extract(&test_request.request).unwrap();
+    path.id = organization.id;
+    let response: HttpResponse = organizations::secrets((
+        test_request.extract_state(),
+        database.connection.clone().into(),
+        path,
+        auth_user.clone(),
+    ))
+    .into();
+
+    if !should_succeed {
+        support::expects_unauthorized(&response);
+        return;
+    }
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = support::unwrap_body_to_string(&response).unwrap();
+    let secrets: OrganizationSecretData = serde_json::from_str(&body).unwrap();
+    assert_eq!(secrets.sendgrid_api_key, sendgrid_api_key);
+    assert_eq!(secrets.google_ga_key, google_ga_key);
+    assert_eq!(secrets.facebook_pixel_key, facebook_pixel_key);
+    assert_eq!(secrets.globee_api_key, globee_api_key);
+}
+
 pub fn show(role: Roles, should_succeed: bool) {
     let database = TestDatabase::new();
     let user = database.create_user().finish();
@@ -70,19 +127,17 @@ pub fn show(role: Roles, should_succeed: bool) {
         support::create_auth_user_from_user(&user, role, Some(&organization), &database);
 
     // reload organization
-    let organization = Organization::find(organization.id, database.connection.get()).unwrap();
+    let organization: DisplayOrganization =
+        Organization::find(organization.id, database.connection.get())
+            .unwrap()
+            .into();
     let organization_expected_json = serde_json::to_string(&organization).unwrap();
 
     let test_request = TestRequest::create();
     let mut path = Path::<PathParameters>::extract(&test_request.request).unwrap();
     path.id = organization.id;
-    let response: HttpResponse = organizations::show((
-        test_request.extract_state(),
-        database.connection.into(),
-        path,
-        auth_user.clone(),
-    ))
-    .into();
+    let response: HttpResponse =
+        organizations::show((database.connection.into(), path, auth_user.clone())).into();
 
     if !should_succeed {
         support::expects_unauthorized(&response);
@@ -105,16 +160,17 @@ pub fn index_for_all_orgs(role: Roles, should_test_succeed: bool) {
         .with_name("Organization 1".to_string())
         .with_member(&user, Roles::OrgOwner)
         .finish();
-    let organization2 = database
+    let organization2: DisplayOrganization = database
         .create_organization()
         .with_name("Organization 2".to_string())
         .with_member(&user2, Roles::OrgOwner)
-        .finish();
-
-    let expected_organizations = vec![organization.clone(), organization2];
-
+        .finish()
+        .into();
     let auth_user =
         support::create_auth_user_from_user(&user, role, Some(&organization), &database);
+    let organization: DisplayOrganization = organization.into();
+    let expected_organizations = vec![organization, organization2];
+
     let test_request = TestRequest::create_with_uri(&format!("/limits?"));
     let query_parameters = Query::<PagingParameters>::extract(&test_request.request).unwrap();
     let response: HttpResponse = organizations::index_for_all_orgs((

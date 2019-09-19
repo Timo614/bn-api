@@ -84,6 +84,47 @@ mod show_tests {
 }
 
 #[cfg(test)]
+mod secrets_tests {
+    use super::*;
+    #[test]
+    fn secrets_org_member() {
+        organizations::secrets(Roles::OrgMember, false);
+    }
+    #[test]
+    fn secrets_admin() {
+        organizations::secrets(Roles::Admin, true);
+    }
+    #[test]
+    fn secrets_user() {
+        organizations::secrets(Roles::User, false);
+    }
+    #[test]
+    fn secrets_org_owner() {
+        organizations::secrets(Roles::OrgOwner, true);
+    }
+    #[test]
+    fn secrets_door_person() {
+        organizations::secrets(Roles::DoorPerson, false);
+    }
+    #[test]
+    fn secrets_promoter() {
+        organizations::secrets(Roles::Promoter, false);
+    }
+    #[test]
+    fn secrets_promoter_read_only() {
+        organizations::secrets(Roles::PromoterReadOnly, false);
+    }
+    #[test]
+    fn secrets_org_admin() {
+        organizations::secrets(Roles::OrgAdmin, true);
+    }
+    #[test]
+    fn secrets_box_office() {
+        organizations::secrets(Roles::OrgBoxOffice, false);
+    }
+}
+
+#[cfg(test)]
 mod index_for_all_orgs_tests {
     use super::*;
     #[test]
