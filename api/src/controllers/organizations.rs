@@ -89,7 +89,7 @@ pub fn index_for_all_orgs(
     user.requires_scope(Scopes::OrgAdmin)?;
     let connection = connection.get();
     let organizations = Organization::all(connection)?;
-    let display_organizations: Vec<DisplayOrganization> =
+    let display_organizations: Vec<MemberDisplayOrganization> =
         organizations.into_iter().map(|o| o.into()).collect();
     Ok(HttpResponse::Ok().json(&Payload::from_data(
         display_organizations,
@@ -104,7 +104,7 @@ pub fn show(
     let connection = connection.get();
     let organization = Organization::find(parameters.id, connection)?;
     user.requires_scope_for_organization(Scopes::OrgRead, &organization, connection)?;
-    let display_organization: DisplayOrganization = organization.into();
+    let display_organization: MemberDisplayOrganization = organization.into();
     Ok(HttpResponse::Ok().json(&display_organization))
 }
 

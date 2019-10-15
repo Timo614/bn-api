@@ -32,11 +32,11 @@ pub fn index(role: Roles) {
 
     let user = support::create_auth_user_from_user(&user, role, Some(&organization), &database);
     // reload organization
-    let organization: DisplayOrganization =
+    let organization: MemberDisplayOrganization =
         Organization::find(organization.id, database.connection.get())
             .unwrap()
             .into();
-    let organization2: DisplayOrganization = organization2.into();
+    let organization2: MemberDisplayOrganization = organization2.into();
     let expected_organizations = if role != Roles::User {
         vec![organization, organization2]
     } else {
@@ -89,6 +89,7 @@ pub fn secrets(role: Roles, should_succeed: bool) {
                 globee_api_key: Some(globee_api_key.clone()),
                 ..Default::default()
             },
+            None,
             &"test_encryption_key".to_string(),
             connection,
         )
@@ -127,7 +128,7 @@ pub fn show(role: Roles, should_succeed: bool) {
         support::create_auth_user_from_user(&user, role, Some(&organization), &database);
 
     // reload organization
-    let organization: DisplayOrganization =
+    let organization: MemberDisplayOrganization =
         Organization::find(organization.id, database.connection.get())
             .unwrap()
             .into();
@@ -160,7 +161,7 @@ pub fn index_for_all_orgs(role: Roles, should_test_succeed: bool) {
         .with_name("Organization 1".to_string())
         .with_member(&user, Roles::OrgOwner)
         .finish();
-    let organization2: DisplayOrganization = database
+    let organization2: MemberDisplayOrganization = database
         .create_organization()
         .with_name("Organization 2".to_string())
         .with_member(&user2, Roles::OrgOwner)
@@ -168,7 +169,7 @@ pub fn index_for_all_orgs(role: Roles, should_test_succeed: bool) {
         .into();
     let auth_user =
         support::create_auth_user_from_user(&user, role, Some(&organization), &database);
-    let organization: DisplayOrganization = organization.into();
+    let organization: MemberDisplayOrganization = organization.into();
     let expected_organizations = vec![organization, organization2];
 
     let test_request = TestRequest::create_with_uri(&format!("/limits?"));

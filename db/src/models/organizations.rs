@@ -73,7 +73,7 @@ pub struct OrganizationSecretData {
 
 #[derive(Clone, QueryableByName, Queryable, Serialize, Deserialize, PartialEq, Debug)]
 #[table_name = "organizations"]
-pub struct DisplayOrganization {
+pub struct MemberDisplayOrganization {
     pub id: Uuid,
     pub name: String,
     pub address: Option<String>,
@@ -683,7 +683,7 @@ impl Organization {
     pub fn all_linked_to_user(
         user_id: Uuid,
         conn: &PgConnection,
-    ) -> Result<Vec<DisplayOrganization>, DatabaseError> {
+    ) -> Result<Vec<MemberDisplayOrganization>, DatabaseError> {
         let orgs = organization_users::table
             .filter(organization_users::user_id.eq(user_id))
             .inner_join(organizations::table)
@@ -1289,9 +1289,9 @@ pub struct DisplayOrganization {
     pub slug: String,
 }
 
-impl From<Organization> for DisplayOrganization {
+impl From<Organization> for MemberDisplayOrganization {
     fn from(organization: Organization) -> Self {
-        DisplayOrganization {
+        MemberDisplayOrganization {
             id: organization.id,
             name: organization.name,
             address: organization.address,

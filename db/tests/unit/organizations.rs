@@ -162,7 +162,7 @@ fn secrets() {
     organization.facebook_pixel_key = facebook_pixel_key.clone();
     organization.globee_api_key = globee_api_key.clone();
     let mut organization = organization
-        .commit(&"encryption_key".to_string(), None, connection)
+        .commit(None, &"encryption_key".to_string(), None, connection)
         .unwrap();
 
     let secrets = organization.secrets(&"encryption_key".to_string()).unwrap();
@@ -948,12 +948,12 @@ fn all_linked_to_user() {
     let project = TestProject::new();
     let user = project.create_user().finish();
     let user2 = project.create_user().finish();
-    let org1: DisplayOrganization = project
+    let org1: MemberDisplayOrganization = project
         .create_organization()
         .with_member(&user, Roles::OrgOwner)
         .finish()
         .into();
-    let org2: DisplayOrganization = project
+    let org2: MemberDisplayOrganization = project
         .create_organization()
         .with_member(&user2, Roles::OrgOwner)
         .with_member(&user, Roles::OrgMember)
