@@ -1,4 +1,4 @@
-FROM rust:1.33-slim as builder
+FROM rust:1.38-slim as builder
 
 RUN apt update && apt install \
     libpq-dev \
