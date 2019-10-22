@@ -52,7 +52,7 @@ steps:
     - name: rust-fmt-check
       depends_on:
         - clone
-      image: rust:1.33.0
+      image: rust:1.38.0
       commands:
         - rustup component add rustfmt-preview
         - cargo fmt --all -- --check
@@ -81,7 +81,7 @@ steps:
     - name: compile
       depends_on:
         - clone
-      image: rust:1.33.0
+      image: rust:1.38.0
       environment: *env
       commands:
       - cargo build --release --bins
@@ -122,7 +122,7 @@ steps:
     - name: other-tests
       depends_on:
         - compile
-      image: rust:1.33.0
+      image: rust:1.38.0
       environment:
         <<: *env
         DATABASE_URL: postgres://app:password@database/other_tests

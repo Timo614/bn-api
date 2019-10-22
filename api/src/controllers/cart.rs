@@ -570,7 +570,13 @@ fn checkout_payment_processor(
         service_locator.create_payment_processor(provider, &event.organization(connection)?)?;
     match client.behavior() {
         PaymentProcessorBehavior::RedirectToPaymentPage(behavior) => {
-            return redirect_to_payment_page(&*behavior, &auth_user.user, order, conn.get(), config);
+            return redirect_to_payment_page(
+                &*behavior,
+                &auth_user.user,
+                order,
+                conn.get(),
+                config,
+            );
         }
         PaymentProcessorBehavior::AuthThenComplete(behavior) => {
             let token = if use_stored_payment {
