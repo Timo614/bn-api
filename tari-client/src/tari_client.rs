@@ -54,10 +54,10 @@ pub trait TariClient {
         asset_id: &String,
     ) -> Result<ResponsePayloadReadAsset, TariError>;
 
-    fn box_clone(&self) -> Box<TariClient + Send + Sync>;
+    fn box_clone(&self) -> Box<dyn TariClient + Send + Sync>;
 }
 
-impl Clone for Box<TariClient + Send + Sync> {
+impl Clone for Box<dyn TariClient + Send + Sync> {
     fn clone(&self) -> Self {
         self.box_clone()
     }
@@ -292,7 +292,7 @@ impl TariClient for HttpTariClient {
         Ok(response_message_result)
     }
 
-    fn box_clone(&self) -> Box<TariClient + Send + Sync> {
+    fn box_clone(&self) -> Box<dyn TariClient + Send + Sync> {
         Box::new((*self).clone())
     }
 }

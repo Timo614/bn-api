@@ -85,7 +85,7 @@ impl TariClient for TariTestClient {
         })
     }
 
-    fn box_clone(&self) -> Box<TariClient + Send + Sync> {
+    fn box_clone(&self) -> Box<dyn TariClient + Send + Sync> {
         Box::new((*self).clone())
     }
 }
