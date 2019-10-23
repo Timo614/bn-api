@@ -18,6 +18,7 @@ chrono = {version = "0.4", features = ["serde"]}
 clap = "2.32"
 diesel="1.4.2"
 dotenv = "0.13"
+# Pulling from github as dependency fix merged into master has yet to be released
 expo-server-sdk = { git = "https://github.com/expo/expo-server-sdk-rust", rev="a4334d2d7243ac5e0ecb77478bb42774bbd9af54" }
 facebook = { path="../facebook"}
 futures = "0.1"
