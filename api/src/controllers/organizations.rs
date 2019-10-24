@@ -1,4 +1,4 @@
-use actix_web::{http::StatusCode, HttpResponse, Path, Query, State};
+use actix_web::{http::StatusCode, web::Data, web::Path, web::Query, HttpResponse};
 use auth::user::User;
 use bigneon_db::models::*;
 use chrono::NaiveDateTime;
@@ -67,10 +67,12 @@ pub struct NewFeeScheduleRequest {
 }
 
 pub fn index(
-    (connection, query_parameters, user): (Connection, Query<PagingParameters>, User),
+    connection: Connection,
+    query_parameters: Query<PagingParameters>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     if user.has_scope(Scopes::OrgAdmin)? {
-        return index_for_all_orgs((connection, query_parameters, user));
+        return index_for_all_orgs(connection, query_parameters, user);
     }
 
     //TODO remap query to use paging info
@@ -84,7 +86,9 @@ pub fn index(
 }
 
 pub fn index_for_all_orgs(
-    (connection, query_parameters, user): (Connection, Query<PagingParameters>, User),
+    connection: Connection,
+    query_parameters: Query<PagingParameters>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     user.requires_scope(Scopes::OrgAdmin)?;
     let connection = connection.get();
@@ -98,12 +102,10 @@ pub fn index_for_all_orgs(
 }
 
 pub fn show(
-    (state, connection, parameters, user): (
-        State<AppState>,
-        Connection,
-        Path<PathParameters>,
-        User,
-    ),
+    state: Data<AppState>,
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let mut organization = Organization::find(parameters.id, connection)?;
@@ -115,12 +117,10 @@ pub fn show(
 }
 
 pub fn create(
-    (state, connection, new_organization, user): (
-        State<AppState>,
-        Connection,
-        Json<NewOrganizationRequest>,
-        User,
-    ),
+    state: Data<AppState>,
+    connection: Connection,
+    new_organization: Json<NewOrganizationRequest>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     user.requires_scope(Scopes::OrgAdmin)?;
     let connection = connection.get();
@@ -176,13 +176,11 @@ pub fn create(
 }
 
 pub fn update(
-    (state, connection, parameters, organization_parameters, user): (
-        State<AppState>,
-        Connection,
-        Path<PathParameters>,
-        Json<OrganizationEditableAttributes>,
-        User,
-    ),
+    state: Data<AppState>,
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    organization_parameters: Json<OrganizationEditableAttributes>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = connection.get();
     let mut organization = Organization::find(parameters.id, conn)?;
@@ -210,12 +208,10 @@ pub fn update(
 }
 
 pub fn add_venue(
-    (connection, parameters, new_venue, user): (
-        Connection,
-        Path<PathParameters>,
-        Json<NewVenue>,
-        User,
-    ),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    new_venue: Json<NewVenue>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let organization = Organization::find(parameters.id, connection)?;
@@ -228,12 +224,10 @@ pub fn add_venue(
 }
 
 pub fn add_artist(
-    (connection, parameters, new_artist, user): (
-        Connection,
-        Path<PathParameters>,
-        Json<NewArtist>,
-        User,
-    ),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    new_artist: Json<NewArtist>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let organization = Organization::find(parameters.id, connection)?;
@@ -247,7 +241,10 @@ pub fn add_artist(
 }
 
 pub fn add_or_replace_user(
-    (connection, path, json, user): (Connection, Path<PathParameters>, Json<AddUserRequest>, User),
+    connection: Connection,
+    path: Path<PathParameters>,
+    json: Json<AddUserRequest>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let organization = Organization::find(path.id, connection)?;
@@ -294,7 +291,9 @@ pub fn add_or_replace_user(
 }
 
 pub fn remove_user(
-    (connection, parameters, user): (Connection, Path<OrganizationUserPathParameters>, User),
+    connection: Connection,
+    parameters: Path<OrganizationUserPathParameters>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let organization = Organization::find(parameters.id, connection)?;
@@ -305,12 +304,10 @@ pub fn remove_user(
 }
 
 pub fn list_organization_members(
-    (connection, path_parameters, query_parameters, user): (
-        Connection,
-        Path<PathParameters>,
-        Query<PagingParameters>,
-        User,
-    ),
+    connection: Connection,
+    path_parameters: Path<PathParameters>,
+    query_parameters: Query<PagingParameters>,
+    user: User,
 ) -> Result<WebPayload<DisplayOrganizationUser>, BigNeonError> {
     let connection = connection.get();
     //TODO refactor Organization::find to use limits as in PagingParameters
@@ -359,7 +356,9 @@ pub struct DisplayOrganizationUser {
 }
 
 pub fn show_fee_schedule(
-    (connection, parameters, user): (Connection, Path<PathParameters>, User),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let organization = Organization::find(parameters.id, connection)?;
@@ -379,12 +378,10 @@ pub fn show_fee_schedule(
 }
 
 pub fn add_fee_schedule(
-    (connection, parameters, json, user): (
-        Connection,
-        Path<PathParameters>,
-        Json<NewFeeScheduleRequest>,
-        User,
-    ),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    json: Json<NewFeeScheduleRequest>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     user.requires_scope(Scopes::OrgAdmin)?;
     let connection = connection.get();
@@ -409,12 +406,10 @@ pub fn add_fee_schedule(
 }
 
 pub fn search_fans(
-    (connection, path, query, user): (
-        ReadonlyConnection,
-        Path<PathParameters>,
-        Query<PagingParameters>,
-        User,
-    ),
+    connection: ReadonlyConnection,
+    path: Path<PathParameters>,
+    query: Query<PagingParameters>,
+    user: User,
 ) -> Result<WebPayload<DisplayFan>, BigNeonError> {
     let connection = connection.get();
     let org = Organization::find(path.id, connection)?;

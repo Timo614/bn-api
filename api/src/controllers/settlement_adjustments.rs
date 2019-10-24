@@ -1,4 +1,4 @@
-use actix_web::{HttpResponse, Path};
+use actix_web::{web::Path, HttpResponse};
 use auth::user::User as AuthUser;
 use bigneon_db::models::*;
 use db::Connection;
@@ -7,7 +7,9 @@ use extractors::*;
 use models::PathParameters;
 
 pub fn index(
-    (connection, path, user): (Connection, Path<PathParameters>, AuthUser),
+    connection: Connection,
+    path: Path<PathParameters>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let settlement = Settlement::find(path.id, connection)?;
@@ -24,12 +26,10 @@ pub struct NewSettlementAdjustmentRequest {
 }
 
 pub fn create(
-    (connection, path, json, user): (
-        Connection,
-        Path<PathParameters>,
-        Json<NewSettlementAdjustmentRequest>,
-        AuthUser,
-    ),
+    connection: Connection,
+    path: Path<PathParameters>,
+    json: Json<NewSettlementAdjustmentRequest>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     user.requires_scope(Scopes::OrgAdmin)?;
     let connection = connection.get();
@@ -44,7 +44,9 @@ pub fn create(
 }
 
 pub fn destroy(
-    (connection, path, user): (Connection, Path<PathParameters>, AuthUser),
+    connection: Connection,
+    path: Path<PathParameters>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     user.requires_scope(Scopes::OrgAdmin)?;

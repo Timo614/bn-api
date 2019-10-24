@@ -1,5 +1,5 @@
-use actix_web::State;
-use actix_web::{HttpResponse, Path, Query};
+use actix_web::web::Data;
+use actix_web::{web::Path, web::Query, HttpResponse};
 use auth::user::User;
 use bigneon_db::models::User as DbUser;
 use bigneon_db::prelude::*;
@@ -47,12 +47,10 @@ impl From<SearchParameters> for Paging {
 }
 
 pub fn index(
-    (connection, path, query, auth_user): (
-        Connection,
-        Path<OptionalPathParameters>,
-        Query<SearchParameters>,
-        User,
-    ),
+    connection: Connection,
+    path: Path<OptionalPathParameters>,
+    query: Query<SearchParameters>,
+    auth_user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     //todo convert to use pagingparams
 
@@ -85,7 +83,9 @@ pub struct ShowTicketResponse {
 }
 
 pub fn show(
-    (connection, parameters, auth_user): (Connection, Path<PathParameters>, User),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    auth_user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let (event, user, ticket) = TicketInstance::find_for_display(parameters.id, connection)?;
@@ -106,12 +106,10 @@ pub fn show(
 }
 
 pub fn update(
-    (connection, parameters, ticket_parameters, user): (
-        Connection,
-        Path<PathParameters>,
-        Json<UpdateTicketInstanceAttributes>,
-        User,
-    ),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    ticket_parameters: Json<UpdateTicketInstanceAttributes>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let ticket_parameters = ticket_parameters.into_inner();
@@ -134,7 +132,9 @@ pub fn update(
 }
 
 pub fn show_redeemable_ticket(
-    (connection, parameters, auth_user): (Connection, Path<PathParameters>, User),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    auth_user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let (event, user, _ticket) = TicketInstance::find_for_display(parameters.id, connection)?;
@@ -151,12 +151,10 @@ pub fn show_redeemable_ticket(
 }
 
 pub fn send_via_email_or_phone(
-    (connection, send_tickets_request, auth_user, state): (
-        Connection,
-        Json<SendTicketsRequest>,
-        User,
-        State<AppState>,
-    ),
+    connection: Connection,
+    send_tickets_request: Json<SendTicketsRequest>,
+    auth_user: User,
+    state: Data<AppState>,
 ) -> Result<HttpResponse, BigNeonError> {
     auth_user.requires_scope(Scopes::TicketTransfer)?;
     let connection = connection.get();
@@ -264,11 +262,9 @@ pub struct SendTicketsRequest {
 }
 
 pub fn transfer_authorization(
-    (connection, transfer_tickets_request, auth_user): (
-        Connection,
-        Json<TransferTicketRequest>,
-        User,
-    ),
+    connection: Connection,
+    transfer_tickets_request: Json<TransferTicketRequest>,
+    auth_user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     auth_user.requires_scope(Scopes::TicketTransfer)?;
     let connection = connection.get();
@@ -287,12 +283,10 @@ pub fn transfer_authorization(
 }
 
 pub fn receive_transfer(
-    (connection, transfer_authorization, auth_user, state): (
-        Connection,
-        Json<TransferAuthorization>,
-        User,
-        State<AppState>,
-    ),
+    connection: Connection,
+    transfer_authorization: Json<TransferAuthorization>,
+    auth_user: User,
+    state: Data<AppState>,
 ) -> Result<HttpResponse, BigNeonError> {
     auth_user.requires_scope(Scopes::TicketTransfer)?;
     let connection = connection.get();

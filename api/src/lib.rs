@@ -6,6 +6,9 @@
 // Unused results is more often than not an error
 #![deny(unused_must_use)]
 #![cfg_attr(not(debug_assertions), deny(unused_extern_crates))]
+extern crate actix_cors;
+extern crate actix_http;
+extern crate actix_service;
 extern crate actix_web;
 extern crate bigneon_db;
 extern crate branch_rs;

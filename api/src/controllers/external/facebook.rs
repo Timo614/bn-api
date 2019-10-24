@@ -1,5 +1,5 @@
-use actix_web::Query;
-use actix_web::{HttpResponse, State};
+use actix_web::web::Query;
+use actix_web::{web::Data, HttpResponse};
 use auth::user::User as AuthUser;
 use auth::TokenResponse;
 use bigneon_db::prelude::*;
@@ -30,12 +30,10 @@ struct FacebookGraphResponse {
 
 // TODO: Not covered by tests
 pub fn web_login(
-    (state, connection, auth_token, auth_user): (
-        State<AppState>,
-        Connection,
-        Json<FacebookWebLoginToken>,
-        OptionalUser,
-    ),
+    state: Data<AppState>,
+    connection: Connection,
+    auth_token: Json<FacebookWebLoginToken>,
+    auth_user: OptionalUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let url = format!(
         "{}/me?fields=id,email,first_name,last_name",
@@ -146,7 +144,9 @@ pub fn web_login(
 }
 
 pub fn request_manage_page_access(
-    (_connection, state, user): (Connection, State<AppState>, AuthUser),
+    _connection: Connection,
+    state: Data<AppState>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     // TODO Sign/encrypt the user id passed through so that we can verify it has not been spoofed
     let redirect_url = FacebookClient::get_login_url(
@@ -183,11 +183,9 @@ pub struct AuthCallbackPathParameters {
 
 /// Callback for converting an FB code into an access token
 pub fn auth_callback(
-    (query, state, connection): (
-        Query<AuthCallbackPathParameters>,
-        State<AppState>,
-        Connection,
-    ),
+    query: Query<AuthCallbackPathParameters>,
+    state: Data<AppState>,
+    connection: Connection,
 ) -> Result<HttpResponse, BigNeonError> {
     info!("Auth callback received");
     if query.error.is_some() {
@@ -248,7 +246,7 @@ pub fn auth_callback(
 }
 
 /// Returns a list of pages that a user has access to manage
-pub fn pages((connection, user): (Connection, AuthUser)) -> Result<HttpResponse, BigNeonError> {
+pub fn pages(connection: Connection, user: AuthUser) -> Result<HttpResponse, BigNeonError> {
     let conn = connection.get();
     let db_user = user.user;
     let fb_login = db_user
@@ -293,7 +291,7 @@ pub struct FacebookPage {
     pub name: String,
 }
 
-pub fn scopes((connection, user): (Connection, AuthUser)) -> Result<HttpResponse, BigNeonError> {
+pub fn scopes(connection: Connection, user: AuthUser) -> Result<HttpResponse, BigNeonError> {
     let conn = connection.get();
     let db_user = user.user;
     let external_login = db_user.find_external_login(FACEBOOK_SITE, conn)?;
@@ -301,7 +299,9 @@ pub fn scopes((connection, user): (Connection, AuthUser)) -> Result<HttpResponse
 }
 
 pub fn create_event(
-    (connection, user, data): (Connection, AuthUser, Json<CreateFacebookEvent>),
+    connection: Connection,
+    user: AuthUser,
+    data: Json<CreateFacebookEvent>,
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = connection.get();
     let event = Event::find(data.event_id, conn)?;

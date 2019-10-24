@@ -1,4 +1,4 @@
-use actix_web::{http::StatusCode, HttpResponse, Path, Query};
+use actix_web::{http::StatusCode, web::Path, web::Query, HttpResponse};
 use auth::user::User as AuthUser;
 use bigneon_db::models::*;
 use chrono::prelude::*;
@@ -52,36 +52,32 @@ impl From<ReportQueryParameters> for Paging {
 }
 
 pub fn get_report(
-    (connection, query, path, user): (
-        Connection,
-        Query<ReportQueryParameters>,
-        Path<PathParameters>,
-        AuthUser,
-    ),
+    connection: Connection,
+    query: Query<ReportQueryParameters>,
+    path: Path<PathParameters>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     match query.report.trim() {
-        "box_office_sales_summary" => box_office_sales_summary((connection, query, path, user)),
+        "box_office_sales_summary" => box_office_sales_summary(connection, query, path, user),
         "transaction_details" => {
-            Ok(transaction_detail_report((connection, query, path, user))?.into_http_response()?)
+            Ok(transaction_detail_report(connection, query, path, user)?.into_http_response()?)
         }
-        "event_summary" => event_summary_report((connection, query, path, user)),
-        "weekly_settlement" => weekly_settlement_report((connection, query, path, user)),
-        "ticket_count" => ticket_counts((connection, query, path, user)),
-        "audit_report" => audit_report((connection, query, path, user)),
-        "reconciliation_summary" => reconciliation_summary_report((connection, query, path, user)),
-        "reconciliation_details" => reconciliation_detail_report((connection, query, path, user)),
-        "promo_code" => promo_code_report((connection, query, path, user)),
+        "event_summary" => event_summary_report(connection, query, path, user),
+        "weekly_settlement" => weekly_settlement_report(connection, query, path, user),
+        "ticket_count" => ticket_counts(connection, query, path, user),
+        "audit_report" => audit_report(connection, query, path, user),
+        "reconciliation_summary" => reconciliation_summary_report(connection, query, path, user),
+        "reconciliation_details" => reconciliation_detail_report(connection, query, path, user),
+        "promo_code" => promo_code_report(connection, query, path, user),
         _ => application::not_found(),
     }
 }
 
 pub fn box_office_sales_summary(
-    (connection, query, path, user): (
-        Connection,
-        Query<ReportQueryParameters>,
-        Path<PathParameters>,
-        AuthUser,
-    ),
+    connection: Connection,
+    query: Query<ReportQueryParameters>,
+    path: Path<PathParameters>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
 
@@ -98,12 +94,10 @@ pub fn box_office_sales_summary(
 }
 
 pub fn transaction_detail_report(
-    (connection, query, path, user): (
-        Connection,
-        Query<ReportQueryParameters>,
-        Path<PathParameters>,
-        AuthUser,
-    ),
+    connection: Connection,
+    query: Query<ReportQueryParameters>,
+    path: Path<PathParameters>,
+    user: AuthUser,
 ) -> Result<WebPayload<TransactionReportRow>, BigNeonError> {
     let connection = connection.get();
     //Check if they have org admin permissions
@@ -134,12 +128,10 @@ pub fn transaction_detail_report(
 }
 
 pub fn event_summary_report(
-    (connection, query, path, user): (
-        Connection,
-        Query<ReportQueryParameters>,
-        Path<PathParameters>,
-        AuthUser,
-    ),
+    connection: Connection,
+    query: Query<ReportQueryParameters>,
+    path: Path<PathParameters>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     //Check if they have org admin permissions
@@ -168,12 +160,10 @@ pub fn event_summary_report(
 }
 
 pub fn audit_report(
-    (connection, query, path, user): (
-        Connection,
-        Query<ReportQueryParameters>,
-        Path<PathParameters>,
-        AuthUser,
-    ),
+    connection: Connection,
+    query: Query<ReportQueryParameters>,
+    path: Path<PathParameters>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     //Check if they have org admin permissions
@@ -220,12 +210,10 @@ pub fn audit_report(
 }
 
 pub fn weekly_settlement_report(
-    (connection, query, path, user): (
-        Connection,
-        Query<ReportQueryParameters>,
-        Path<PathParameters>,
-        AuthUser,
-    ),
+    connection: Connection,
+    query: Query<ReportQueryParameters>,
+    path: Path<PathParameters>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     //Check if they have org admin permissions
@@ -239,12 +227,10 @@ pub fn weekly_settlement_report(
 }
 
 pub fn ticket_counts(
-    (connection, query, path, user): (
-        Connection,
-        Query<ReportQueryParameters>,
-        Path<PathParameters>,
-        AuthUser,
-    ),
+    connection: Connection,
+    query: Query<ReportQueryParameters>,
+    path: Path<PathParameters>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     //Check if they have org admin permissions
@@ -266,12 +252,10 @@ pub fn ticket_counts(
 }
 
 pub fn promo_code_report(
-    (connection, query, path, user): (
-        Connection,
-        Query<ReportQueryParameters>,
-        Path<PathParameters>,
-        AuthUser,
-    ),
+    connection: Connection,
+    query: Query<ReportQueryParameters>,
+    path: Path<PathParameters>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     //Check if they have org admin permissions
@@ -293,12 +277,10 @@ pub fn promo_code_report(
 }
 
 pub fn reconciliation_summary_report(
-    (connection, query, path, user): (
-        Connection,
-        Query<ReportQueryParameters>,
-        Path<PathParameters>,
-        AuthUser,
-    ),
+    connection: Connection,
+    query: Query<ReportQueryParameters>,
+    path: Path<PathParameters>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     //Check if they have org admin permissions
@@ -312,12 +294,10 @@ pub fn reconciliation_summary_report(
 }
 
 pub fn reconciliation_detail_report(
-    (connection, query, path, user): (
-        Connection,
-        Query<ReportQueryParameters>,
-        Path<PathParameters>,
-        AuthUser,
-    ),
+    connection: Connection,
+    query: Query<ReportQueryParameters>,
+    path: Path<PathParameters>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     //Check if they have org admin permissions

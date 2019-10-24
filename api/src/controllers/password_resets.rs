@@ -1,4 +1,4 @@
-use actix_web::{HttpResponse, State};
+use actix_web::{web::Data, HttpResponse};
 use auth::TokenResponse;
 use bigneon_db::models::concerns::users::password_resetable::*;
 use bigneon_db::models::User;
@@ -23,11 +23,9 @@ pub struct UpdatePasswordResetParameters {
 }
 
 pub fn create(
-    (state, connection, parameters): (
-        State<AppState>,
-        Connection,
-        Json<CreatePasswordResetParameters>,
-    ),
+    state: Data<AppState>,
+    connection: Connection,
+    parameters: Json<CreatePasswordResetParameters>,
 ) -> Result<HttpResponse, BigNeonError> {
     let request_pending_response = Ok(HttpResponse::Created().json(json!({
         "message": format!("Your request has been received; {} will receive an email shortly with a link to reset your password if it is an account on file.", parameters.email)
@@ -49,11 +47,9 @@ pub fn create(
 }
 
 pub fn update(
-    (state, connection, parameters): (
-        State<AppState>,
-        Connection,
-        Json<UpdatePasswordResetParameters>,
-    ),
+    state: Data<AppState>,
+    connection: Connection,
+    parameters: Json<UpdatePasswordResetParameters>,
 ) -> Result<HttpResponse, BigNeonError> {
     let user = User::consume_password_reset_token(
         &parameters.password_reset_token,

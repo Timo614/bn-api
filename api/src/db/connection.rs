@@ -1,3 +1,4 @@
+use actix_http::Payload;
 use actix_web::{FromRequest, HttpRequest, Result};
 use db::*;
 use diesel;
@@ -5,7 +6,6 @@ use diesel::connection::TransactionManager;
 use diesel::Connection as DieselConnection;
 use diesel::PgConnection;
 use errors::BigNeonError;
-use server::AppState;
 use std::sync::Arc;
 
 pub struct Connection {
@@ -61,16 +61,18 @@ impl Clone for Connection {
     }
 }
 
-impl FromRequest<AppState> for Connection {
+impl FromRequest for Connection {
+    type Error = BigNeonError;
+    type Future = Result<Self, Self::Error>;
     type Config = ();
-    type Result = Result<Connection, BigNeonError>;
 
-    fn from_request(request: &HttpRequest<AppState>, _config: &Self::Config) -> Self::Result {
+    fn from_request(request: &HttpRequest, _payload: &mut Payload) -> Self::Future {
         if let Some(connection) = request.extensions().get::<Connection>() {
             return Ok(connection.clone());
         }
 
-        let connection = request.state().database.get_connection()?;
+        let state: Data<AppState> = request.app_data::<AppState>().unwrap();
+        let connection = state.database.get_connection()?;
         {
             let connection_object = connection.get();
             connection_object

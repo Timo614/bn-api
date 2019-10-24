@@ -1,4 +1,4 @@
-use actix_web::{HttpResponse, Path, Query};
+use actix_web::{web::Path, web::Query, HttpResponse};
 use auth::user::User;
 use bigneon_db::models::*;
 use db::Connection;
@@ -7,7 +7,9 @@ use extractors::*;
 use models::{AddVenueToOrganizationRequest, PathParameters};
 
 pub fn index(
-    (connection, query_parameters, user): (Connection, Query<PagingParameters>, OptionalUser),
+    connection: Connection,
+    query_parameters: Query<PagingParameters>,
+    user: OptionalUser,
 ) -> Result<HttpResponse, BigNeonError> {
     //TODO implement proper paging on db
     let venues = match user.into_inner() {
@@ -23,7 +25,8 @@ pub fn index(
 }
 
 pub fn show(
-    (connection, parameters): (Connection, Path<PathParameters>),
+    connection: Connection,
+    parameters: Path<PathParameters>,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let venue = Venue::find(parameters.id, connection)?;
@@ -32,12 +35,10 @@ pub fn show(
 }
 
 pub fn show_from_organizations(
-    (connection, organization_id, query_parameters, user): (
-        Connection,
-        Path<PathParameters>,
-        Query<PagingParameters>,
-        OptionalUser,
-    ),
+    connection: Connection,
+    organization_id: Path<PathParameters>,
+    query_parameters: Query<PagingParameters>,
+    user: OptionalUser,
 ) -> Result<HttpResponse, BigNeonError> {
     //TODO implement proper paging on db
     let venues = match user.into_inner() {
@@ -55,7 +56,9 @@ pub fn show_from_organizations(
 }
 
 pub fn create(
-    (connection, new_venue, user): (Connection, Json<NewVenue>, User),
+    connection: Connection,
+    new_venue: Json<NewVenue>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
 
@@ -77,7 +80,9 @@ pub fn create(
 }
 
 pub fn toggle_privacy(
-    (connection, parameters, user): (Connection, Path<PathParameters>, User),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     user.requires_scope(Scopes::VenueWrite)?;
@@ -88,12 +93,10 @@ pub fn toggle_privacy(
 }
 
 pub fn update(
-    (connection, parameters, venue_parameters, user): (
-        Connection,
-        Path<PathParameters>,
-        Json<VenueEditableAttributes>,
-        User,
-    ),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    venue_parameters: Json<VenueEditableAttributes>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let venue = Venue::find(parameters.id, connection)?;
@@ -109,12 +112,10 @@ pub fn update(
 }
 
 pub fn add_to_organization(
-    (connection, parameters, add_request, user): (
-        Connection,
-        Path<PathParameters>,
-        Json<AddVenueToOrganizationRequest>,
-        User,
-    ),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    add_request: Json<AddVenueToOrganizationRequest>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     user.requires_scope(Scopes::OrgAdmin)?;

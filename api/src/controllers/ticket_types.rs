@@ -1,4 +1,4 @@
-use actix_web::{HttpResponse, Path, Query, State};
+use actix_web::{web::Data, web::Path, web::Query, HttpResponse};
 use auth::user::User;
 use bigneon_db::dev::times;
 use bigneon_db::models::*;
@@ -117,13 +117,11 @@ pub struct DisplayCreatedTicket {
 }
 
 pub fn create(
-    (connection, path, data, user, state): (
-        Connection,
-        Path<PathParameters>,
-        Json<CreateTicketTypeRequest>,
-        User,
-        State<AppState>,
-    ),
+    connection: Connection,
+    path: Path<PathParameters>,
+    data: Json<CreateTicketTypeRequest>,
+    user: User,
+    state: Data<AppState>,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let event = Event::find(path.id, connection)?;
@@ -147,13 +145,11 @@ pub fn create(
 }
 
 pub fn create_multiple(
-    (connection, path, data, user, state): (
-        Connection,
-        Path<PathParameters>,
-        Json<CreateMultipleTicketTypeRequest>,
-        User,
-        State<AppState>,
-    ),
+    connection: Connection,
+    path: Path<PathParameters>,
+    data: Json<CreateMultipleTicketTypeRequest>,
+    user: User,
+    state: Data<AppState>,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let data = data.into_inner();
@@ -183,12 +179,10 @@ pub struct TicketTypesResponse {
 }
 
 pub fn index(
-    (connection, path, query_parameters, user): (
-        Connection,
-        Path<PathParameters>,
-        Query<PagingParameters>,
-        User,
-    ),
+    connection: Connection,
+    path: Path<PathParameters>,
+    query_parameters: Query<PagingParameters>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let event = Event::find(path.id, connection)?;
@@ -219,12 +213,10 @@ pub fn index(
 }
 
 pub fn cancel(
-    (connection, path, user, state): (
-        Connection,
-        Path<EventTicketPathParameters>,
-        User,
-        State<AppState>,
-    ),
+    connection: Connection,
+    path: Path<EventTicketPathParameters>,
+    user: User,
+    state: Data<AppState>,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let event = Event::find(path.event_id, connection)?;
@@ -269,13 +261,11 @@ pub fn cancel(
 }
 
 pub fn update(
-    (connection, path, data, user, state): (
-        Connection,
-        Path<EventTicketPathParameters>,
-        Json<UpdateTicketTypeRequest>,
-        User,
-        State<AppState>,
-    ),
+    connection: Connection,
+    path: Path<EventTicketPathParameters>,
+    data: Json<UpdateTicketTypeRequest>,
+    user: User,
+    state: Data<AppState>,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let event = Event::find(path.event_id, connection)?;
@@ -443,7 +433,7 @@ pub fn update(
 }
 
 fn nullify_tickets(
-    state: State<AppState>,
+    state: Data<AppState>,
     organization: Organization,
     ticket_type: &TicketType,
     quantity: u32,
@@ -489,7 +479,7 @@ fn create_ticket_types(
     organization: &Organization,
     user: &User,
     data: Vec<CreateTicketTypeRequest>,
-    state: &State<AppState>,
+    state: &Data<AppState>,
     connection: &PgConnection,
 ) -> Result<Vec<DisplayCreatedTicket>, BigNeonError> {
     let mut created_ticket_types = Vec::new();

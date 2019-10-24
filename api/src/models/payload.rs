@@ -1,3 +1,4 @@
+use actix_http::Response;
 use actix_web::http::StatusCode;
 use actix_web::HttpRequest;
 use actix_web::HttpResponse;
@@ -28,9 +29,8 @@ where
     pub fn into_http_response(self) -> Result<HttpResponse, BigNeonError> {
         let body = serde_json::to_string(&self.1)?;
         Ok(HttpResponse::new(self.0)
-            .into_builder()
             .content_type("application/json")
-            .body(body))
+            .set_body(body))
     }
 }
 
@@ -38,10 +38,10 @@ impl<T> Responder for WebPayload<T>
 where
     T: Serialize,
 {
-    type Item = HttpResponse;
     type Error = Error;
+    type Future = Result<Response, Self::Error>;
 
-    fn respond_to<S>(self, _req: &HttpRequest<S>) -> Result<HttpResponse, Error> {
+    fn respond_to(self, _req: &HttpRequest) -> Self::Future {
         Ok(self.into_http_response()?)
     }
 }
@@ -66,15 +66,14 @@ impl<T> Responder for WebResult<T>
 where
     T: Serialize,
 {
-    type Item = HttpResponse;
     type Error = Error;
+    type Future = Result<Response, Self::Error>;
 
-    fn respond_to<S>(self, _req: &HttpRequest<S>) -> Result<HttpResponse, Error> {
+    fn respond_to(self, _req: &HttpRequest) -> Self::Future {
         let body = serde_json::to_string(&self.1)?;
         Ok(HttpResponse::new(self.0)
-            .into_builder()
             .content_type("application/json")
-            .body(body))
+            .set_body(body))
     }
 }
 

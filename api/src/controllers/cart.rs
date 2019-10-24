@@ -1,5 +1,5 @@
+use actix_web::web::Data;
 use actix_web::HttpResponse;
-use actix_web::State;
 use auth::user::User;
 use bigneon_db::models::TicketType as Dbticket_types;
 use bigneon_db::models::User as DbUser;
@@ -43,12 +43,10 @@ pub struct UpdateCartRequest {
 }
 
 pub fn update_cart(
-    (connection, json, user, request_info): (
-        Connection,
-        Json<UpdateCartRequest>,
-        User,
-        RequestInfo,
-    ),
+    connection: Connection,
+    json: Json<UpdateCartRequest>,
+    user: User,
+    request_info: RequestInfo,
 ) -> Result<HttpResponse, BigNeonError> {
     let json = json.into_inner();
     jlog!(Debug, "Update Cart", {"cart": json, "user_id": user.id()});
@@ -113,7 +111,7 @@ pub fn update_cart(
     )
 }
 
-pub fn destroy((connection, user): (Connection, User)) -> Result<HttpResponse, BigNeonError> {
+pub fn destroy(connection: Connection, user: User) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
 
     // Find the current cart of the user, if it exists.
@@ -130,12 +128,10 @@ pub fn destroy((connection, user): (Connection, User)) -> Result<HttpResponse, B
 }
 
 pub fn replace_cart(
-    (connection, json, user, request_info): (
-        Connection,
-        Json<UpdateCartRequest>,
-        User,
-        RequestInfo,
-    ),
+    connection: Connection,
+    json: Json<UpdateCartRequest>,
+    user: User,
+    request_info: RequestInfo,
 ) -> Result<HttpResponse, BigNeonError> {
     let json = json.into_inner();
     jlog!(Debug, "Replace Cart", {"cart": json, "user_id": user.id() });
@@ -200,7 +196,7 @@ pub fn replace_cart(
     )
 }
 
-pub fn show((connection, user): (Connection, User)) -> Result<HttpResponse, BigNeonError> {
+pub fn show(connection: Connection, user: User) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let order = match Order::find_cart_for_user(user.id(), connection)? {
         Some(o) => o,
@@ -249,7 +245,8 @@ pub enum PaymentRequest {
 }
 
 pub fn clear_invalid_items(
-    (connection, user): (Connection, User),
+    connection: Connection,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let mut order = match Order::find_cart_for_user(user.id(), connection)? {
@@ -269,13 +266,11 @@ pub fn clear_invalid_items(
 }
 
 pub fn checkout(
-    (connection, json, user, state, request_info): (
-        Connection,
-        Json<CheckoutCartRequest>,
-        User,
-        State<AppState>,
-        RequestInfo,
-    ),
+    connection: Connection,
+    json: Json<CheckoutCartRequest>,
+    user: User,
+    state: Data<AppState>,
+    request_info: RequestInfo,
 ) -> Result<HttpResponse, BigNeonError> {
     // TODO: Change application::unprocesable's in this method to validation errors.
     let req = json.into_inner();

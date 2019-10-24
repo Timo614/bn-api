@@ -1,4 +1,4 @@
-use actix_web::{HttpResponse, Path, State};
+use actix_web::{web::Data, web::Path, HttpResponse};
 use auth::user::User;
 use bigneon_db::dev::times;
 use bigneon_db::models::*;
@@ -86,7 +86,9 @@ impl From<UpdateCodeRequest> for UpdateCodeAttributes {
 }
 
 pub fn show(
-    (conn, path, user): (Connection, Path<PathParameters>, User),
+    conn: Connection,
+    path: Path<PathParameters>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = conn.get();
     let code = Code::find(path.id, conn)?;
@@ -101,7 +103,10 @@ pub fn show(
 }
 
 pub fn link(
-    (conn, path, user, state): (Connection, Path<PathParameters>, User, State<AppState>),
+    conn: Connection,
+    path: Path<PathParameters>,
+    user: User,
+    state: Data<AppState>,
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = conn.get();
     let code = Code::find(path.id, conn)?;
@@ -130,12 +135,10 @@ pub fn link(
 }
 
 pub fn create(
-    (conn, req, path, user): (
-        Connection,
-        Json<CreateCodeRequest>,
-        Path<PathParameters>,
-        User,
-    ),
+    conn: Connection,
+    req: Json<CreateCodeRequest>,
+    path: Path<PathParameters>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = conn.get();
     let event = Event::find(path.id, conn)?;
@@ -174,12 +177,10 @@ pub fn create(
 }
 
 pub fn update(
-    (conn, req, path, user): (
-        Connection,
-        Json<UpdateCodeRequest>,
-        Path<PathParameters>,
-        User,
-    ),
+    conn: Connection,
+    req: Json<UpdateCodeRequest>,
+    path: Path<PathParameters>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = conn.get();
 
@@ -201,7 +202,9 @@ pub fn update(
 }
 
 pub fn destroy(
-    (conn, path, user): (Connection, Path<PathParameters>, User),
+    conn: Connection,
+    path: Path<PathParameters>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = conn.get();
     let code = Code::find(path.id, conn)?;

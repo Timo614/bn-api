@@ -1034,11 +1034,9 @@ fn checkout_paid_fails_with_free_cart() {
     .into();
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 
-    let expected_json = HttpResponse::new(StatusCode::UNPROCESSABLE_ENTITY)
-        .into_builder()
-        .json(json!({
-            "error": "Could not complete this cart; only paid orders require payment processing"
-        }));
+    let expected_json = HttpResponse::UnprocessableEntity().json(json!({
+        "error": "Could not complete this cart; only paid orders require payment processing"
+    }));
     let expected_text = unwrap_body_to_string(&expected_json).unwrap();
     let body = unwrap_body_to_string(&response).unwrap();
     assert_eq!(body, expected_text);
@@ -1273,11 +1271,9 @@ fn checkout_fails_for_invalid_items() {
     .into();
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 
-    let expected_json = HttpResponse::new(StatusCode::UNPROCESSABLE_ENTITY)
-        .into_builder()
-        .json(json!({
-            "error": "Could not complete this checkout because it contains invalid order items"
-        }));
+    let expected_json = HttpResponse::new(StatusCode::UNPROCESSABLE_ENTITY).json(json!({
+        "error": "Could not complete this checkout because it contains invalid order items"
+    }));
     let expected_text = unwrap_body_to_string(&expected_json).unwrap();
     let body = unwrap_body_to_string(&response).unwrap();
     assert_eq!(body, expected_text);

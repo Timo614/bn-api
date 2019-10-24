@@ -1,4 +1,4 @@
-use actix_web::{HttpResponse, Path, Query};
+use actix_web::{web::Path, web::Query, HttpResponse};
 use auth::user::User as AuthUser;
 use bigneon_db::models::*;
 use db::Connection;
@@ -7,13 +7,11 @@ use extractors::*;
 use models::PathParameters;
 
 pub fn index(
-    (connection, path_parameters, query_parameters): (
-        Connection,
-        Path<PathParameters>,
-        Query<PagingParameters>,
-    ),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    query_parameters: Query<PagingParameters>,
 ) -> Result<HttpResponse, BigNeonError> {
-    let stages = Stage::find_by_venue_id(path_parameters.id, connection.get())?;
+    let stages = Stage::find_by_venue_id(parameters.id, connection.get())?;
 
     Ok(HttpResponse::Ok().json(&Payload::from_data(
         stages,
@@ -23,7 +21,8 @@ pub fn index(
 }
 
 pub fn show(
-    (connection, parameters): (Connection, Path<PathParameters>),
+    connection: Connection,
+    parameters: Path<PathParameters>,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let stage = Stage::find(parameters.id, connection)?;
@@ -39,12 +38,10 @@ pub struct CreateStage {
 }
 
 pub fn create(
-    (connection, parameters, create_stage, user): (
-        Connection,
-        Path<PathParameters>,
-        Json<CreateStage>,
-        AuthUser,
-    ),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    create_stage: Json<CreateStage>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let venue = Venue::find(parameters.id, connection)?;
@@ -68,12 +65,10 @@ pub fn create(
 }
 
 pub fn update(
-    (connection, parameters, stage_parameters, user): (
-        Connection,
-        Path<PathParameters>,
-        Json<StageEditableAttributes>,
-        AuthUser,
-    ),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    stage_parameters: Json<StageEditableAttributes>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let stage = Stage::find(parameters.id, connection)?;
@@ -90,7 +85,9 @@ pub fn update(
 }
 
 pub fn delete(
-    (connection, parameters, user): (Connection, Path<PathParameters>, AuthUser),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let stage = Stage::find(parameters.id, connection)?;

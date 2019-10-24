@@ -1,4 +1,4 @@
-use actix_web::{http::StatusCode, HttpResponse, Path, Query, State};
+use actix_web::{http::StatusCode, web::Data, web::Path, web::Query, HttpResponse};
 use auth::user::User;
 use bigneon_db::models::{User as DbUser, *};
 use chrono::prelude::*;
@@ -18,7 +18,8 @@ pub struct TransferFilters {
 }
 
 pub fn show_by_transfer_key(
-    (connection, path): (Connection, Path<PathParameters>),
+    connection: Connection,
+    path: Path<PathParameters>,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let transfer = Transfer::find_by_transfer_key(path.id, connection)?;
@@ -27,13 +28,11 @@ pub fn show_by_transfer_key(
 }
 
 pub fn index(
-    (connection, paging_query, filter_query, path, auth_user): (
-        Connection,
-        Query<PagingParameters>,
-        Query<TransferFilters>,
-        Path<OptionalPathParameters>,
-        User,
-    ),
+    connection: Connection,
+    paging_query: Query<PagingParameters>,
+    filter_query: Query<TransferFilters>,
+    path: Path<OptionalPathParameters>,
+    auth_user: User,
 ) -> Result<WebPayload<DisplayTransfer>, BigNeonError> {
     let connection = connection.get();
     let mut lookup_user_id = auth_user.id();
@@ -91,7 +90,10 @@ pub fn index(
 }
 
 pub fn cancel(
-    (connection, path, auth_user, state): (Connection, Path<PathParameters>, User, State<AppState>),
+    connection: Connection,
+    path: Path<PathParameters>,
+    auth_user: User,
+    state: Data<AppState>,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let transfer = Transfer::find(path.id, connection)?;

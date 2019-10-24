@@ -1,4 +1,4 @@
-use actix_web::{HttpRequest, HttpResponse, State};
+use actix_web::{web::Data, HttpRequest, HttpResponse};
 use auth::{claims::RefreshToken, TokenResponse};
 use bigneon_db::models::{deserialize_unless_blank, User};
 use db::Connection;
@@ -45,14 +45,12 @@ impl RefreshRequest {
 }
 
 pub fn token(
-    (http_request, connection, login_request, request_info): (
-        HttpRequest<AppState>,
-        Connection,
-        Json<LoginRequest>,
-        RequestInfo,
-    ),
+    state: Data<AppState>,
+    http_request: HttpRequest,
+    connection: Connection,
+    login_request: Json<LoginRequest>,
+    request_info: RequestInfo,
 ) -> Result<TokenResponse, BigNeonError> {
-    let state = http_request.state();
     let connection_info = http_request.connection_info();
     let remote_ip = connection_info.remote();
     let mut login_log_data = HashMap::new();
@@ -118,7 +116,9 @@ pub fn token(
 }
 
 pub fn token_refresh(
-    (state, connection, refresh_request): (State<AppState>, Connection, Json<RefreshRequest>),
+    state: Data<AppState>,
+    connection: Connection,
+    refresh_request: Json<RefreshRequest>,
 ) -> Result<HttpResponse, BigNeonError> {
     let mut validation = Validation::default();
     validation.validate_exp = false;

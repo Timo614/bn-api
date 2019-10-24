@@ -1,4 +1,4 @@
-use actix_web::{HttpResponse, Json, State};
+use actix_web::{web::Data, web::Json, HttpResponse};
 use auth::user::User as AuthUser;
 use bigneon_db::models::concerns::users::password_resetable::PasswordResetable;
 use bigneon_db::models::User;
@@ -18,12 +18,10 @@ pub struct UserInviteRequest {
 }
 
 pub fn create(
-    (state, connection, parameters, auth_user): (
-        State<AppState>,
-        Connection,
-        Json<UserInviteRequest>,
-        AuthUser,
-    ),
+    state: Data<AppState>,
+    connection: Connection,
+    parameters: Json<UserInviteRequest>,
+    auth_user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
 

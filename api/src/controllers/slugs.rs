@@ -1,4 +1,4 @@
-use actix_web::{HttpResponse, Path, Query, State};
+use actix_web::{web::Data, web::Path, web::Query, HttpResponse};
 use bigneon_db::prelude::*;
 use controllers::events::{self, *};
 use db::ReadonlyConnection;
@@ -37,14 +37,12 @@ pub enum SlugResponse {
 }
 
 pub fn show(
-    (state, conn, mut parameters, query, auth_user, request): (
-        State<AppState>,
-        ReadonlyConnection,
-        Path<StringPathParameters>,
-        Query<EventParameters>,
-        OptionalUser,
-        RequestInfo,
-    ),
+    state: Data<AppState>,
+    conn: ReadonlyConnection,
+    mut parameters: Path<StringPathParameters>,
+    query: Query<EventParameters>,
+    auth_user: OptionalUser,
+    request: RequestInfo,
 ) -> Result<HttpResponse, BigNeonError> {
     let user = auth_user
         .clone()
@@ -62,7 +60,7 @@ pub fn show(
         SlugTypes::Organization | SlugTypes::Venue | SlugTypes::Event => {
             let primary_slug = Slug::primary_slug(slug.main_table_id, slug.main_table, connection)?;
             if primary_slug.slug != slug.slug {
-                return application::redirection_json(primary_slug.slug, state);
+                return application::redirection_json(primary_slug.slug, &state);
             }
         }
         _ => (),
@@ -71,7 +69,7 @@ pub fn show(
     let response = match slug.slug_type {
         SlugTypes::Event => {
             parameters.id = slug.main_table_id.to_string();
-            return events::show((state, conn, parameters, query, auth_user, request));
+            return events::show(state, conn, parameters, query, auth_user, request);
         }
         SlugTypes::Organization => {
             let organization = Organization::find(slug.main_table_id, connection)?;

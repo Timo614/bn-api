@@ -9,7 +9,8 @@ use log::Level::Debug;
 use uuid::Uuid;
 
 pub fn globee(
-    (data, conn): (Json<GlobeeIpnRequest>, Connection),
+    data: Json<GlobeeIpnRequest>,
+    conn: Connection,
 ) -> Result<HttpResponse, BigNeonError> {
     let data = data.into_inner();
     jlog!(Debug, "Globee IPN received", { "data": &data });

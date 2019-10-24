@@ -1,18 +1,20 @@
+use actix_http::Payload;
 use actix_web::error::*;
 use actix_web::{FromRequest, HttpRequest};
 use auth::claims;
 use auth::user::User;
 use bigneon_db::models::User as DbUser;
 use errors::*;
+use futures::Future;
 use jwt::{decode, Validation};
 use middleware::RequestConnection;
-use server::AppState;
 
-impl FromRequest<AppState> for User {
+impl FromRequest for User {
+    type Error = Error;
+    type Future = Result<Self, Self::Error>;
     type Config = ();
-    type Result = Result<User, Error>;
 
-    fn from_request(req: &HttpRequest<AppState>, _cfg: &Self::Config) -> Self::Result {
+    fn from_request(req: &HttpRequest, _payload: &mut Payload) -> Self::Future {
         match req.headers().get("Authorization") {
             Some(auth_header) => {
                 let mut parts = auth_header

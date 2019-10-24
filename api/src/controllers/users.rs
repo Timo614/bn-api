@@ -1,6 +1,8 @@
+use actix_http::Response;
 use actix_web;
 use actix_web::Responder;
-use actix_web::{http::StatusCode, HttpRequest, HttpResponse, Path, Query};
+use actix_web::web::Data;
+use actix_web::{http::StatusCode, web::Path, web::Query, HttpRequest, HttpResponse};
 use auth::user::User as AuthUser;
 use bigneon_db::prelude::*;
 use communications::mailers;
@@ -36,15 +38,13 @@ pub struct CurrentUser {
 }
 
 impl Responder for CurrentUser {
-    type Item = HttpResponse;
     type Error = actix_web::Error;
+    type Future = Result<Response, Self::Error>;
 
-    fn respond_to<S>(self, _req: &HttpRequest<S>) -> Result<HttpResponse, actix_web::Error> {
+    fn respond_to(self, _req: &HttpRequest) -> Self::Future {
         let body = serde_json::to_string(&self)?;
-        Ok(HttpResponse::new(StatusCode::OK)
-            .into_builder()
-            .content_type("application/json")
-            .body(body))
+
+        Ok(HttpResponse::Ok().json(body))
     }
 }
 
@@ -61,20 +61,19 @@ pub struct InputPushNotificationTokens {
 }
 
 pub fn current_user(
-    (connection, auth_user): (Connection, AuthUser),
+    connection: Connection,
+    auth_user: AuthUser,
 ) -> Result<CurrentUser, BigNeonError> {
     let connection = connection.get();
     current_user_from_user(&auth_user.user, connection)
 }
 
 pub fn activity(
-    (connection, path, query, activity_query, auth_user): (
-        Connection,
-        Path<OrganizationFanPathParameters>,
-        Query<PagingParameters>,
-        Query<ActivityParameters>,
-        AuthUser,
-    ),
+    connection: Connection,
+    path: Path<OrganizationFanPathParameters>,
+    query: Query<PagingParameters>,
+    activity_query: Query<ActivityParameters>,
+    auth_user: AuthUser,
 ) -> Result<WebPayload<ActivitySummary>, BigNeonError> {
     let connection = connection.get();
     let organization = Organization::find(path.id, connection)?;
@@ -112,7 +111,9 @@ pub fn activity(
 }
 
 pub fn profile(
-    (connection, path, auth_user): (Connection, Path<OrganizationFanPathParameters>, AuthUser),
+    connection: Connection,
+    path: Path<OrganizationFanPathParameters>,
+    auth_user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let organization = Organization::find(path.id, connection)?;
@@ -129,12 +130,10 @@ pub fn profile(
 }
 
 pub fn history(
-    (connection, path, query, auth_user): (
-        Connection,
-        Path<OrganizationFanPathParameters>,
-        Query<PagingParameters>,
-        AuthUser,
-    ),
+    connection: Connection,
+    path: Path<OrganizationFanPathParameters>,
+    query: Query<PagingParameters>,
+    auth_user: AuthUser,
 ) -> Result<WebPayload<HistoryItem>, BigNeonError> {
     let connection = connection.get();
     let organization = Organization::find(path.id, connection)?;
@@ -159,7 +158,9 @@ pub fn history(
 }
 
 pub fn update_current_user(
-    (connection, user_parameters, auth_user): (Connection, Json<UserProfileAttributes>, AuthUser),
+    connection: Connection,
+    user_parameters: Json<UserProfileAttributes>,
+    auth_user: AuthUser,
 ) -> Result<CurrentUser, BigNeonError> {
     let connection = connection.get();
 
@@ -173,7 +174,9 @@ pub fn update_current_user(
 }
 
 pub fn show(
-    (connection, parameters, auth_user): (Connection, Path<PathParameters>, AuthUser),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    auth_user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let user = User::find(parameters.id, connection)?;
@@ -185,12 +188,10 @@ pub fn show(
 }
 
 pub fn list_organizations(
-    (connection, parameters, query_parameters, auth_user): (
-        Connection,
-        Path<PathParameters>,
-        Query<PagingParameters>,
-        AuthUser,
-    ),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    query_parameters: Query<PagingParameters>,
+    auth_user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let user = User::find(parameters.id, connection)?;
@@ -208,7 +209,9 @@ pub fn list_organizations(
 }
 
 pub fn show_push_notification_tokens_for_user_id(
-    (connection, parameters, auth_user): (Connection, Path<PathParameters>, AuthUser),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    auth_user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let user = User::find(parameters.id, connection)?;
@@ -226,7 +229,8 @@ pub fn show_push_notification_tokens_for_user_id(
 }
 
 pub fn show_push_notification_tokens(
-    (connection, auth_user): (Connection, AuthUser),
+    connection: Connection,
+    auth_user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
 
@@ -240,7 +244,9 @@ pub fn show_push_notification_tokens(
 }
 
 pub fn add_push_notification_token(
-    (connection, add_request, auth_user): (Connection, Json<InputPushNotificationTokens>, AuthUser),
+    connection: Connection,
+    add_request: Json<InputPushNotificationTokens>,
+    auth_user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
 
@@ -256,7 +262,9 @@ pub fn add_push_notification_token(
 }
 
 pub fn remove_push_notification_token(
-    (connection, parameters, auth_user): (Connection, Path<PathParameters>, AuthUser),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    auth_user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
 
@@ -266,13 +274,11 @@ pub fn remove_push_notification_token(
 }
 
 pub fn register(
-    (http_request, connection, parameters): (
-        HttpRequest<AppState>,
-        Connection,
-        Json<RegisterRequest>,
-    ),
+    state: Data<AppState>,
+    http_request: HttpRequest,
+    connection: Connection,
+    parameters: Json<RegisterRequest>,
 ) -> Result<HttpResponse, BigNeonError> {
-    let state = http_request.state();
     let connection_info = http_request.connection_info();
     let remote_ip = connection_info.remote();
     let mut log_data = HashMap::new();
@@ -311,14 +317,12 @@ pub fn register(
 }
 
 pub fn register_and_login(
-    (http_request, connection, parameters, request_info): (
-        HttpRequest<AppState>,
-        Connection,
-        Json<RegisterRequest>,
-        RequestInfo,
-    ),
+    state: Data<AppState>,
+    http_request: HttpRequest,
+    connection: Connection,
+    parameters: Json<RegisterRequest>,
+    request_info: RequestInfo,
 ) -> Result<HttpResponse, BigNeonError> {
-    let state = http_request.state();
     let connection_info = http_request.connection_info();
     let remote_ip = connection_info.remote();
     let mut log_data = HashMap::new();
@@ -351,8 +355,7 @@ pub fn register_and_login(
         },
     };
     let json = Json(LoginRequest::new(&email, &password));
-    let token_response =
-        auth::token((http_request.clone(), connection.clone(), json, request_info))?;
+    let token_response = auth::token(state.clone(), http_request.clone(), connection.clone(), json, request_info)?;
 
     if let (Some(first_name), Some(email)) = (new_user.first_name, new_user.email) {
         mailers::user::user_registered(first_name, email, &state.config, connection.get())?;

@@ -5,7 +5,7 @@ use errors::BigNeonError;
 use std::env;
 use utils::gen_sitemap;
 
-pub fn index(connection: (Connection)) -> Result<HttpResponse, BigNeonError> {
+pub fn index(connection: Connection) -> Result<HttpResponse, BigNeonError> {
     //find all active events
     let events = Event::find_all_active_events(connection.get())?;
     let slug_ids = events

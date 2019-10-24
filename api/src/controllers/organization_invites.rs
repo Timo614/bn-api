@@ -1,4 +1,4 @@
-use actix_web::{http::StatusCode, HttpResponse, Path, Query, State};
+use actix_web::{http::StatusCode, web::Data, web::Path, web::Query, HttpResponse};
 use auth::user::User as AuthUser;
 use bigneon_db::models::*;
 use bigneon_db::utils::errors::DatabaseError;
@@ -31,13 +31,11 @@ pub struct NewOrgInviteRequest {
     pub event_ids: Option<Vec<Uuid>>,
 }
 pub fn create_for_event(
-    (state, connection, new_org_invite, path, auth_user): (
-        State<AppState>,
-        Connection,
-        Json<NewOrgInviteRequest>,
-        Path<PathParameters>,
-        AuthUser,
-    ),
+    state: Data<AppState>,
+    connection: Connection,
+    new_org_invite: Json<NewOrgInviteRequest>,
+    path: Path<PathParameters>,
+    auth_user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let organization = Event::find(path.id, connection)?.organization(connection)?;
@@ -47,13 +45,11 @@ pub fn create_for_event(
 }
 
 pub fn create(
-    (state, connection, new_org_invite, path, auth_user): (
-        State<AppState>,
-        Connection,
-        Json<NewOrgInviteRequest>,
-        Path<PathParameters>,
-        AuthUser,
-    ),
+    state: Data<AppState>,
+    connection: Connection,
+    new_org_invite: Json<NewOrgInviteRequest>,
+    path: Path<PathParameters>,
+    auth_user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let organization = Organization::find(path.id, connection)?;
@@ -67,7 +63,7 @@ pub fn create(
 }
 
 fn create_invite(
-    state: State<AppState>,
+    state: Data<AppState>,
     connection: &PgConnection,
     new_org_invite: NewOrgInviteRequest,
     organization: &Organization,
@@ -165,12 +161,10 @@ fn create_invite(
 }
 
 pub fn index(
-    (connection, path, query_parameters, auth_user): (
-        Connection,
-        Path<PathParameters>,
-        Query<PagingParameters>,
-        AuthUser,
-    ),
+    connection: Connection,
+    path: Path<PathParameters>,
+    query_parameters: Query<PagingParameters>,
+    auth_user: AuthUser,
 ) -> Result<WebPayload<DisplayInvite>, BigNeonError> {
     let connection = connection.get();
     let organization = Organization::find(path.id, connection)?;
@@ -187,7 +181,9 @@ pub fn index(
 }
 
 pub fn destroy(
-    (connection, path, auth_user): (Connection, Path<OrganizationInvitePathParameters>, AuthUser),
+    connection: Connection,
+    path: Path<OrganizationInvitePathParameters>,
+    auth_user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let invite = OrganizationInvite::find(path.invite_id, connection)?;
@@ -245,7 +241,8 @@ pub fn destroy(
 }
 
 pub fn view(
-    (connection, path): (Connection, Path<PathParameters>),
+    connection: Connection,
+    path: Path<PathParameters>,
 ) -> Result<HttpResponse, BigNeonError> {
     // TODO: Change /{id} to /?token={} in routing and client apps.
     // Until then, just remember that the id passed in is actually the token
@@ -255,7 +252,9 @@ pub fn view(
 }
 
 pub fn accept_request(
-    (connection, query, user): (Connection, Query<InviteResponseQuery>, OptionalUser),
+    connection: Connection,
+    query: Query<InviteResponseQuery>,
+    user: OptionalUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let query_struct = query.into_inner();
     let connection = connection.get();

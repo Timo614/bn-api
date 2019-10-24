@@ -1,6 +1,5 @@
-use actix_web::http;
-use actix_web::middleware::cors::Cors;
-use actix_web::{server, App};
+use actix_cors::Cors;
+use actix_web::{http, App, HttpServer};
 use bigneon_db::utils::errors::DatabaseError;
 use config::Config;
 use db::*;
@@ -75,42 +74,40 @@ impl Server {
             let conf = config.clone();
 
             //            let keep_alive = server::KeepAlive::Tcp(config.http_keep_alive);
-            let mut server = server::new({
+            let mut server = HttpServer::new({
                 move || {
-                    App::with_state(
-                        AppState::new(conf.clone(), database.clone(), database_ro.clone())
-                            .expect("Expected to generate app state"),
-                    )
-                    .middleware(BigNeonLogger::new(LOGGER_FORMAT))
-                    .middleware(DatabaseTransaction::new())
-                    .middleware(AppVersionHeader::new())
-                    .middleware(Metatags::new(
-                        conf.ssr_trigger_header.clone(),
-                        conf.ssr_trigger_value.clone(),
-                        conf.front_end_url.clone(),
-                        conf.app_name.clone(),
-                    ))
-                    .configure(|a| {
-                        let mut cors_config = Cors::for_app(a);
-                        match conf.allowed_origins.as_ref() {
-                            "*" => cors_config.send_wildcard(),
-                            _ => cors_config.allowed_origin(&conf.allowed_origins),
-                        };
-                        cors_config
-                            .allowed_methods(vec!["GET", "POST", "PUT", "PATCH", "DELETE"])
-                            .allowed_headers(vec![
-                                http::header::AUTHORIZATION,
-                                http::header::ACCEPT,
-                                "X-API-Client-Version"
-                                    .parse::<http::header::HeaderName>()
-                                    .unwrap(),
-                            ])
-                            .allowed_header(http::header::CONTENT_TYPE)
-                            .expose_headers(vec!["x-app-version"])
-                            .max_age(3600);
-
-                        routing::routes(&mut cors_config)
-                    })
+                    App::new()
+                        .data(
+                            AppState::new(conf.clone(), database.clone(), database_ro.clone())
+                                .expect("Expected to generate app state"),
+                        )
+                        .wrap(
+                            Cors::new()
+                                .allowed_origin(conf.allowed_origins.as_ref())
+                                .allowed_methods(vec!["GET", "POST", "PUT", "PATCH", "DELETE"])
+                                .allowed_headers(vec![
+                                    http::header::AUTHORIZATION,
+                                    http::header::ACCEPT,
+                                    "X-API-Client-Version"
+                                        .parse::<http::header::HeaderName>()
+                                        .unwrap(),
+                                ])
+                                .allowed_header(http::header::CONTENT_TYPE)
+                                .expose_headers(vec!["x-app-version"])
+                                .max_age(3600),
+                        )
+                        .wrap(BigNeonLogger::new(LOGGER_FORMAT))
+                        .wrap(DatabaseTransaction::new())
+                        .wrap(AppVersionHeader::new())
+                        .wrap(Metatags::new(
+                            conf.ssr_trigger_header.clone(),
+                            conf.ssr_trigger_value.clone(),
+                            conf.front_end_url.clone(),
+                            conf.app_name.clone(),
+                        ))
+                        .configure(|a| {
+                            routing::routes(&mut a);
+                        })
                 }
             })
             //            .keep_alive(keep_alive)

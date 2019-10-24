@@ -1,4 +1,4 @@
-use actix_web::{http::StatusCode, HttpResponse, Path, Query};
+use actix_web::{http::StatusCode, web::Path, web::Query, HttpResponse};
 use auth::user::User;
 use bigneon_db::models::*;
 use db::Connection;
@@ -8,7 +8,8 @@ use models::PathParameters;
 use models::WebPayload;
 
 pub fn index(
-    (connection, query_parameters): (Connection, Query<PagingParameters>),
+    connection: Connection,
+    query_parameters: Query<PagingParameters>,
 ) -> Result<WebPayload<Region>, BigNeonError> {
     //TODO refactor query using paging parameters
     let regions = Region::all(connection.get())?;
@@ -20,14 +21,17 @@ pub fn index(
 }
 
 pub fn show(
-    (connection, parameters): (Connection, Path<PathParameters>),
+    connection: Connection,
+    parameters: Path<PathParameters>,
 ) -> Result<HttpResponse, BigNeonError> {
     let region = Region::find(parameters.id, connection.get())?;
     Ok(HttpResponse::Ok().json(&region))
 }
 
 pub fn create(
-    (connection, new_region, user): (Connection, Json<NewRegion>, User),
+    connection: Connection,
+    new_region: Json<NewRegion>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     user.requires_scope(Scopes::RegionWrite)?;
     let connection = connection.get();
@@ -36,12 +40,10 @@ pub fn create(
 }
 
 pub fn update(
-    (connection, parameters, region_parameters, user): (
-        Connection,
-        Path<PathParameters>,
-        Json<RegionEditableAttributes>,
-        User,
-    ),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    region_parameters: Json<RegionEditableAttributes>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     user.requires_scope(Scopes::RegionWrite)?;
     let connection = connection.get();

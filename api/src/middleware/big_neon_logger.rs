@@ -1,15 +1,12 @@
-use actix_web::error;
+use actix_service::{Service, Transform};
 use actix_web::http::StatusCode;
-use actix_web::middleware::Finished;
 use actix_web::middleware::Logger;
-use actix_web::middleware::Middleware;
-use actix_web::middleware::Started;
 use actix_web::FromRequest;
-use actix_web::HttpRequest;
-use actix_web::HttpResponse;
+use actix_web::{dev::ServiceRequest, dev::ServiceResponse, Error};
 use extractors::OptionalUser;
+use futures::future::{ok, FutureResult};
+use futures::{Future, Poll};
 use log::Level;
-use server::AppState;
 
 pub struct BigNeonLogger {
     logger: Logger,
@@ -22,14 +19,49 @@ impl BigNeonLogger {
         }
     }
 }
+impl<S, B> Transform<S> for BigNeonLogger
+where
+    S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S::Future: 'static,
+    B: 'static,
+{
+    type Request = ServiceRequest;
+    type Response = ServiceResponse<B>;
+    type Error = Error;
+    type InitError = ();
+    type Transform = BigNeonLoggerMiddleware<S>;
+    type Future = FutureResult<Self::Transform, Self::InitError>;
 
-impl Middleware<AppState> for BigNeonLogger {
-    fn start(&self, req: &HttpRequest<AppState>) -> error::Result<Started> {
-        self.logger.start(req)?;
-        let user = OptionalUser::from_request(req, &());
-        let ip_address = req.connection_info().remote().map(|i| i.to_string());
-        let uri = req.uri().to_string();
-        let method = req.method().to_string();
+    fn new_transform(&self, service: S) -> Self::Future {
+        ok(BigNeonLoggerMiddleware { service })
+    }
+}
+
+pub struct BigNeonLoggerMiddleware<S> {
+    service: S,
+}
+
+impl<S, B> Service for BigNeonLoggerMiddleware<S>
+where
+    S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S::Future: 'static,
+    B: 'static,
+{
+    type Request = ServiceRequest;
+    type Response = ServiceResponse<B>;
+    type Error = Error;
+    type Future = Box<dyn Future<Item = Self::Response, Error = Self::Error>>;
+
+    fn poll_ready(&mut self) -> Poll<(), Self::Error> {
+        self.service.poll_ready()
+    }
+
+    fn call(&mut self, request: ServiceRequest) -> Self::Future {
+        self.logger.start(request)?;
+        let user = OptionalUser::from_request(request, &());
+        let ip_address = request.connection_info().remote().map(|i| i.to_string());
+        let uri = request.uri().to_string();
+        let method = request.method().to_string();
         if uri != "/status" {
             jlog!(
                 Level::Info,
@@ -44,45 +76,43 @@ impl Middleware<AppState> for BigNeonLogger {
             });
         }
 
-        Ok(Started::Done)
-    }
+        Box::new(self.service.call(request).and_then(|response| {
+            match response.error() {
+                Some(error) => {
+                    let user = OptionalUser::from_request(request, &());
+                    let ip_address = request.connection_info().remote().map(|i| i.to_string());
+                    let uri = request.uri().to_string();
+                    let method = request.method().to_string();
+                    let level = if response.status() == StatusCode::UNAUTHORIZED {
+                        Level::Info
+                    } else if response.status().is_client_error() {
+                        Level::Warn
+                    } else {
+                        Level::Error
+                    };
 
-    fn finish(&self, req: &HttpRequest<AppState>, resp: &HttpResponse) -> Finished {
-        match resp.error() {
-            Some(error) => {
-                let user = OptionalUser::from_request(req, &());
-                let ip_address = req.connection_info().remote().map(|i| i.to_string());
-                let uri = req.uri().to_string();
-                let method = req.method().to_string();
-                let level = if resp.status() == StatusCode::UNAUTHORIZED {
-                    Level::Info
-                } else if resp.status().is_client_error() {
-                    Level::Warn
-                } else {
-                    Level::Error
-                };
-
-                jlog!(
-                    level,
-                    "bigneon_api::big_neon_logger",
-                    &error.to_string(),
-                    {
-                        "user_id": user.ok().map(|u| u.0.map(|v| v.id())),
-                        "ip_address": ip_address,
-                        "uri": uri,
-                        "method": method,
-                        "api_version": env!("CARGO_PKG_VERSION")
-                });
-
-                Finished::Done
-            }
-            None => {
-                if req.uri().to_string() == "/status" {
-                    Finished::Done
-                } else {
-                    self.logger.finish(req, resp)
+                    jlog!(
+                        level,
+                        "bigneon_api::big_neon_logger",
+                        &error.to_string(),
+                        {
+                            "user_id": user.ok().map(|u| u.0.map(|v| v.id())),
+                            "ip_address": ip_address,
+                            "uri": uri,
+                            "method": method,
+                            "api_version": env!("CARGO_PKG_VERSION")
+                    });
+                }
+                None => {
+                    if request.uri().to_string() == "/status" {
+                        Ok(response)
+                    } else {
+                        Ok(self.logger.finish(request))
+                    }
                 }
             }
-        }
+
+            Ok(response)
+        }))
     }
 }

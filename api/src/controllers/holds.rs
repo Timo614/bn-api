@@ -1,4 +1,4 @@
-use actix_web::{http::StatusCode, HttpResponse, Path, Query, State};
+use actix_web::{http::StatusCode, web::Data, web::Path, web::Query, HttpResponse};
 use auth::user::User;
 use bigneon_db::models::*;
 use chrono::prelude::*;
@@ -63,12 +63,10 @@ impl From<UpdateHoldRequest> for UpdateHoldAttributes {
 // add update fields in here as well
 
 pub fn create(
-    (conn, req, path, user): (
-        Connection,
-        Json<CreateHoldRequest>,
-        Path<PathParameters>,
-        User,
-    ),
+    conn: Connection,
+    req: Json<CreateHoldRequest>,
+    path: Path<PathParameters>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = conn.get();
     let event = Event::find(path.id, conn)?;
@@ -128,12 +126,10 @@ pub fn create(
 }
 
 pub fn update(
-    (conn, req, path, user): (
-        Connection,
-        Json<UpdateHoldRequest>,
-        Path<PathParameters>,
-        User,
-    ),
+    conn: Connection,
+    req: Json<UpdateHoldRequest>,
+    path: Path<PathParameters>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = conn.get();
 
@@ -154,7 +150,9 @@ pub fn update(
 }
 
 pub fn show(
-    (conn, path, user): (Connection, Path<PathParameters>, User),
+    conn: Connection,
+    path: Path<PathParameters>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = conn.get();
     let hold = Hold::find(path.id, conn)?;
@@ -200,7 +198,10 @@ pub fn show(
 }
 
 pub fn link(
-    (conn, path, user, state): (Connection, Path<PathParameters>, User, State<AppState>),
+    conn: Connection,
+    path: Path<PathParameters>,
+    user: User,
+    state: Data<AppState>,
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = conn.get();
     let hold = Hold::find(path.id, conn)?;
@@ -256,12 +257,10 @@ pub struct SplitHoldRequest {
 }
 
 pub fn children(
-    (conn, path, query_parameters, user): (
-        Connection,
-        Path<PathParameters>,
-        Query<PagingParameters>,
-        User,
-    ),
+    conn: Connection,
+    path: Path<PathParameters>,
+    query_parameters: Query<PagingParameters>,
+    user: User,
 ) -> Result<WebPayload<DisplayHold>, BigNeonError> {
     let conn = conn.get();
     let hold = Hold::find(path.id, conn)?;
@@ -288,12 +287,10 @@ pub fn children(
 }
 
 pub fn split(
-    (conn, req, path, user): (
-        Connection,
-        Json<SplitHoldRequest>,
-        Path<PathParameters>,
-        User,
-    ),
+    conn: Connection,
+    req: Json<SplitHoldRequest>,
+    path: Path<PathParameters>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = conn.get();
     let hold = Hold::find(path.id, conn)?;
@@ -322,7 +319,9 @@ pub fn split(
 }
 
 pub fn destroy(
-    (conn, path, user): (Connection, Path<PathParameters>, User),
+    conn: Connection,
+    path: Path<PathParameters>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = conn.get();
     let hold = Hold::find(path.id, conn)?;

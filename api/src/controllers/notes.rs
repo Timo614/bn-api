@@ -1,5 +1,5 @@
-use actix_web::Path;
-use actix_web::{HttpResponse, Query};
+use actix_web::web::{Path, Query};
+use actix_web::HttpResponse;
 use auth::user::User;
 use bigneon_db::prelude::*;
 use db::Connection;
@@ -20,12 +20,10 @@ pub struct NoteFilterParameters {
 }
 
 pub fn create(
-    (conn, path, json, auth_user): (
-        Connection,
-        Path<MainTablePathParameters>,
-        Json<NewNoteRequest>,
-        User,
-    ),
+    conn: Connection,
+    path: Path<MainTablePathParameters>,
+    json: Json<NewNoteRequest>,
+    auth_user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = conn.get();
     let main_table: Tables = path.main_table.parse().map_err(|_| NotFoundError {})?;
@@ -42,13 +40,11 @@ pub fn create(
 }
 
 pub fn index(
-    (conn, path, query, note_query, auth_user): (
-        Connection,
-        Path<MainTablePathParameters>,
-        Query<PagingParameters>,
-        Query<NoteFilterParameters>,
-        User,
-    ),
+    conn: Connection,
+    path: Path<MainTablePathParameters>,
+    query: Query<PagingParameters>,
+    note_query: Query<NoteFilterParameters>,
+    auth_user: User,
 ) -> Result<WebPayload<Note>, BigNeonError> {
     let connection = conn.get();
     let mut filter_deleted = true;
@@ -83,7 +79,9 @@ pub fn index(
 }
 
 pub fn destroy(
-    (conn, path, auth_user): (Connection, Path<PathParameters>, User),
+    conn: Connection,
+    path: Path<PathParameters>,
+    auth_user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = conn.get();
     let note = Note::find(path.id, connection)?;

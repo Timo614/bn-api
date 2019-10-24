@@ -1,4 +1,4 @@
-use actix_web::State;
+use actix_web::web::Data;
 use bigneon_db::prelude::*;
 use chrono::prelude::*;
 use diesel::PgConnection;
@@ -42,7 +42,7 @@ impl EventVenueEntry {
     pub fn event_venues_from_events(
         events: Vec<Event>,
         user: Option<User>,
-        state: &State<AppState>,
+        state: &Data<AppState>,
         connection: &PgConnection,
     ) -> Result<Vec<EventVenueEntry>, DatabaseError> {
         let event_ids: Vec<Uuid> = events.iter().map(|e| e.id).collect();

@@ -1,8 +1,8 @@
 use crate::db::Connection;
+use actix_web::web::Data;
+use actix_web::web::Path;
+use actix_web::web::Query;
 use actix_web::HttpResponse;
-use actix_web::Path;
-use actix_web::Query;
-use actix_web::State;
 use bigneon_db::prelude::*;
 use errors::*;
 use extractors::OptionalUser;
@@ -24,13 +24,11 @@ pub struct PathParams {
 }
 
 pub fn callback(
-    (query, path, connection, state, user): (
-        Query<QueryParams>,
-        Path<PathParams>,
-        Connection,
-        State<AppState>,
-        OptionalUser,
-    ),
+    query: Query<QueryParams>,
+    path: Path<PathParams>,
+    connection: Connection,
+    state: Data<AppState>,
+    user: OptionalUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = connection.get();
     let mut order = Order::find(path.id, conn)?;

@@ -1,4 +1,4 @@
-use actix_web::{http::StatusCode, HttpResponse, Query};
+use actix_web::{http::StatusCode, web::Query, HttpResponse};
 use auth::user::{User as AuthUser, User};
 use bigneon_db::models::{DomainAction, Report, Scopes};
 use bigneon_db::prelude::{DisplayOrder, Event, Order, Paging, PagingParameters, Payload};
@@ -7,7 +7,8 @@ use errors::*;
 use models::WebPayload;
 
 pub fn admin_ticket_count(
-    (connection, user): (Connection, AuthUser),
+    connection: Connection,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     //Check if they have org admin permissions
@@ -19,7 +20,8 @@ pub fn admin_ticket_count(
 }
 
 pub fn admin_stuck_domain_actions(
-    (connection, user): (Connection, AuthUser),
+    connection: Connection,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     //Check if they have org admin permissions
@@ -29,7 +31,9 @@ pub fn admin_stuck_domain_actions(
 }
 
 pub fn orders(
-    (conn, query, user): (Connection, Query<PagingParameters>, User),
+    conn: Connection,
+    query: Query<PagingParameters>,
+    user: User,
 ) -> Result<WebPayload<DisplayOrder>, BigNeonError> {
     let conn = conn.get();
     let event_id = match query.get_tag_as_str("event_id") {

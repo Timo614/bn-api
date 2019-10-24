@@ -1,5 +1,5 @@
-use actix_web::Path;
-use actix_web::{HttpResponse, Query};
+use actix_web::web::Path;
+use actix_web::{web::Query, HttpResponse};
 use auth::user::User;
 use bigneon_db::models::enums::{BroadcastChannel, BroadcastType};
 use bigneon_db::models::scopes::Scopes;
@@ -22,12 +22,10 @@ pub struct NewBroadcastData {
 }
 
 pub fn create(
-    (conn, path, json, user): (
-        Connection,
-        Path<PathParameters>,
-        Json<NewBroadcastData>,
-        User,
-    ),
+    conn: Connection,
+    path: Path<PathParameters>,
+    json: Json<NewBroadcastData>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = conn.get();
     let organization = Organization::find_for_event(path.id, connection)?;
@@ -52,12 +50,10 @@ pub fn create(
 }
 
 pub fn index(
-    (conn, path, query, user): (
-        Connection,
-        Path<PathParameters>,
-        Query<PagingParameters>,
-        User,
-    ),
+    conn: Connection,
+    path: Path<PathParameters>,
+    query: Query<PagingParameters>,
+    user: User,
 ) -> Result<WebPayload<Broadcast>, BigNeonError> {
     let connection = conn.get();
     let organization = Organization::find_for_event(path.id, connection)?;
@@ -71,7 +67,9 @@ pub fn index(
 }
 
 pub fn show(
-    (conn, path, user): (Connection, Path<PathParameters>, User),
+    conn: Connection,
+    path: Path<PathParameters>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = conn.get();
     let push_notification = Broadcast::find(path.id, connection)?;
@@ -83,12 +81,10 @@ pub fn show(
 }
 
 pub fn update(
-    (conn, path, json, user): (
-        Connection,
-        Path<PathParameters>,
-        Json<BroadcastEditableAttributes>,
-        User,
-    ),
+    conn: Connection,
+    path: Path<PathParameters>,
+    json: Json<BroadcastEditableAttributes>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = conn.get();
     let broadcast = Broadcast::find(path.id, connection)?;
@@ -101,7 +97,9 @@ pub fn update(
 }
 
 pub fn delete(
-    (conn, path, user): (Connection, Path<PathParameters>, User),
+    conn: Connection,
+    path: Path<PathParameters>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = conn.get();
     let broadcast = Broadcast::find(path.id, connection)?;

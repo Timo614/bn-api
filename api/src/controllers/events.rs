@@ -1,4 +1,4 @@
-use actix_web::{http::StatusCode, HttpResponse, Path, Query, State};
+use actix_web::{http::StatusCode, web::Data, web::Path, web::Query, HttpResponse};
 use auth::user::User as AuthUser;
 use bigneon_db::dev::times;
 use bigneon_db::prelude::*;
@@ -88,12 +88,10 @@ impl From<SearchParameters> for Paging {
  * What events does this user have authority to check in
 **/
 pub fn checkins(
-    (conn, query, auth_user, state): (
-        Connection,
-        Query<SearchParameters>,
-        AuthUser,
-        State<AppState>,
-    ),
+    conn: Connection,
+    query: Query<SearchParameters>,
+    auth_user: AuthUser,
+    state: Data<AppState>,
 ) -> Result<HttpResponse, BigNeonError> {
     let events = auth_user.user.find_events_with_access_to_scan(conn.get())?;
     let mut payload = Payload::new(
@@ -111,12 +109,10 @@ pub fn checkins(
 }
 
 pub fn index(
-    (state, connection, query, auth_user): (
-        State<AppState>,
-        ReadonlyConnection,
-        Query<SearchParameters>,
-        OptionalUser,
-    ),
+    state: Data<AppState>,
+    connection: ReadonlyConnection,
+    query: Query<SearchParameters>,
+    auth_user: OptionalUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let query = query.into_inner();
@@ -192,14 +188,12 @@ pub struct EventParameters {
 }
 
 pub fn show(
-    (state, connection, parameters, query, user, request): (
-        State<AppState>,
-        ReadonlyConnection,
-        Path<StringPathParameters>,
-        Query<EventParameters>,
-        OptionalUser,
-        RequestInfo,
-    ),
+    state: Data<AppState>,
+    connection: ReadonlyConnection,
+    parameters: Path<StringPathParameters>,
+    query: Query<EventParameters>,
+    user: OptionalUser,
+    request: RequestInfo,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let user = user.into_inner();
@@ -472,7 +466,9 @@ pub fn show(
 }
 
 pub fn publish(
-    (connection, path, user): (Connection, Path<PathParameters>, AuthUser),
+    connection: Connection,
+    path: Path<PathParameters>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = connection.get();
     let event = Event::find(path.id, conn)?;
@@ -488,7 +484,9 @@ pub fn publish(
 }
 
 pub fn unpublish(
-    (connection, path, user): (Connection, Path<PathParameters>, AuthUser),
+    connection: Connection,
+    path: Path<PathParameters>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = connection.get();
     let event = Event::find(path.id, conn)?;
@@ -508,13 +506,11 @@ pub struct TicketRedeemRequest {
 }
 
 pub fn redeem_ticket(
-    (connection, parameters, redeem_parameters, auth_user, state): (
-        Connection,
-        Path<RedeemTicketPathParameters>,
-        Json<TicketRedeemRequest>,
-        AuthUser,
-        State<AppState>,
-    ),
+    connection: Connection,
+    parameters: Path<RedeemTicketPathParameters>,
+    redeem_parameters: Json<TicketRedeemRequest>,
+    auth_user: AuthUser,
+    state: Data<AppState>,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let ticket = TicketInstance::find_for_processing(
@@ -572,12 +568,10 @@ pub fn redeem_ticket(
 }
 
 pub fn show_from_organizations(
-    (connection, path, paging, user): (
-        Connection,
-        Path<PathParameters>,
-        Query<PagingParameters>,
-        AuthUser,
-    ),
+    connection: Connection,
+    path: Path<PathParameters>,
+    paging: Query<PagingParameters>,
+    user: AuthUser,
 ) -> Result<WebPayload<EventSummaryResult>, BigNeonError> {
     let conn = connection.get();
     let org = Organization::find(path.id, conn)?;
@@ -636,12 +630,10 @@ pub struct DashboardResult {
 }
 
 pub fn dashboard(
-    (connection, path, query, user): (
-        Connection,
-        Path<PathParameters>,
-        Query<DashboardParameters>,
-        AuthUser,
-    ),
+    connection: Connection,
+    path: Path<PathParameters>,
+    query: Query<DashboardParameters>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = connection.get();
     let event = Event::find(path.id, conn)?;
@@ -680,7 +672,9 @@ pub struct AddArtistRequest {
 }
 
 pub fn create(
-    (connection, new_event, user): (Connection, Json<NewEvent>, AuthUser),
+    connection: Connection,
+    new_event: Json<NewEvent>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let organization = Organization::find(new_event.organization_id, connection)?;
@@ -695,12 +689,10 @@ pub fn create(
 }
 
 pub fn update(
-    (connection, parameters, event_parameters, user): (
-        Connection,
-        Path<PathParameters>,
-        Json<EventEditableAttributes>,
-        AuthUser,
-    ),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    event_parameters: Json<EventEditableAttributes>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let event = Event::find(parameters.id, connection)?;
@@ -738,7 +730,9 @@ fn create_domain_action_event(event_id: Uuid, conn: &PgConnection) {
 }
 
 pub fn delete(
-    (connection, parameters, user): (Connection, Path<PathParameters>, AuthUser),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let event = Event::find(parameters.id, connection)?;
@@ -755,7 +749,9 @@ pub fn delete(
 }
 
 pub fn cancel(
-    (connection, parameters, user): (Connection, Path<PathParameters>, AuthUser),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let event = Event::find(parameters.id, connection)?;
@@ -774,12 +770,10 @@ pub fn cancel(
 }
 
 pub fn list_interested_users(
-    (connection, path_parameters, query, user): (
-        Connection,
-        Path<PathParameters>,
-        Query<PagingParameters>,
-        AuthUser,
-    ),
+    connection: Connection,
+    path_parameters: Path<PathParameters>,
+    query: Query<PagingParameters>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     user.requires_scope(Scopes::EventInterest)?;
 
@@ -797,7 +791,9 @@ pub fn list_interested_users(
 }
 
 pub fn add_interest(
-    (connection, parameters, user): (Connection, Path<PathParameters>, AuthUser),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     user.requires_scope(Scopes::EventInterest)?;
 
@@ -807,7 +803,9 @@ pub fn add_interest(
 }
 
 pub fn remove_interest(
-    (connection, parameters, user): (Connection, Path<PathParameters>, AuthUser),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     user.requires_scope(Scopes::EventInterest)?;
 
@@ -817,12 +815,10 @@ pub fn remove_interest(
 }
 
 pub fn add_artist(
-    (connection, parameters, event_artist, user): (
-        Connection,
-        Path<PathParameters>,
-        Json<AddArtistRequest>,
-        AuthUser,
-    ),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    event_artist: Json<AddArtistRequest>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let event = Event::find(parameters.id, connection)?;
@@ -872,12 +868,10 @@ pub struct UpdateArtistsRequestList {
 }
 
 pub fn update_artists(
-    (connection, parameters, artists, user): (
-        Connection,
-        Path<PathParameters>,
-        Json<UpdateArtistsRequestList>,
-        AuthUser,
-    ),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    artists: Json<UpdateArtistsRequestList>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let event = Event::find(parameters.id, connection)?;
@@ -961,12 +955,10 @@ impl From<GuestListQueryParameters> for Paging {
 }
 
 pub fn guest_list(
-    (connection, query, path, user): (
-        Connection,
-        Query<GuestListQueryParameters>,
-        Path<PathParameters>,
-        AuthUser,
-    ),
+    connection: Connection,
+    query: Query<GuestListQueryParameters>,
+    path: Path<PathParameters>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     //TODO refactor GuestListQueryParameters to PagingParameters
     let conn = connection.get();
@@ -1019,12 +1011,10 @@ pub fn guest_list(
 }
 
 pub fn codes(
-    (conn, query, path, user): (
-        Connection,
-        Query<PagingParameters>,
-        Path<PathParameters>,
-        AuthUser,
-    ),
+    conn: Connection,
+    query: Query<PagingParameters>,
+    path: Path<PathParameters>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = conn.get();
     let event = Event::find(path.id, conn)?;
@@ -1049,12 +1039,10 @@ pub fn codes(
 }
 
 pub fn holds(
-    (conn, query, path, user): (
-        Connection,
-        Query<PagingParameters>,
-        Path<PathParameters>,
-        AuthUser,
-    ),
+    conn: Connection,
+    query: Query<PagingParameters>,
+    path: Path<PathParameters>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = conn.get();
     let event = Event::find(path.id, conn)?;
@@ -1131,12 +1119,10 @@ pub fn holds(
 }
 
 pub fn users(
-    (connection, path_parameters, query_parameters, user): (
-        Connection,
-        Path<PathParameters>,
-        Query<PagingParameters>,
-        AuthUser,
-    ),
+    connection: Connection,
+    path_parameters: Path<PathParameters>,
+    query_parameters: Query<PagingParameters>,
+    user: AuthUser,
 ) -> Result<WebPayload<DisplayOrganizationUser>, BigNeonError> {
     let connection = connection.get();
     let event = Event::find(path_parameters.id, connection)?;
@@ -1180,7 +1166,9 @@ pub struct EventUserPathParams {
 }
 
 pub fn remove_user(
-    (connection, path, user): (Connection, Path<EventUserPathParams>, AuthUser),
+    connection: Connection,
+    path: Path<EventUserPathParams>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let event = Event::find(path.id, connection)?;
@@ -1218,13 +1206,11 @@ pub struct LinkResult {
 }
 
 pub fn create_link(
-    (path, query, state, user, conn): (
-        Path<PathParameters>,
-        Json<LinkQueryParameters>,
-        State<AppState>,
-        AuthUser,
-        Connection,
-    ),
+    path: Path<PathParameters>,
+    query: Query<LinkQueryParameters>,
+    state: Data<AppState>,
+    user: AuthUser,
+    conn: Connection,
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = conn.get();
     let event = Event::find(path.id, conn)?;

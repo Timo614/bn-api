@@ -8,8 +8,11 @@ description = "Big Neon unified API server"
 documentation = "https://github.com/big-neon/docs"
 
 [dependencies]
-actix = "0.7"
-actix-web = "=0.7.16"
+actix = "0.8.3"
+actix-cors = "0.1.0"
+actix-http = "0.2.10"
+actix-service = "0.4.2"
+actix-web = "1.0.8"
 bigneon_db = { path = "../db" }
 bigneon_http = { path = "../http" }
 bigneon_caching_derive = { path = "../http/caching_derive" }

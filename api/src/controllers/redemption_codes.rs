@@ -1,5 +1,5 @@
-use actix_web::Path;
-use actix_web::{HttpResponse, Query};
+use actix_web::web::Path;
+use actix_web::{web::Query, HttpResponse};
 use bigneon_db::prelude::*;
 use chrono::NaiveDateTime;
 use db::Connection;
@@ -43,7 +43,9 @@ pub struct EventParameter {
 }
 
 pub fn show(
-    (connection, query, path): (Connection, Query<EventParameter>, Path<PathParameters>),
+    connection: Connection,
+    query: Query<EventParameter>,
+    path: Path<PathParameters>,
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = connection.get();
     let query = query.into_inner();

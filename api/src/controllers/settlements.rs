@@ -1,4 +1,4 @@
-use actix_web::{http::StatusCode, HttpResponse, Path, Query};
+use actix_web::{http::StatusCode, web::Path, web::Query, HttpResponse};
 use auth::user::User as AuthUser;
 use bigneon_db::models::*;
 use db::Connection;
@@ -6,12 +6,10 @@ use errors::*;
 use models::{PathParameters, WebPayload};
 
 pub fn index(
-    (connection, query, path, user): (
-        Connection,
-        Query<PagingParameters>,
-        Path<PathParameters>,
-        AuthUser,
-    ),
+    connection: Connection,
+    query: Query<PagingParameters>,
+    path: Path<PathParameters>,
+    user: AuthUser,
 ) -> Result<WebPayload<Settlement>, BigNeonError> {
     let connection = connection.get();
     let organization = Organization::find(path.id, connection)?;
@@ -28,7 +26,9 @@ pub fn index(
 }
 
 pub fn show(
-    (connection, path, user): (Connection, Path<PathParameters>, AuthUser),
+    connection: Connection,
+    path: Path<PathParameters>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let settlement = Settlement::find(path.id, connection)?;
@@ -39,7 +39,9 @@ pub fn show(
 }
 
 pub fn destroy(
-    (connection, path, user): (Connection, Path<PathParameters>, AuthUser),
+    connection: Connection,
+    path: Path<PathParameters>,
+    user: AuthUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     user.requires_scope(Scopes::OrgAdmin)?;

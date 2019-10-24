@@ -9,7 +9,6 @@ use extractors::OptionalUser;
 use log::Level::Warn;
 use logging::*;
 use serde_json::Value;
-use server::AppState;
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -25,7 +24,7 @@ pub struct User {
 }
 
 impl User {
-    pub fn new(user: DbUser, request: &HttpRequest<AppState>) -> Result<User, EnumParseError> {
+    pub fn new(user: DbUser, request: &HttpRequest) -> Result<User, EnumParseError> {
         let global_scopes = user
             .get_global_scopes()
             .into_iter()

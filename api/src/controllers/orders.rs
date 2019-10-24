@@ -1,4 +1,4 @@
-use actix_web::{http::StatusCode, HttpResponse, Path, Query, State};
+use actix_web::{http::StatusCode, web::Data, web::Path, web::Query, HttpResponse};
 use auth::user::User;
 use bigneon_db::models::User as DbUser;
 use bigneon_db::models::*;
@@ -19,7 +19,9 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 pub fn index(
-    (conn, query_parameters, user): (Connection, Query<PagingParameters>, User),
+    conn: Connection,
+    query_parameters: Query<PagingParameters>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     //@TODO Implement proper paging on db
 
@@ -30,7 +32,9 @@ pub fn index(
 }
 
 pub fn activity(
-    (conn, path, user): (Connection, Path<PathParameters>, User),
+    conn: Connection,
+    path: Path<PathParameters>,
+    user: User,
 ) -> Result<WebPayload<ActivityItem>, BigNeonError> {
     let connection = conn.get();
     let order = Order::find(path.id, connection)?;
@@ -42,7 +46,9 @@ pub fn activity(
 }
 
 pub fn show(
-    (conn, path, auth_user): (Connection, Path<PathParameters>, User),
+    conn: Connection,
+    path: Path<PathParameters>,
+    auth_user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = conn.get();
     let order = Order::find(path.id, connection)?;
@@ -74,7 +80,10 @@ pub fn show(
 }
 
 pub fn resend_confirmation(
-    (conn, path, auth_user, state): (Connection, Path<PathParameters>, User, State<AppState>),
+    conn: Connection,
+    path: Path<PathParameters>,
+    auth_user: User,
+    state: Data<AppState>,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = conn.get();
     let order = Order::find(path.id, connection)?;
@@ -113,7 +122,9 @@ pub struct DetailsResponse {
 }
 
 pub fn details(
-    (conn, path, user): (Connection, Path<PathParameters>, User),
+    conn: Connection,
+    path: Path<PathParameters>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = conn.get();
     let order = Order::find(path.id, connection)?;
@@ -154,13 +165,11 @@ pub struct RefundResponse {
 }
 
 pub fn refund(
-    (conn, path, json, user, state): (
-        Connection,
-        Path<PathParameters>,
-        Json<RefundAttributes>,
-        User,
-        State<AppState>,
-    ),
+    conn: Connection,
+    path: Path<PathParameters>,
+    json: Json<RefundAttributes>,
+    user: User,
+    state: Data<AppState>,
 ) -> Result<HttpResponse, BigNeonError> {
     let refund_attributes = json.into_inner();
     jlog!(Debug, "Request to refund received", {"order_id": path.id, "request": refund_attributes.clone()});
@@ -419,7 +428,9 @@ fn is_authorized_to_refund(
 }
 
 pub fn tickets(
-    (conn, path, user): (Connection, Path<PathParameters>, User),
+    conn: Connection,
+    path: Path<PathParameters>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = conn.get();
     let order = Order::find(path.id, conn)?;
@@ -457,13 +468,11 @@ pub struct SendBoxOfficeInstructionsRequest {
 }
 
 pub fn send_box_office_instructions(
-    (conn, path, data, user, state): (
-        Connection,
-        Path<PathParameters>,
-        Json<SendBoxOfficeInstructionsRequest>,
-        User,
-        State<AppState>,
-    ),
+    conn: Connection,
+    path: Path<PathParameters>,
+    data: Json<SendBoxOfficeInstructionsRequest>,
+    user: User,
+    state: Data<AppState>,
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = conn.get();
     let order = Order::find(path.id, conn)?;

@@ -1,4 +1,4 @@
-use actix_web::{http, http::StatusCode, HttpResponse, Responder, State};
+use actix_web::{http, http::StatusCode, web::Data, HttpResponse, Responder};
 use auth::user::User as AuthUser;
 use errors::*;
 use serde_json::{self, Value};
@@ -56,7 +56,7 @@ pub fn no_content() -> Result<HttpResponse, BigNeonError> {
 
 pub fn redirection_json(
     slug: String,
-    state: State<AppState>,
+    state: &Data<AppState>,
 ) -> Result<HttpResponse, BigNeonError> {
     Ok(HttpResponse::Ok().json(json!({
         "redirect": format!("{}/{}", &state.config.front_end_url, &slug)
@@ -69,9 +69,7 @@ pub fn not_found() -> Result<HttpResponse, BigNeonError> {
 }
 
 pub fn created(json: serde_json::Value) -> Result<HttpResponse, BigNeonError> {
-    Ok(HttpResponse::new(StatusCode::CREATED)
-        .into_builder()
-        .json(json))
+    Ok(HttpResponse::Created().json(json))
 }
 
 pub fn redirect(url: &str) -> Result<HttpResponse, BigNeonError> {

@@ -1,4 +1,4 @@
-use actix_web::{http::StatusCode, HttpResponse, Path, Query};
+use actix_web::{http::StatusCode, web::Path, web::Query, HttpResponse};
 use auth::user::User;
 use bigneon_db::models::*;
 use db::Connection;
@@ -10,7 +10,9 @@ use models::{CreateArtistRequest, PathParameters, UpdateArtistRequest, WebPayloa
 use utils::spotify;
 
 pub fn search(
-    (connection, query_parameters, user): (Connection, Query<PagingParameters>, OptionalUser),
+    connection: Connection,
+    query_parameters: Query<PagingParameters>,
+    user: OptionalUser,
 ) -> Result<WebPayload<CreateArtistRequest>, BigNeonError> {
     let connection = connection.get();
     let db_user = user.into_inner().map(|u| u.user);
@@ -39,7 +41,9 @@ pub fn search(
 }
 
 pub fn index(
-    (connection, query_parameters, user): (Connection, Query<PagingParameters>, OptionalUser),
+    connection: Connection,
+    query_parameters: Query<PagingParameters>,
+    user: OptionalUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let db_user = user.into_inner().map(|u| u.user);
     let artists = Artist::search(&db_user, query_parameters.get_tag("q"), connection.get())?;
@@ -48,7 +52,8 @@ pub fn index(
 }
 
 pub fn show(
-    (connection, parameters): (Connection, Path<PathParameters>),
+    connection: Connection,
+    parameters: Path<PathParameters>,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let artist = Artist::find(&parameters.id, connection)?.for_display(connection)?;
@@ -56,7 +61,9 @@ pub fn show(
 }
 
 pub fn create(
-    (connection, json_create_artist, user): (Connection, Json<CreateArtistRequest>, User),
+    connection: Connection,
+    json_create_artist: Json<CreateArtistRequest>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     if let Some(organization_id) = json_create_artist.organization_id {
@@ -113,12 +120,10 @@ pub fn create(
 }
 
 pub fn show_from_organizations(
-    (connection, organization_id, query_parameters, user): (
-        Connection,
-        Path<PathParameters>,
-        Query<PagingParameters>,
-        OptionalUser,
-    ),
+    connection: Connection,
+    organization_id: Path<PathParameters>,
+    query_parameters: Query<PagingParameters>,
+    user: OptionalUser,
 ) -> Result<HttpResponse, BigNeonError> {
     //TODO implement proper paging on db
     let artists = match user.into_inner() {
@@ -132,12 +137,10 @@ pub fn show_from_organizations(
 }
 
 pub fn update(
-    (connection, parameters, artist_parameters, user): (
-        Connection,
-        Path<PathParameters>,
-        Json<UpdateArtistRequest>,
-        User,
-    ),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    artist_parameters: Json<UpdateArtistRequest>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let artist_parameters = artist_parameters.into_inner();
@@ -180,7 +183,9 @@ pub fn update(
 }
 
 pub fn toggle_privacy(
-    (connection, parameters, user): (Connection, Path<PathParameters>, User),
+    connection: Connection,
+    parameters: Path<PathParameters>,
+    user: User,
 ) -> Result<HttpResponse, BigNeonError> {
     user.requires_scope(Scopes::ArtistWrite)?;
 
