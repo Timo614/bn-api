@@ -7,6 +7,7 @@ use bigneon_db::validators::{append_validation_error, create_validation_error};
 use db::Connection;
 use errors::*;
 use extractors::*;
+use facebook::error::FacebookError;
 use facebook::nodes::Event as FBEvent;
 use facebook::prelude::{CoverPhoto, FacebookClient, FBID};
 use helpers::application;
@@ -301,7 +302,12 @@ pub fn scopes((connection, user): (Connection, AuthUser)) -> Result<HttpResponse
 }
 
 pub fn create_event(
-    (connection, user, data): (Connection, AuthUser, Json<CreateFacebookEvent>),
+    (connection, user, data, state): (
+        Connection,
+        AuthUser,
+        Json<CreateFacebookEvent>,
+        State<AppState>,
+    ),
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = connection.get();
     let event = Event::find(data.event_id, conn)?;
@@ -322,17 +328,6 @@ pub fn create_event(
 
     let mut validation_errors: Result<(), ValidationErrors> = Ok(());
 
-    if event.additional_info.is_none() || event.additional_info == Some("".to_string()) {
-        validation_errors = append_validation_error(
-            validation_errors,
-            "additional_info",
-            Err(create_validation_error(
-                "additional_info",
-                "Event must have additional info to use as a description on Facebook",
-            )),
-        );
-    }
-
     if event.promo_image_url.is_none() {
         validation_errors = append_validation_error(
             validation_errors,
@@ -351,20 +346,14 @@ pub fn create_event(
             return Err(res.into());
         }
     };
-
-    let fb_event = FBEvent::new(
+    let venue = event.venue(conn)?.ok_or_else(|| {
+        ApplicationError::unprocessable("Cannot publish this event on Facebook without a venue")
+    })?;
+    let mut fb_event = FBEvent::new(
         data.category.parse()?,
         event.name.clone(),
-        event.additional_info.clone().unwrap(),
-        FBID(data.page_id.clone()),
-        event
-            .venue(conn)?
-            .ok_or_else(|| {
-                ApplicationError::unprocessable(
-                    "Cannot publish this event on Facebook without a venue",
-                )
-            })?
-            .timezone,
+        data.description.clone(),
+        venue.timezone,
         event
             .promo_image_url
             .as_ref()
@@ -378,7 +367,30 @@ pub fn create_event(
             })?
             .to_string(),
     );
-    let _fb_id = client.official_events.create(fb_event)?;
+
+    match data.location_type {
+        EventLocationType::UsePageLocation => fb_event.place_id = Some(FBID(data.page_id.clone())),
+        EventLocationType::CustomAddress => fb_event.address = data.custom_address.clone(),
+    }
+
+    fb_event.ticket_uri = Some(format!(
+        "{}/tickets/{}/tickets",
+        state.config.front_end_url,
+        event.slug(conn)?
+    ));
+
+    let _fb_id = match client.official_events.create(fb_event) {
+        Ok(i) => i,
+        Err(err) => match err {
+            FacebookError::FacebookError(e) => {
+                if e.code == 100 && e.message.contains("place_id must be a valid place ID") {
+                    return Err(ApplicationError::unprocessable("The page you specified does not have a location associated with it. Either specify an address explicitly, or add a street address to your Facebook page").into());
+                }
+                return Err(ApplicationError::unprocessable(&format!("Could not create event on Facebook. Facebook returned: ({}) {} [fbtrace_id:{}]", e.code, &e.message, &e.fbtrace_id)).into());
+            }
+            _ => return Err(err.into()),
+        },
+    };
 
     // Save fb_id onto event
     // unimplemented!();
@@ -390,4 +402,13 @@ pub struct CreateFacebookEvent {
     event_id: Uuid,
     page_id: String,
     category: String,
+    description: String,
+    location_type: EventLocationType,
+    custom_address: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub enum EventLocationType {
+    UsePageLocation,
+    CustomAddress,
 }

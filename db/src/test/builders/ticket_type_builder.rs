@@ -103,6 +103,9 @@ impl<'a> TicketTypeBuilder<'a> {
                 self.visibility,
                 None,
                 self.additional_fees,
+                true,
+                true,
+                true,
                 None,
                 connection,
             )

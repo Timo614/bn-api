@@ -746,10 +746,12 @@ impl Order {
             left join ticket_instances ti on (oi.id = ti.order_item_id or rt.ticket_instance_id = ti.id)
             left join transfer_tickets trt on trt.ticket_instance_id = ti.id
             left join transfers trns on trt.transfer_id = trns.id
+            left join users trnsu on trns.destination_user_id = trnsu.id
             left join holds h on oi.hold_id = h.id
             left join codes c on oi.code_id = c.id
             inner join users u on o.user_id = u.id
             left join users bu on o.on_behalf_of_user_id = bu.id
+
         where o.status <> 'Draft'
         "#,
         )
@@ -774,7 +776,7 @@ impl Order {
         if let Some(general_query) = general_query {
             bind_no = bind_no + 1;
             query = query
-                .sql(format!(" and (o.id::text ilike ${}  or ti.id::text ilike ${} or coalesce(bu.email, u.email) ilike ${} or trns.transfer_address ilike ${} or coalesce(bu.phone, u.phone) ilike ${} or coalesce(h.redemption_code, c.redemption_code) ilike ${}  or (coalesce(bu.first_name, u.first_name) || ' ' || coalesce(bu.last_name, u.last_name) ilike ${} or coalesce(bu.last_name, u.last_name) || ' ' || coalesce(bu.first_name, u.first_name) ilike ${}) )", bind_no, bind_no, bind_no, bind_no, bind_no, bind_no, bind_no, bind_no))
+                .sql(format!(" and (o.id::text ilike ${}  or ti.id::text ilike ${} or coalesce(bu.email, u.email) ilike ${} or trns.transfer_address ilike ${} or coalesce(bu.phone, u.phone) ilike ${} or coalesce(h.redemption_code, c.redemption_code) ilike ${}  or (coalesce(bu.first_name, u.first_name) || ' ' || coalesce(bu.last_name, u.last_name) ilike ${} or coalesce(bu.last_name, u.last_name) || ' ' || coalesce(bu.first_name, u.first_name) ilike ${} or trnsu.first_name || ' ' || trnsu.last_name ilike ${} or trnsu.last_name || ' ' || trnsu.first_name ilike ${}) )", bind_no, bind_no, bind_no, bind_no, bind_no, bind_no, bind_no, bind_no, bind_no, bind_no))
                 .bind::<diesel::sql_types::Text, _>(format!("%{}%", general_query));
         }
 
@@ -1834,18 +1836,26 @@ impl Order {
                 o.platform,
                 o.checkout_url,
                 o.checkout_url_expires,
-                ARRAY_AGG(DISTINCT p.payment_method) FILTER (WHERE p.payment_method IS NOT NULL) as payment_methods,
-                ARRAY_AGG(DISTINCT p.provider) FILTER (WHERE p.provider IS NOT NULL) as providers,
+                p.payment_methods,
+                p.providers,
                 CAST(COALESCE(SUM(oi.unit_price_in_cents * oi.quantity), 0) as BigInt) as total_in_cents,
                 CAST(COALESCE(SUM(oi.unit_price_in_cents * oi.refunded_quantity), 0) as BigInt) as total_refunded_in_cents,
-                ARRAY_AGG(SUBSTRING(orgs.allowed_payment_providers::text from 2 for char_length(orgs.allowed_payment_providers::text) - 2)) FILTER (WHERE orgs.allowed_payment_providers IS NOT NULL) as allowed_payment_providers,
+                ARRAY_AGG(DISTINCT SUBSTRING(orgs.allowed_payment_providers::text from 2 for char_length(orgs.allowed_payment_providers::text) - 2)) FILTER (WHERE orgs.allowed_payment_providers IS NOT NULL) as allowed_payment_providers,
                 ARRAY_AGG(DISTINCT e.organization_id) FILTER (WHERE e.organization_id IS NOT NULL) as organization_ids,
                 ARRAY_AGG(DISTINCT e.id) FILTER (WHERE e.id IS NOT NULL) as event_ids
             FROM orders o
             LEFT JOIN order_items oi ON oi.order_id = o.id
             LEFT JOIN events e ON oi.event_id = e.id
             LEFT JOIN organizations orgs ON e.organization_id = orgs.id
-            LEFT JOIN payments p ON p.order_id = o.id
+            LEFT JOIN (
+                SELECT
+                    p.order_id,
+                    ARRAY_AGG(DISTINCT p.provider) FILTER (WHERE p.provider IS NOT NULL) as providers,
+                    ARRAY_AGG(DISTINCT p.payment_method) FILTER (WHERE p.payment_method IS NOT NULL) as payment_methods
+                FROM payments p
+                WHERE p.status in ('Completed', 'Refunded')
+                GROUP BY p.payment_method, p.order_id
+            ) AS p on o.id = p.order_id
         "#,
         )
         .into_boxed();
@@ -1867,11 +1877,12 @@ impl Order {
                 o.platform,
                 o.expires_at,
                 o.checkout_url_expires,
-                o.checkout_url
+                o.checkout_url,
+                p.payment_methods,
+                p.providers
             ORDER BY o.order_date desc
         ",
         );
-
         let results: Vec<R> = query.get_results(conn).to_db_error(
             ErrorCode::QueryError,
             "Unable to load order data for organization fan",

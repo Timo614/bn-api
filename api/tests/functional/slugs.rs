@@ -82,27 +82,27 @@ fn show_redirect_to_primary_slug() {
         .with_venue(&venue)
         .finish();
     let _event_interest = EventInterest::create(event.id, user.id).commit(conn);
-    let mut slug_redirects: Vec<(Slug, &str)> = Vec::new();
+    let mut slug_redirects: Vec<(Slug, &str, &str)> = Vec::new();
     let slug = database
         .create_slug()
         .for_event(&event)
         .with_slug("redirect-me")
         .finish();
-    slug_redirects.push((slug, "newevent1-at-venue1-san-francisco"));
+    slug_redirects.push((slug, "newevent1-at-venue1-san-francisco", "tickets"));
     let slug = database
         .create_slug()
         .for_venue(&venue, SlugTypes::Venue)
         .with_slug("redirect-me2")
         .finish();
-    slug_redirects.push((slug, "venue1"));
+    slug_redirects.push((slug, "venue1", "venues"));
     let slug = database
         .create_slug()
         .for_organization(&organization)
         .with_slug("redirect-me3")
         .finish();
-    slug_redirects.push((slug, "organization1"));
+    slug_redirects.push((slug, "organization1", "organizations"));
 
-    for (slug, expected_redirect_slug) in slug_redirects {
+    for (slug, expected_redirect_slug, expected_path) in slug_redirects {
         let test_request = TestRequest::create_with_uri(&format!("/{}", &slug.slug));
         let mut path = Path::<StringPathParameters>::extract(&test_request.request).unwrap();
         path.id = slug.slug.to_string();
@@ -126,8 +126,9 @@ fn show_redirect_to_primary_slug() {
             json!({
                 "redirect":
                     format!(
-                        "{}/{}",
+                        "{}/{}/{}",
                         env::var("FRONT_END_URL").unwrap(),
+                        expected_path,
                         expected_redirect_slug
                     )
             })

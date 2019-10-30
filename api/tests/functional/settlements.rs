@@ -123,3 +123,44 @@ mod destroy_tests {
         base::settlements::destroy(Roles::OrgBoxOffice, false);
     }
 }
+
+#[cfg(test)]
+mod create_tests {
+    use super::*;
+    #[test]
+    fn create_org_member() {
+        base::settlements::create(Roles::OrgMember, false);
+    }
+    #[test]
+    fn create_admin() {
+        base::settlements::create(Roles::Admin, true);
+    }
+    #[test]
+    fn create_user() {
+        base::settlements::create(Roles::User, false);
+    }
+    #[test]
+    fn create_org_owner() {
+        base::settlements::create(Roles::OrgOwner, false);
+    }
+    #[test]
+    fn create_door_person() {
+        base::settlements::create(Roles::DoorPerson, false);
+    }
+    #[test]
+    fn create_promoter() {
+        base::settlements::create(Roles::Promoter, false);
+    }
+    #[test]
+    fn create_promoter_read_only() {
+        base::settlements::create(Roles::PromoterReadOnly, false);
+    }
+    #[test]
+    fn create_org_admin() {
+        base::settlements::create(Roles::OrgAdmin, false);
+    }
+    #[test]
+    fn create_box_office() {
+        base::settlements::create(Roles::OrgBoxOffice, false);
+    }
+}

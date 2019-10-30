@@ -29,7 +29,7 @@ pub struct EventShowResult {
     pub age_limit: Option<String>,
     pub video_url: Option<String>,
     pub organization: ShortOrganization,
-    pub venue: Option<Venue>,
+    pub venue: Option<DisplayVenue>,
     pub artists: Vec<DisplayEventArtist>,
     pub ticket_types: Vec<UserDisplayTicketType>,
     pub total_interest: u32,
@@ -55,4 +55,5 @@ pub struct EventShowResult {
 pub struct ShortOrganization {
     pub id: Uuid,
     pub name: String,
+    pub slug: Option<String>,
 }

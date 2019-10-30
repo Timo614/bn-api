@@ -62,9 +62,14 @@ impl DomainActionRouter {
                 UpdateGenres => Box::new(UpdateGenresExecutor::new()),
                 ProcessSettlementReport => Box::new(ProcessSettlementReportExecutor::new(conf)),
                 ProcessTransferDrip => Box::new(ProcessTransferDripEventExecutor::new(conf)),
-                //
-                // DO NOT add
-                // _ =>
+                SubmitSitemapToSearchEngines => {
+                    Box::new(SubmitSitemapToSearchEnginesExecutor::new(
+                        conf.api_base_url.clone(),
+                        conf.block_external_comms,
+                    ))
+                } //
+                  // DO NOT add
+                  // _ =>
             }
         };
 
@@ -100,5 +105,10 @@ impl DomainActionRouter {
             find_executor(SendPurchaseCompletedCommunication),
         )
         .expect("Configuration error");
+        self.add_executor(
+            SubmitSitemapToSearchEngines,
+            find_executor(SubmitSitemapToSearchEngines),
+        )
+        .expect("Configuration error")
     }
 }

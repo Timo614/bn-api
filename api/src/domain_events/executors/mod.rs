@@ -5,6 +5,7 @@ pub use self::process_transfer_drip_event::*;
 pub use self::regenerate_drip_actions::*;
 pub use self::send_communication::*;
 pub use self::send_order_complete::*;
+pub use self::submit_sitemap_to_search_engines::*;
 pub use self::update_genres::*;
 
 mod broadcast_push_notification;
@@ -14,4 +15,5 @@ mod process_transfer_drip_event;
 mod regenerate_drip_actions;
 mod send_communication;
 mod send_order_complete;
+mod submit_sitemap_to_search_engines;
 mod update_genres;

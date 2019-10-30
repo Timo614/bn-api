@@ -354,7 +354,7 @@ pub fn index_search_with_filter() {
             ..Default::default()
         },
         event_type: EventTypes::Music,
-        url: format!("{}/{}", env::var("FRONT_END_URL").unwrap(), &slug),
+        url: format!("{}/tickets/{}", env::var("FRONT_END_URL").unwrap(), &slug),
         slug,
         event_end: event.event_end,
     }];
@@ -2236,7 +2236,7 @@ pub fn event_venue_entry(
             ..Default::default()
         },
         event_type: event.event_type,
-        url: format!("{}/{}", env::var("FRONT_END_URL").unwrap(), &slug),
+        url: format!("{}/tickets/{}", env::var("FRONT_END_URL").unwrap(), &slug),
         slug,
         event_end: event.event_end,
     }

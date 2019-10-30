@@ -7,6 +7,7 @@ use chrono::Duration;
 use controllers::organizations::DisplayOrganizationUser;
 use db::Connection;
 use db::ReadonlyConnection;
+use diesel::PgConnection;
 use domain_events::executors::UpdateGenresPayload;
 use errors::*;
 use extractors::*;
@@ -438,9 +439,13 @@ pub fn show(
         video_url: event.video_url,
         organization: ShortOrganization {
             id: organization.id,
+            slug: organization.slug(connection).optional()?.map(|s| s.slug),
             name: organization.name,
         },
-        venue,
+        venue: match venue {
+            Some(v) => Some(v.for_display(connection)?),
+            None => None,
+        },
         artists: event_artists,
         ticket_types: display_ticket_types,
         total_interest,
@@ -455,7 +460,7 @@ pub fn show(
         tracking_keys,
         event_type: event.event_type,
         sales_start_date,
-        url: format!("{}/{}", &state.config.front_end_url, &slug),
+        url: format!("{}/tickets/{}", &state.config.front_end_url, &slug),
         slug,
         facebook_pixel_key: event.facebook_pixel_key,
         extra_admin_data: event.extra_admin_data.and_then(|data| {
@@ -689,6 +694,7 @@ pub fn create(
 
     let event = new_event.commit(Some(user.id()), connection)?;
 
+    create_domain_action_event(event.id, connection);
     Ok(HttpResponse::Created().json(event))
 }
 
@@ -717,7 +723,22 @@ pub fn update(
     //    }
 
     let updated_event = event.update(Some(user.id()), event_parameters, connection)?;
+
+    create_domain_action_event(updated_event.id, connection);
+
     Ok(HttpResponse::Ok().json(&updated_event))
+}
+
+fn create_domain_action_event(event_id: Uuid, conn: &PgConnection) {
+    let domain_action = DomainAction::create(
+        None,
+        DomainActionTypes::SubmitSitemapToSearchEngines,
+        None,
+        json!({}),
+        Some(Tables::Events),
+        Some(event_id),
+    );
+    domain_action.commit(conn).unwrap();
 }
 
 pub fn delete(

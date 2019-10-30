@@ -7,10 +7,12 @@ pub struct Event {
     pub category: Category,
     pub name: String,
     pub description: String,
-    pub place_id: FBID,
+    pub place_id: Option<FBID>,
     pub timezone: String,
     pub cover: Option<CoverPhoto>,
     pub start_time: String,
+    pub ticket_uri: Option<String>,
+    pub address: Option<String>,
 }
 
 pub enum EventRole {}
@@ -20,7 +22,6 @@ impl Event {
         category: Category,
         name: String,
         description: String,
-        place_id: FBID,
         timezone: String,
         cover: Option<CoverPhoto>,
         start_time: String,
@@ -29,10 +30,12 @@ impl Event {
             category,
             name,
             description,
-            place_id,
+            place_id: None,
             timezone,
             cover,
             start_time,
+            ticket_uri: None,
+            address: None,
         }
     }
 }

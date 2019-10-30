@@ -310,6 +310,13 @@ impl Organization {
         .pop())
     }
 
+    pub fn slug(&self, conn: &PgConnection) -> Result<Slug, DatabaseError> {
+        match self.slug_id {
+            Some(s) => Ok(Slug::find(s, conn)?),
+            None => DatabaseError::no_results("Organization does not have a slug"),
+        }
+    }
+
     pub fn timezone(&self) -> Result<Tz, DatabaseError> {
         self.timezone
             .clone()
@@ -339,36 +346,29 @@ impl Organization {
         settlement_period_in_days: Option<u32>,
     ) -> Result<NaiveDateTime, DatabaseError> {
         let timezone = self.timezone()?;
-
-        // Take current time
-        let now = Utc::now();
+        let now = timezone.from_utc_datetime(&Utc::now().naive_utc());
+        let today = timezone
+            .ymd(now.year(), now.month(), now.day())
+            .and_hms(0, 0, 0);
 
         // If this is a normal week long settlement period, set it to start on the following Monday
         // Else set as number of days from today
         if let Some(settlement_period) = settlement_period_in_days {
-            let next_date = now.naive_utc() + Duration::days(settlement_period as i64);
-
-            Ok(timezone
-                .ymd(next_date.year(), next_date.month(), next_date.day())
+            let next_period = today.naive_local() + Duration::days(settlement_period as i64);
+            let next_date = timezone
+                .ymd(next_period.year(), next_period.month(), next_period.day())
                 .and_hms(0, 0, 0)
-                .with_timezone(&Utc)
-                .naive_utc())
+                .naive_utc();
+
+            Ok(next_date)
         } else {
-            let next_monday = now.naive_utc()
+            let next_date = today.naive_utc()
                 + Duration::days(
                     DEFAULT_SETTLEMENT_PERIOD_IN_DAYS
-                        - now
-                            .with_timezone(&timezone)
-                            .naive_utc()
-                            .weekday()
-                            .num_days_from_monday() as i64,
+                        - today.naive_local().weekday().num_days_from_monday() as i64,
                 );
 
-            Ok(timezone
-                .ymd(next_monday.year(), next_monday.month(), next_monday.day())
-                .and_hms(0, 0, 0)
-                .with_timezone(&Utc)
-                .naive_utc())
+            Ok(next_date)
         }
     }
 

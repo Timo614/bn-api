@@ -89,7 +89,7 @@ steps:
       - test -x target/release/bndb_cli
       when:
         event: [pull_request, push]
-        branch: master
+        branch: [master, develop]
 
 #    - name: rebuild-cache
 #      depends_on:
@@ -134,7 +134,7 @@ steps:
         - ./scripts/run-other-tests-ci.sh
       when:
         event: [pull_request, push]
-        branch: master
+        branch: [master, develop]
 
 #    - name: api-tests
 #      depends_on:
@@ -167,7 +167,7 @@ steps:
         - ./scripts/run-integration-tests-ci.sh
       when:
           event: [pull_request, push]
-          branch: master
+          branch: [master, develop]
 
 #    - name: publish
 #      image: plugins/ecr
@@ -203,7 +203,7 @@ steps:
       image: sdbondi/git-ssh-client:0.2-alpine
       environment:
           <<: *env
-          GH_USER_EMAIL: 'sdbondi@users.noreply.github.com'
+          GH_USER_EMAIL: 'travis@travis-ci.org'
           GH_USER_NAME: 'Travis CI'
           GITHUB_SSH_KEY:
               from_secret: github_deploy_key
@@ -211,7 +211,7 @@ steps:
         - ./scripts/bump-version.sh --tag-commit
       when:
           event: push
-          branch: master
+          branch: [master, develop]
 
 #    - name: deploy-dev
 #      image: sdbondi/drone-lambda-trigger
@@ -251,7 +251,7 @@ steps:
         root: drone
       when:
           event: [pull_request, push]
-          branch: master
+          branch: [master, develop]
 
     - name: notify
       image: plugins/slack
@@ -282,11 +282,11 @@ services:
           POSTGRES_PASSWORD: password
       when:
           event: [pull_request, push]
-          branch: master
+          branch: [master, develop]
 
 
 ---
 kind: signature
-hmac: 11a59da5264e1847a0d8fcab7bef2e53c5f0f90f3e85ca65eae94d6399c8c405
+hmac: 40ddba302bb1c5e099cdeb514bbd8042d23f9ef2c7339ba00e44d1ec584b7119
 
 ...

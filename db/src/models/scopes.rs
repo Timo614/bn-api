@@ -44,12 +44,13 @@ pub enum Scopes {
     OrgReports,
     OrgUsers,
     OrgWrite,
+    RedeemTicket,
+    RegionWrite,
+    SettlementWrite,
     TransferCancel,
     TransferCancelOwn,
     TransferRead,
     TransferReadOwn,
-    RedeemTicket,
-    RegionWrite,
     TicketAdmin,
     TicketRead,
     TicketWrite,
@@ -112,8 +113,7 @@ impl fmt::Display for Scopes {
             Scopes::OrgUsers => "org:users",
             Scopes::RedeemTicket => "redeem:ticket",
             Scopes::RegionWrite => "region:write",
-            Scopes::UserRead => "user:read",
-            Scopes::VenueWrite => "venue:write",
+            Scopes::SettlementWrite => "settlement:write",
             Scopes::TicketAdmin => "ticket:admin",
             Scopes::TicketRead => "ticket:read",
             Scopes::TicketWrite => "ticket:write",
@@ -125,6 +125,8 @@ impl fmt::Display for Scopes {
             Scopes::TransferCancelOwn => "transfer:cancel-own",
             Scopes::TransferRead => "transfer:read",
             Scopes::TransferReadOwn => "transfer:read-own",
+            Scopes::UserRead => "user:read",
+            Scopes::VenueWrite => "venue:write",
         };
         write!(f, "{}", s)
     }
@@ -174,8 +176,7 @@ impl FromStr for Scopes {
             "org:users" => Scopes::OrgUsers,
             "redeem:ticket" => Scopes::RedeemTicket,
             "region:write" => Scopes::RegionWrite,
-            "user:read" => Scopes::UserRead,
-            "venue:write" => Scopes::VenueWrite,
+            "settlement:write" => Scopes::SettlementWrite,
             "ticket:admin" => Scopes::TicketAdmin,
             "ticket:read" => Scopes::TicketRead,
             "ticket:write" => Scopes::TicketWrite,
@@ -187,6 +188,8 @@ impl FromStr for Scopes {
             "transfer:cancel-own" => Scopes::TransferCancelOwn,
             "transfer:read" => Scopes::TransferRead,
             "transfer:read-own" => Scopes::TransferReadOwn,
+            "user:read" => Scopes::UserRead,
+            "venue:write" => Scopes::VenueWrite,
             _ => {
                 return Err(EnumParseError {
                     message: "Could not parse value".to_string(),
@@ -347,9 +350,10 @@ fn get_scopes_for_role(role: Roles) -> Vec<Scopes> {
         Admin => {
             let mut roles = vec![
                 Scopes::OrgAdmin,
-                Scopes::RegionWrite,
                 Scopes::OrgFinancialReports,
                 Scopes::OrgModifySettlementType,
+                Scopes::RegionWrite,
+                Scopes::SettlementWrite,
             ];
             roles.extend(get_scopes_for_role(OrgOwner));
             roles
@@ -535,6 +539,7 @@ fn get_scopes_test() {
             "org:write",
             "redeem:ticket",
             "region:write",
+            "settlement:write",
             "ticket-type:read",
             "ticket-type:write",
             "ticket:admin",
@@ -597,6 +602,7 @@ fn get_scopes_test() {
             "org:write",
             "redeem:ticket",
             "region:write",
+            "settlement:write",
             "ticket:admin",
             "ticket:read",
             "ticket:transfer",

@@ -38,16 +38,16 @@ impl WebhookAdapter for CustomerIoWebhookAdapter {
         let mut payload = payload;
         payload.insert("environment".to_string(), json!(self.environment));
 
-        let client = match payload.get("user_id") {
+        let client = match payload.get("user_id").and_then(|u| u.as_str()) {
             Some(user_id) => {
-                if let Some(webhook_event_type) = payload.get("webhook_event_type") {
-                    let user_id = user_id.clone();
-
-                    let res = match webhook_event_type.as_str().unwrap() {
+                if let Some(webhook_event_type) =
+                    payload.get("webhook_event_type").and_then(|w| w.as_str())
+                {
+                    let res = match webhook_event_type {
                         "temporary_user_created" | "user_created" => client
                             .put(&format!(
                                 "https://track.customer.io/api/v1/customers/{}",
-                                user_id.as_str().unwrap()
+                                user_id
                             ))
                             .json(&payload),
 
@@ -58,7 +58,7 @@ impl WebhookAdapter for CustomerIoWebhookAdapter {
                             client
                                 .post(&format!(
                                     "https://track.customer.io/api/v1/customers/{}/events",
-                                    user_id.as_str().unwrap()
+                                    user_id
                                 ))
                                 .json(&json!({"name": webhook_event_type, "data": payload}))
                         }

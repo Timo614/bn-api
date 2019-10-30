@@ -1,3 +1,5 @@
+use utils::serializers::default_as_false;
+
 #[derive(Deserialize, Default)]
 pub struct FacebookWebLoginToken {
     #[serde(rename = "accessToken")]
@@ -11,8 +13,4 @@ pub struct FacebookWebLoginToken {
     // the other fields
     #[serde(rename = "linkToUserId", default = "default_as_false")]
     pub link_to_user_id: bool,
-}
-
-fn default_as_false() -> bool {
-    false
 }

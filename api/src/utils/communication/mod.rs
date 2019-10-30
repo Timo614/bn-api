@@ -21,6 +21,7 @@ pub fn send_async(
         Ok(v) => v,
         Err(e) => return Either::A(future::err(e.into())),
     };
+
     match config.environment {
         //TODO Maybe remove this environment check and just rely on the BLOCK_EXTERNAL_COMMS .env
         Environment::Test => Either::A(future::ok(())), //Disable communication system when testing
@@ -46,15 +47,25 @@ pub fn send_async(
                             communication.categories.clone(),
                             communication.extra_data.clone(),
                         ),
-                        CommunicationType::EmailTemplate => sendgrid::send_email_template_async(
-                            &config.sendgrid_api_key,
-                            communication.source.as_ref().unwrap().get_first().unwrap(),
-                            &destination_addresses,
-                            communication.template_id.clone().unwrap(),
-                            communication.template_data.as_ref().unwrap(),
-                            communication.categories.clone(),
-                            communication.extra_data.clone(),
-                        ),
+                        CommunicationType::EmailTemplate => {
+                            // Short circuit logic if communication template and template is blank
+                            if communication.template_id == Some("".to_string()) {
+                                jlog!(Trace, "Blocked communication, blank template ID", {
+                                    "communication": communication
+                                });
+                                Box::new(future::ok(()))
+                            } else {
+                                sendgrid::send_email_template_async(
+                                    &config.sendgrid_api_key,
+                                    communication.source.as_ref().unwrap().get_first().unwrap(),
+                                    &destination_addresses,
+                                    communication.template_id.clone().unwrap(),
+                                    communication.template_data.as_ref().unwrap(),
+                                    communication.categories.clone(),
+                                    communication.extra_data.clone(),
+                                )
+                            }
+                        }
                         CommunicationType::Sms => twilio::send_sms_async(
                             &config.twilio_account_id,
                             &config.twilio_api_key,

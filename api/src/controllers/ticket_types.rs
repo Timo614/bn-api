@@ -13,6 +13,7 @@ use models::{AdminDisplayTicketType, EventTicketPathParameters, PathParameters};
 use serde_with::rust::double_option;
 use server::AppState;
 use tari_client::MessagePayloadCreateAsset as TariNewAsset;
+use utils::serializers::default_as_true;
 use uuid::Uuid;
 
 #[derive(Clone, Deserialize)]
@@ -49,6 +50,12 @@ pub struct CreateTicketTypeRequest {
     pub additional_fee_in_cents: Option<i64>,
     #[serde(default)]
     pub rank: i64,
+    #[serde(default = "default_as_true")]
+    pub web_sales_enabled: bool,
+    #[serde(default = "default_as_true")]
+    pub box_office_sales_enabled: bool,
+    #[serde(default = "default_as_true")]
+    pub app_sales_enabled: bool,
 }
 
 impl Default for CreateTicketTypeRequest {
@@ -68,6 +75,9 @@ impl Default for CreateTicketTypeRequest {
             visibility: TicketTypeVisibility::Always,
             additional_fee_in_cents: None,
             rank: 0,
+            web_sales_enabled: true,
+            box_office_sales_enabled: true,
+            app_sales_enabled: true,
         }
     }
 }
@@ -534,6 +544,9 @@ fn create_ticket_types(
             ticket_type_data.visibility,
             ticket_type_data.parent_id,
             ticket_type_data.additional_fee_in_cents.unwrap_or(0),
+            ticket_type_data.app_sales_enabled,
+            ticket_type_data.web_sales_enabled,
+            ticket_type_data.box_office_sales_enabled,
             Some(user.id()),
             connection,
         )?;

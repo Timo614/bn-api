@@ -1,5 +1,4 @@
-use actix_web::HttpResponse;
-use actix_web::ResponseError;
+use actix_web::{http::StatusCode, HttpResponse, ResponseError};
 use bigneon_db::utils::errors::*;
 use branch_rs::BranchError;
 use chrono;
@@ -11,12 +10,13 @@ use globee::GlobeeError;
 use jwt::errors::Error as JwtError;
 use payments::PaymentProcessorError;
 use r2d2;
+use reqwest;
 use reqwest::header::ToStrError as ReqwestToStrError;
-use reqwest::Error as ReqwestError;
 use serde_json::Error as SerdeError;
 use std::error::Error;
 use std::fmt;
 use tari_client::TariError;
+use twilio::TwilioError;
 use uuid::ParseError as UuidParseError;
 
 #[derive(Debug)]
@@ -42,7 +42,6 @@ error_conversion!(JwtError);
 error_conversion!(NotFoundError);
 error_conversion!(ParseError);
 error_conversion!(PaymentProcessorError);
-error_conversion!(ReqwestError);
 error_conversion!(ReqwestToStrError);
 error_conversion!(SerdeError);
 error_conversion!(TariError);
@@ -51,6 +50,9 @@ error_conversion!(GlobeeError);
 error_conversion!(BranchError);
 error_conversion!(FacebookError);
 error_conversion!(chrono::ParseError);
+error_conversion!(std::io::Error);
+error_conversion!(sitemap::Error);
+error_conversion!(reqwest::Error);
 
 impl fmt::Display for BigNeonError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -77,5 +79,38 @@ impl BigNeonError {
 
     pub fn into_inner(&self) -> &dyn ConvertToWebError {
         self.0.as_ref()
+    }
+}
+
+impl ConvertToWebError for sitemap::Error {
+    fn to_response(&self) -> HttpResponse {
+        error!("Sitemap generator error: {}", self);
+        HttpResponse::new(StatusCode::INTERNAL_SERVER_ERROR)
+            .into_builder()
+            .json(json!({"error": self.to_string()}))
+    }
+}
+
+impl ConvertToWebError for std::io::Error {
+    fn to_response(&self) -> HttpResponse {
+        error!("IO Error: {}", self);
+        HttpResponse::new(StatusCode::INTERNAL_SERVER_ERROR)
+            .into_builder()
+            .json(json!({"error": self.to_string()}))
+    }
+}
+
+impl From<TwilioError> for BigNeonError {
+    fn from(e: TwilioError) -> Self {
+        BigNeonError::new(Box::new(e))
+    }
+}
+
+impl ConvertToWebError for TwilioError {
+    fn to_response(&self) -> HttpResponse {
+        error!("Twilio error: {}", self);
+        HttpResponse::new(StatusCode::INTERNAL_SERVER_ERROR)
+            .into_builder()
+            .json(json!({"error": self.to_string()}))
     }
 }

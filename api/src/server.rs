@@ -8,7 +8,6 @@ use domain_events::DomainActionMonitor;
 use log::Level::Debug;
 use middleware::{AppVersionHeader, BigNeonLogger, DatabaseTransaction, Metatags};
 use routing;
-use std::io;
 use utils::spotify;
 use utils::ServiceLocator;
 
@@ -122,14 +121,12 @@ impl Server {
                 server = server.workers(workers);
             }
             server.run();
-        } else {
-            info!("Press enter to stop");
-            let mut input = String::new();
-            let _ = io::stdin().read_line(&mut input);
-        }
 
-        if process_actions || process_events {
-            domain_action_monitor.stop()
+            if process_actions || process_events {
+                domain_action_monitor.stop()
+            }
+        } else {
+            domain_action_monitor.wait_for_end();
         }
     }
 }

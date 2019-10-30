@@ -1,9 +1,7 @@
-use actix_web::{http::StatusCode, HttpResponse};
 use errors::*;
 use log::Level;
 use tokio::prelude::*;
 use twilio::OutboundMessage;
-use twilio::TwilioError;
 
 pub fn send_sms_async(
     account_id: &str,
@@ -32,19 +30,4 @@ pub fn send_sms_async(
     }
 
     return Box::new(future::ok(()));
-}
-
-impl From<TwilioError> for BigNeonError {
-    fn from(e: TwilioError) -> Self {
-        BigNeonError::new(Box::new(e))
-    }
-}
-
-impl ConvertToWebError for TwilioError {
-    fn to_response(&self) -> HttpResponse {
-        error!("Twilio error: {}", self);
-        HttpResponse::new(StatusCode::INTERNAL_SERVER_ERROR)
-            .into_builder()
-            .json(json!({"error": self.to_string()}))
-    }
 }

@@ -8,20 +8,23 @@ fn main() {
     let access_token = "".to_string(); // Get from Graph Explorer tool - https://developers.facebook.com/tools/explorer
     let fb = FacebookClient::from_access_token(access_token);
 
-    let accounts = fb.me.accounts.list().unwrap();
+    let _accounts = fb.me.accounts.list().unwrap();
 
     let event = Event {
         name: "Hello world".to_string(),
         category: Category::MusicEvent,
         description: "This is a test event".to_string(),
         start_time: Utc::now().naive_utc().to_string(),
+        ticket_uri: None,
         timezone: "Africa/Harare".to_string(),
         cover: Some(CoverPhoto {
             source: "http://noimg.com".to_string(),
             offset_x: 0,
             offset_y: 0,
         }),
-        place_id: FBID("http://www.facebook.com/pages/<page_id>".to_string()),
+        place_id: Some(FBID("http://www.facebook.com/pages/<page_id>".to_string())),
+
+        address: None,
     };
     fb.official_events.create(event).unwrap();
 }

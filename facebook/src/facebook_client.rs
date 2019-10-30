@@ -8,7 +8,7 @@ use url::form_urlencoded;
 pub struct FacebookClient {
     pub official_events: OfficialEventsEndpoint,
     pub me: MeEndpoint,
-    inner_client: Rc<FacebookClientInner>,
+    pub inner_client: Rc<FacebookClientInner>,
     pub permissions: PermissionsEndpoint,
 }
 
@@ -78,7 +78,7 @@ impl FacebookClient {
                 code
             ))
             .send()?;
-        let status = resp.status();
+        //        let status = resp.status();
         let value: serde_json::Value = resp.json()?;
         println!("{:?}", value);
         let result: AccessToken = serde_json::from_value(value)?;

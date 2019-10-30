@@ -17,6 +17,50 @@ use bigneon_db::utils::errors::ErrorCode;
 use bigneon_db::utils::errors::ErrorCode::ValidationError;
 
 #[test]
+fn new_stub() {
+    let first_name = "Penny".to_string();
+    let last_name = "Quarter".to_string();
+    let email = "penny@quarter.com".to_string();
+    let phone = "1234567890".to_string();
+    let user = User::new_stub(
+        Some(first_name.clone()),
+        Some(last_name.clone()),
+        Some(email.clone()),
+        Some(phone.clone()),
+    );
+    assert_eq!(Some(first_name), user.first_name);
+    assert_eq!(Some(last_name), user.last_name);
+    assert_eq!(Some(email), user.email);
+    assert_eq!(Some(phone), user.phone);
+    assert!(!user.hashed_pw.is_empty());
+}
+
+#[test]
+fn create_stub() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+    let first_name = "Penny".to_string();
+    let last_name = "Quarter".to_string();
+    let email = "penny@quarter.com".to_string();
+    let phone = "1234567890".to_string();
+    let user = User::create_stub(
+        first_name.clone(),
+        last_name.clone(),
+        Some(email.clone()),
+        Some(phone.clone()),
+        None,
+        connection,
+    )
+    .unwrap();
+    assert_eq!(Some(first_name), user.first_name);
+    assert_eq!(Some(last_name), user.last_name);
+    assert_eq!(Some(email), user.email);
+    assert_eq!(Some(phone), user.phone);
+    assert!(!user.hashed_pw.is_empty());
+    assert!(User::find(user.id, connection).is_ok());
+}
+
+#[test]
 fn update_genre_info() {
     let project = TestProject::new();
     let connection = project.get_connection();
@@ -1547,8 +1591,8 @@ fn create_from_external_login() {
     assert_eq!(external_id, external_login.external_user_id);
 
     assert_eq!(Some(email.to_string()), user.email);
-    assert_eq!(first_name, user.first_name.unwrap_or("".to_string()));
-    assert_eq!(last_name, user.last_name.unwrap_or("".to_string()));
+    assert_eq!(Some(first_name.to_string()), user.first_name);
+    assert_eq!(Some(last_name.to_string()), user.last_name);
 }
 
 #[test]
@@ -1730,11 +1774,11 @@ fn get_scopes_by_organization() {
             Scopes::OrgReports,
             Scopes::OrgUsers,
             Scopes::OrgWrite,
+            Scopes::RedeemTicket,
             Scopes::TransferCancel,
             Scopes::TransferCancelOwn,
             Scopes::TransferRead,
             Scopes::TransferReadOwn,
-            Scopes::RedeemTicket,
             Scopes::TicketAdmin,
             Scopes::TicketRead,
             Scopes::TicketWrite,
@@ -1774,11 +1818,11 @@ fn get_scopes_by_organization() {
             Scopes::OrgFans,
             Scopes::OrgRead,
             Scopes::OrgReadEvents,
+            Scopes::RedeemTicket,
             Scopes::TransferCancel,
             Scopes::TransferCancelOwn,
             Scopes::TransferRead,
             Scopes::TransferReadOwn,
-            Scopes::RedeemTicket,
             Scopes::TicketAdmin,
             Scopes::TicketRead,
             Scopes::TicketWriteOwn,
@@ -1884,6 +1928,7 @@ fn get_global_scopes() {
             "org:write",
             "redeem:ticket",
             "region:write",
+            "settlement:write",
             "ticket:admin",
             "ticket:read",
             "ticket:transfer",

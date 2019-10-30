@@ -71,7 +71,7 @@ impl<'a> SettlementBuilder<'a> {
             self.comment.clone(),
             self.only_finished_events,
         )
-        .commit(self.connection)
+        .commit(None, self.connection)
         .unwrap()
     }
 }

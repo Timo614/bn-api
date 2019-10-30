@@ -282,19 +282,14 @@ impl User {
         }
     }
 
-    pub fn new_for_invite(
+    pub fn new_stub(
         first_name: Option<String>,
         last_name: Option<String>,
         email: Option<String>,
+        phone: Option<String>,
     ) -> NewUser {
         let rand_password = random_alpha_string(16);
-        Self::create(
-            first_name.clone(),
-            last_name.clone(),
-            email.clone(),
-            None,
-            rand_password.as_str(),
-        )
+        Self::create(first_name, last_name, email, phone, rand_password.as_str())
     }
 
     pub fn create_from_external_login(
@@ -357,16 +352,8 @@ impl User {
         current_user_id: Option<Uuid>,
         conn: &PgConnection,
     ) -> Result<User, DatabaseError> {
-        let hash = PasswordHash::generate("random", None);
-        let new_user = NewUser {
-            first_name: Some(first_name),
-            last_name: Some(last_name),
-            email,
-            phone,
-            hashed_pw: hash.to_string(),
-            role: vec![Roles::User],
-        };
-        new_user.commit(current_user_id, conn)
+        Self::new_stub(Some(first_name), Some(last_name), email, phone)
+            .commit(current_user_id, conn)
     }
 
     pub fn activity(

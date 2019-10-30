@@ -817,6 +817,7 @@ pub fn expected_show_json(
     struct ShortOrganization {
         id: Uuid,
         name: String,
+        slug: Option<String>,
     }
 
     #[derive(Serialize)]
@@ -852,7 +853,7 @@ pub fn expected_show_json(
         age_limit: Option<String>,
         video_url: Option<String>,
         organization: ShortOrganization,
-        venue: Venue,
+        venue: DisplayVenue,
         artists: Vec<DisplayEventArtist>,
         ticket_types: Vec<UserDisplayTicketType>,
         total_interest: u32,
@@ -952,9 +953,10 @@ pub fn expected_show_json(
         video_url: event.video_url,
         organization: ShortOrganization {
             id: organization.id,
+            slug: Some(organization.slug(connection).unwrap().slug),
             name: organization.name,
         },
-        venue,
+        venue: venue.for_display(connection).unwrap(),
         artists: event_artists,
         ticket_types: display_ticket_types,
         total_interest: interested_users,
@@ -971,7 +973,7 @@ pub fn expected_show_json(
         },
         event_type: event.event_type,
         sales_start_date,
-        url: format!("{}/{}", env::var("FRONT_END_URL").unwrap(), &slug),
+        url: format!("{}/tickets/{}", env::var("FRONT_END_URL").unwrap(), &slug),
         slug,
         facebook_pixel_key: None,
         extra_admin_data: None,

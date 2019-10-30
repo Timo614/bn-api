@@ -1,4 +1,5 @@
 use bigneon_api::controllers::genres;
+use bigneon_api::controllers::genres::GenreListItem;
 use bigneon_db::models::Genre;
 use serde_json;
 use support;
@@ -8,10 +9,13 @@ use support::database::TestDatabase;
 fn index() {
     let database = TestDatabase::new();
     let connection = database.connection.get();
-    let expected_genres: Vec<String> = Genre::all(connection)
+    let expected_genres: Vec<GenreListItem> = Genre::all(connection)
         .unwrap()
         .iter()
-        .map(|g| g.name.clone())
+        .map(|g| GenreListItem {
+            id: g.id,
+            name: g.name.clone(),
+        })
         .collect();
     let response = genres::index(database.connection.clone().into()).unwrap();
     let expected_genres_json =

@@ -1,6 +1,6 @@
 #[derive(Deserialize)]
 pub struct AccessToken {
-    access_token: String,
-    token_type: String,
-    expires_in: i32,
+    pub access_token: String,
+    pub token_type: String,
+    pub expires_in: i32,
 }

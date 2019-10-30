@@ -2377,6 +2377,9 @@ fn add_tickets_below_min_fee() {
             TicketTypeVisibility::Always,
             None,
             0,
+            true,
+            true,
+            true,
             None,
             connection,
         )
@@ -4595,11 +4598,10 @@ fn find_for_user_for_display() {
 
     // User list so items shown in full
     assert!(!&display_orders[0].order_contains_other_tickets);
-    //    assert!(!&display_orders[1].order_contains_other_tickets);
 }
 
 #[test]
-fn for_display() {
+fn for_display_seconds_until_expiry() {
     let project = TestProject::new();
     let connection = project.get_connection();
     let order = project.create_order().finish();
@@ -4631,6 +4633,109 @@ fn for_display() {
     let order = Order::find_or_create_cart(&user, connection).unwrap();
     let display_order = order.for_display(None, user.id, connection).unwrap();
     assert_eq!(None, display_order.seconds_until_expiry);
+}
+
+#[test]
+fn for_display() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+    let user = project.create_user().finish();
+    let organization = project
+        .create_organization()
+        .with_fees()
+        .with_event_fee()
+        .finish();
+    let event = project
+        .create_event()
+        .with_organization(&organization)
+        .with_ticket_type_count(1)
+        .with_ticket_pricing()
+        .finish();
+    let ticket_type = &event.ticket_types(true, None, connection).unwrap()[0];
+    let hold = project
+        .create_hold()
+        .with_hold_type(HoldTypes::Discount)
+        .with_quantity(10)
+        .with_ticket_type_id(ticket_type.id)
+        .finish();
+    let mut order = project
+        .create_order()
+        .for_event(&event)
+        .for_user(&user)
+        .quantity(2)
+        .with_redemption_code(hold.redemption_code.clone().unwrap())
+        .is_paid()
+        .finish();
+    let items = order.items(connection).unwrap();
+    let order_item = items
+        .iter()
+        .find(|i| i.ticket_type_id == Some(ticket_type.id))
+        .unwrap();
+    let event_fee_item = items
+        .iter()
+        .find(|i| i.item_type == OrderItemTypes::EventFees)
+        .unwrap();
+    let tickets = TicketInstance::find_for_order_item(order_item.id, connection).unwrap();
+    let display_order = order.for_display(None, user.id, connection).unwrap();
+    let order_total = order.calculate_total(connection).unwrap();
+    assert_eq!(order_total, display_order.total_in_cents);
+    assert_eq!(0, display_order.total_refunded_in_cents);
+
+    // Refund one ticket
+    let order_item = OrderItem::find(tickets[0].order_item_id.unwrap(), connection).unwrap();
+    let refund_items = vec![RefundItemRequest {
+        order_item_id: order_item.id,
+        ticket_instance_id: Some(tickets[0].id),
+    }];
+    let (_refund, refund_ticket1_amount) = order
+        .refund(&refund_items, user.id, None, connection)
+        .unwrap();
+    let display_order = order.for_display(None, user.id, connection).unwrap();
+    assert_eq!(order_total, display_order.total_in_cents);
+    assert_ne!(
+        display_order.total_refunded_in_cents,
+        display_order.total_in_cents
+    );
+    assert_eq!(refund_ticket1_amount, display_order.total_refunded_in_cents);
+
+    // Refund remaining ticket
+    let order_item = OrderItem::find(tickets[0].order_item_id.unwrap(), connection).unwrap();
+    let refund_items = vec![RefundItemRequest {
+        order_item_id: order_item.id,
+        ticket_instance_id: Some(tickets[1].id),
+    }];
+    let (_refund, refund_ticket2_amount) = order
+        .refund(&refund_items, user.id, None, connection)
+        .unwrap();
+    let display_order = order.for_display(None, user.id, connection).unwrap();
+    assert_eq!(order_total, display_order.total_in_cents);
+    assert_ne!(
+        display_order.total_refunded_in_cents,
+        display_order.total_in_cents
+    );
+    assert_eq!(
+        refund_ticket1_amount + refund_ticket2_amount,
+        display_order.total_refunded_in_cents
+    );
+
+    // Refund remaining event fee item
+    let refund_items = vec![RefundItemRequest {
+        order_item_id: event_fee_item.id,
+        ticket_instance_id: None,
+    }];
+    let (_refund, event_fee_refund_amount) = order
+        .refund(&refund_items, user.id, None, connection)
+        .unwrap();
+    let display_order = order.for_display(None, user.id, connection).unwrap();
+    assert_eq!(order_total, display_order.total_in_cents);
+    assert_eq!(
+        refund_ticket1_amount + refund_ticket2_amount + event_fee_refund_amount,
+        display_order.total_refunded_in_cents
+    );
+    assert_eq!(
+        display_order.total_refunded_in_cents,
+        display_order.total_in_cents
+    );
 }
 
 #[test]
@@ -4701,11 +4806,9 @@ fn for_display_with_invalid_items() {
         .find(|i| i.ticket_type_id == Some(ticket_type2.id))
         .unwrap();
     let none_uuid: Option<Uuid> = None;
-    let ticket_instance: TicketInstance = ticket_instances::table
-        .filter(ticket_instances::order_item_id.eq(order_item.id))
-        .limit(1)
-        .first(connection)
-        .unwrap();
+    let ticket_instance = TicketInstance::find_for_order_item(order_item.id, connection)
+        .unwrap()
+        .remove(0);
     diesel::update(ticket_instances::table.filter(ticket_instances::id.eq(ticket_instance.id)))
         .set(ticket_instances::order_item_id.eq(none_uuid))
         .execute(connection)
@@ -4777,12 +4880,11 @@ fn for_display_with_invalid_items() {
         .iter()
         .find(|i| i.ticket_type_id == Some(ticket_type4.id))
         .unwrap();
-    let ticket_instance: TicketInstance = ticket_instances::table
-        .filter(ticket_instances::order_item_id.eq(order_item.id))
-        .limit(1)
-        .first(connection)
-        .unwrap();
-    diesel::update(ticket_instances::table.filter(ticket_instances::id.eq(ticket_instance.id)))
+
+    let ticket = TicketInstance::find_for_order_item(order_item.id, connection)
+        .unwrap()
+        .remove(0);
+    diesel::update(ticket_instances::table.filter(ticket_instances::id.eq(ticket.id)))
         .set((ticket_instances::status.eq(TicketInstanceStatus::Nullified),))
         .execute(connection)
         .unwrap();
@@ -5761,6 +5863,100 @@ pub fn search_by_all() {
     .unwrap();
     assert_eq!(1, actual.1);
     assert_eq!(order2.id, actual.0[0].id);
+}
+
+#[test]
+pub fn search_by_transferee_name() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+    let user = project.create_user().finish();
+    let user2 = project.create_user().finish();
+    let transferee = project
+        .create_user()
+        .with_first_name("Samantha")
+        .with_last_name("Zorber")
+        .with_email("missdaisy@yahoooooo.com".to_string())
+        .finish();
+    let order = project
+        .create_order()
+        .for_user(&user)
+        .quantity(2)
+        .is_paid()
+        .finish();
+    let _order2 = project
+        .create_order()
+        .for_user(&user2)
+        .quantity(1)
+        .is_paid()
+        .finish();
+
+    let tickets = TicketInstance::find_for_user(user.id, connection).unwrap();
+    let ticket = &tickets[0];
+
+    let mut transfer = Transfer::create(user.id, Uuid::new_v4(), None, None, false)
+        .commit(connection)
+        .unwrap();
+    transfer.add_transfer_ticket(ticket.id, connection).unwrap();
+    transfer.update_associated_orders(connection).unwrap();
+    transfer
+        .update(
+            TransferEditableAttributes {
+                destination_user_id: Some(transferee.id),
+                ..Default::default()
+            },
+            connection,
+        )
+        .unwrap();
+
+    let actual = Order::search(
+        None,
+        None,
+        Some("Samantha"),
+        None,
+        None,
+        None,
+        None,
+        Some(&user.first_name.as_ref().unwrap().to_string()),
+        None,
+        None,
+        true,
+        true,
+        true,
+        true,
+        None,
+        None,
+        user.id,
+        &PagingParameters::default(),
+        connection,
+    )
+    .unwrap();
+    assert_eq!(1, actual.1);
+    assert_eq!(order.id, actual.0[0].id);
+
+    let actual = Order::search(
+        None,
+        None,
+        Some("Zorb"),
+        None,
+        None,
+        None,
+        None,
+        Some(&user.first_name.as_ref().unwrap().to_string()),
+        None,
+        None,
+        true,
+        true,
+        true,
+        true,
+        None,
+        None,
+        user.id,
+        &PagingParameters::default(),
+        connection,
+    )
+    .unwrap();
+    assert_eq!(1, actual.1);
+    assert_eq!(order.id, actual.0[0].id);
 }
 
 #[test]

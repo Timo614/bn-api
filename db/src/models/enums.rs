@@ -165,6 +165,7 @@ string_enum! { DomainActionTypes [
     ProcessTransferDrip,
     RegenerateDripActions,
     SendPurchaseCompletedCommunication,
+    SubmitSitemapToSearchEngines,
     UpdateGenres
 ]}
 string_enum! { BroadcastStatus [Pending, InProgress, Completed, Cancelled]}

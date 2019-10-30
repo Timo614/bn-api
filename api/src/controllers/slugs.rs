@@ -62,7 +62,7 @@ pub fn show(
         SlugTypes::Organization | SlugTypes::Venue | SlugTypes::Event => {
             let primary_slug = Slug::primary_slug(slug.main_table_id, slug.main_table, connection)?;
             if primary_slug.slug != slug.slug {
-                return application::redirection_json(primary_slug.slug, state);
+                return redirection_json(&primary_slug, state);
             }
         }
         _ => (),
@@ -169,4 +169,17 @@ pub fn show(
     };
 
     Ok(HttpResponse::Ok().json(&response))
+}
+
+fn redirection_json(slug: &Slug, state: State<AppState>) -> Result<HttpResponse, BigNeonError> {
+    let path = match slug.slug_type {
+        SlugTypes::Event => "tickets",
+        SlugTypes::Venue => "venues",
+        SlugTypes::Organization => "organizations",
+        _ => return application::bad_request("Slug type is not valid for redirection"),
+    };
+
+    Ok(HttpResponse::Ok().json(json!({
+        "redirect": format!("{}/{}/{}", &state.config.front_end_url, path, &slug.slug)
+    })))
 }

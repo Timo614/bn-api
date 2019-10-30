@@ -141,7 +141,7 @@ impl EventVenueEntry {
                 localized_times,
                 tracking_keys,
                 event_type: event.event_type,
-                url: format!("{}/{}", state.config.front_end_url, slug),
+                url: format!("{}/tickets/{}", state.config.front_end_url, slug),
                 event_end: event.event_end,
             });
         }

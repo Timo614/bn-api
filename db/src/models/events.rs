@@ -481,7 +481,8 @@ impl Event {
             Some(self.id),
             current_user_id,
             Some(json!(&event)),
-        );
+        )
+        .commit(conn)?;
 
         Ok(result)
     }
@@ -1025,6 +1026,20 @@ impl Event {
             "Error loading event via venue",
             events::table
                 .filter(events::venue_id.eq(venue_id))
+                .filter(events::status.eq(EventStatus::Published))
+                .filter(events::deleted_at.is_null())
+                .filter(events::cancelled_at.is_null())
+                .filter(events::private_access_code.is_null())
+                .order_by(events::name)
+                .load(conn),
+        )
+    }
+
+    pub fn find_all_active_events(conn: &PgConnection) -> Result<Vec<Event>, DatabaseError> {
+        DatabaseError::wrap(
+            ErrorCode::QueryError,
+            "Error loading all active events",
+            events::table
                 .filter(events::status.eq(EventStatus::Published))
                 .filter(events::deleted_at.is_null())
                 .filter(events::cancelled_at.is_null())
@@ -1846,6 +1861,9 @@ impl Event {
         visibility: TicketTypeVisibility,
         parent_id: Option<Uuid>,
         additional_fee_in_cents: i64,
+        app_sales_enabled: bool,
+        web_sales_enabled: bool,
+        box_office_sales_enabled: bool,
         current_user_id: Option<Uuid>,
         conn: &PgConnection,
     ) -> Result<TicketType, DatabaseError> {
@@ -1863,6 +1881,9 @@ impl Event {
             visibility,
             parent_id,
             additional_fee_in_cents,
+            app_sales_enabled,
+            web_sales_enabled,
+            box_office_sales_enabled,
         )
         .commit(current_user_id, conn)?;
         let asset = Asset::create(ticket_type.id, asset_name).commit(conn)?;

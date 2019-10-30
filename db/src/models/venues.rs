@@ -320,18 +320,22 @@ impl Venue {
     }
 
     pub fn for_display(&self, conn: &PgConnection) -> Result<DisplayVenue, DatabaseError> {
+        let slug = Slug::primary_slug(self.id, Tables::Venues, conn)?.slug;
+        let city_slug =
+            Slug::find_first_for_city(&self.city, &self.state, &self.country, conn)?.slug;
         Ok(DisplayVenue {
             id: self.id,
             name: self.name.clone(),
             address: self.address.clone(),
             city: self.city.clone(),
+            city_slug,
             state: self.state.clone(),
             country: self.country.clone(),
             postal_code: self.postal_code.clone(),
             phone: self.phone.clone(),
             promo_image_url: self.promo_image_url.clone(),
             timezone: self.timezone.clone(),
-            slug: Slug::primary_slug(self.id, Tables::Venues, conn)?.slug,
+            slug,
         })
     }
 }
@@ -342,6 +346,7 @@ pub struct DisplayVenue {
     pub name: String,
     pub address: String,
     pub city: String,
+    pub city_slug: String,
     pub state: String,
     pub country: String,
     pub postal_code: String,

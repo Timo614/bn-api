@@ -13,7 +13,8 @@ with order_item_ids as (
   WHERE ($3 IS NULL OR o.paid_at >= $3)
   AND ($4 IS NULL OR o.paid_at <= $4)
   AND oi.event_id = $2
-  AND (oi.item_type != 'EventFees' OR oi.client_fee_in_cents > 0)
+  AND (oi.item_type <> 'EventFees' OR oi.client_fee_in_cents > 0)
+  AND oi.item_type <> 'CreditCardFees'
   AND o.settlement_id IS NULL
   AND o.status = 'Paid'
   AND oi.parent_id IS NULL
@@ -40,8 +41,9 @@ FROM (
     CASE oi.item_type WHEN 'EventFees' THEN 0 ELSE CAST(oi.unit_price_in_cents + COALESCE(oi_promo_code.unit_price_in_cents, 0) AS BIGINT) END as face_value_in_cents,
     -- Event fees record list the fee as part of the revenue share for that item with 0 face value
     CASE oi.item_type WHEN 'EventFees' THEN CAST(oi.client_fee_in_cents AS BIGINT) ELSE CAST(COALESCE(oi_t_fees.client_fee_in_cents, 0) AS BIGINT) END as revenue_share_value_in_cents,
-    CAST(SUM(oi.quantity - oi.refunded_quantity) AS BIGINT) as online_sold_quantity,
-    CAST(SUM(COALESCE(oi_t_fees.quantity - oi_t_fees.refunded_quantity, 0)) AS BIGINT) as fee_sold_quantity,
+    -- Event fees list their quantity in the fee_sold_quantity field
+    CASE oi.item_type WHEN 'EventFees' THEN 0 ELSE CAST(SUM(oi.quantity - oi.refunded_quantity) AS BIGINT) END as online_sold_quantity,
+    CASE oi.item_type WHEN 'EventFees' THEN CAST(SUM(oi.quantity - oi.refunded_quantity) AS BIGINT) ELSE CAST(SUM(COALESCE(oi_t_fees.quantity - oi_t_fees.refunded_quantity, 0)) AS BIGINT) END as fee_sold_quantity,
     CASE oi.item_type WHEN 'EventFees' THEN 'EventFees' ELSE 'TicketType' END as settlement_entry_type
   FROM order_items oi
            INNER JOIN order_item_ids oi_ids ON oi.id = oi_ids.id
@@ -69,7 +71,6 @@ FROM (
 with order_item_ids as (
   SELECT oi.id FROM order_items oi
   INNER JOIN orders o on oi.order_id = o.id
-  LEFT JOIN holds h ON oi.hold_id = h.id
   WHERE ($3 IS NULL OR o.paid_at >= $3)
   AND ($4 IS NULL OR o.paid_at <= $4)
   AND oi.event_id = $2

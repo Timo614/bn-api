@@ -1204,6 +1204,13 @@ fn box_office_sales_summary_report() {
         .with_ticket_pricing()
         .finish();
 
+    let ticket_type = &event.ticket_types(true, None, connection).unwrap()[0];
+    let hold = project
+        .create_hold()
+        .with_hold_type(HoldTypes::Discount)
+        .with_quantity(10)
+        .with_ticket_type_id(ticket_type.id)
+        .finish();
     let mut box_office_user_orders = Vec::new();
     let mut box_office_user2_orders = Vec::new();
     box_office_user_orders.push(
@@ -1247,6 +1254,18 @@ fn box_office_sales_summary_report() {
             .for_user(&box_office_user2)
             .on_behalf_of_user(&user2)
             .is_paid()
+            .with_external_payment_type(ExternalPaymentType::Cash)
+            .finish(),
+    );
+    box_office_user2_orders.push(
+        project
+            .create_order()
+            .quantity(1)
+            .for_event(&event)
+            .for_user(&box_office_user2)
+            .on_behalf_of_user(&user2)
+            .is_paid()
+            .with_redemption_code(hold.redemption_code.clone().unwrap())
             .with_external_payment_type(ExternalPaymentType::Cash)
             .finish(),
     );
@@ -1295,26 +1314,36 @@ fn box_office_sales_summary_report() {
             BoxOfficeSalesSummaryOperatorRow {
                 operator_id: box_office_user2.id,
                 operator_name: box_office_user2.full_name(),
-                events: vec![BoxOfficeSalesSummaryOperatorEventRow {
-                    event_name: Some("Event1".to_string()),
-                    event_date: Some(NaiveDate::from_ymd(2016, 7, 8).and_hms(9, 10, 11)),
-                    number_of_tickets: 2,
-                    face_value_in_cents: 150,
-                    revenue_share_value_in_cents: 0,
-                    total_sales_in_cents: 300,
-                }],
+                events: vec![
+                    BoxOfficeSalesSummaryOperatorEventRow {
+                        event_name: Some("Event1".to_string()),
+                        event_date: Some(NaiveDate::from_ymd(2016, 7, 8).and_hms(9, 10, 11)),
+                        number_of_tickets: 1,
+                        face_value_in_cents: 140,
+                        revenue_share_value_in_cents: 0,
+                        total_sales_in_cents: 140,
+                    },
+                    BoxOfficeSalesSummaryOperatorEventRow {
+                        event_name: Some("Event1".to_string()),
+                        event_date: Some(NaiveDate::from_ymd(2016, 7, 8).and_hms(9, 10, 11)),
+                        number_of_tickets: 2,
+                        face_value_in_cents: 150,
+                        revenue_share_value_in_cents: 0,
+                        total_sales_in_cents: 300,
+                    },
+                ],
                 payments: vec![BoxOfficeSalesSummaryPaymentRow {
                     payment_type: ExternalPaymentType::Cash,
-                    quantity: 2,
-                    total_sales_in_cents: 300,
+                    quantity: 3,
+                    total_sales_in_cents: 440,
                 }],
             },
         ],
         payments: vec![
             BoxOfficeSalesSummaryPaymentRow {
                 payment_type: ExternalPaymentType::Cash,
-                quantity: 3,
-                total_sales_in_cents: 450,
+                quantity: 4,
+                total_sales_in_cents: 590,
             },
             BoxOfficeSalesSummaryPaymentRow {
                 payment_type: ExternalPaymentType::CreditCard,
@@ -1440,6 +1469,9 @@ fn promo_code_report() {
             TicketTypeVisibility::Always,
             None,
             0,
+            true,
+            true,
+            true,
             None,
             connection,
         )

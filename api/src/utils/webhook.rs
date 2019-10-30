@@ -14,7 +14,7 @@ pub fn send_webhook_async(
     domain_event_publisher_id: Option<Uuid>,
     conn: &PgConnection,
     config: &Config,
-) -> Box<Future<Item = (), Error = BigNeonError>> {
+) -> Box<dyn Future<Item = (), Error = BigNeonError>> {
     match send_webhook(tokens, body, domain_event_publisher_id, conn, config) {
         Ok(_) => Box::new(future::ok(())),
         Err(e) => Box::new(future::err(e)),

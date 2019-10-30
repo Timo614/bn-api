@@ -240,33 +240,20 @@ fn next_settlement_date() {
     let connection = project.get_connection();
     let organization = project.create_organization().finish();
 
-    let now = Utc::now();
     let pt_timezone: Tz = "America/Los_Angeles".parse().unwrap();
-    let next_monday = now.naive_utc()
-        + Duration::days(
-            7 - now
-                .with_timezone(&pt_timezone)
-                .naive_utc()
-                .weekday()
-                .num_days_from_monday() as i64,
-        );
-    let expected_pt = pt_timezone
-        .ymd(next_monday.year(), next_monday.month(), next_monday.day())
-        .and_hms(0, 0, 0)
-        .naive_utc();
+    let now = pt_timezone.from_utc_datetime(&Utc::now().naive_utc());
+    let pt_today = pt_timezone
+        .ymd(now.year(), now.month(), now.day())
+        .and_hms(0, 0, 0);
+    let expected_pt = pt_today.naive_utc()
+        + Duration::days(7 - pt_today.naive_local().weekday().num_days_from_monday() as i64);
     let sa_timezone: Tz = "Africa/Johannesburg".parse().unwrap();
-    let next_monday = now.naive_utc()
-        + Duration::days(
-            7 - now
-                .with_timezone(&sa_timezone)
-                .naive_utc()
-                .weekday()
-                .num_days_from_monday() as i64,
-        );
-    let expected_sa = sa_timezone
-        .ymd(next_monday.year(), next_monday.month(), next_monday.day())
-        .and_hms(0, 0, 0)
-        .naive_utc();
+    let now = sa_timezone.from_utc_datetime(&Utc::now().naive_utc());
+    let sa_today = sa_timezone
+        .ymd(now.year(), now.month(), now.day())
+        .and_hms(0, 0, 0);
+    let expected_sa = sa_today.naive_utc()
+        + Duration::days(7 - sa_today.naive_local().weekday().num_days_from_monday() as i64);
 
     // Default behavior no timezone, upcoming Monday 12:00 AM PT
     assert_eq!(
@@ -309,15 +296,16 @@ fn next_settlement_date() {
     );
 
     // Using a passed in settlement period
-    let tomorrow = now.naive_utc() + Duration::days(1);
-    let expected_pt = pt_timezone
-        .ymd(tomorrow.year(), tomorrow.month(), tomorrow.day())
-        .and_hms(0, 0, 0)
-        .naive_utc();
+    let expected_pt = pt_today.naive_utc() + Duration::days(1);
+    assert_eq!(
+        organization.next_settlement_date(Some(1)).unwrap(),
+        expected_pt
+    );
+
     let organization = organization
         .update(
             OrganizationEditableAttributes {
-                timezone: Some("America/Los_Angeles".to_string()),
+                timezone: Some("Africa/Johannesburg".to_string()),
                 ..Default::default()
             },
             None,
@@ -325,9 +313,10 @@ fn next_settlement_date() {
             connection,
         )
         .unwrap();
+    let expected_sa = sa_today.naive_utc() + Duration::days(1);
     assert_eq!(
         organization.next_settlement_date(Some(1)).unwrap(),
-        expected_pt
+        expected_sa
     );
 }
 

@@ -26,7 +26,7 @@ impl PermissionsEndpoint {
                 format!("Bearer {}", &self.client.app_access_token),
             )
             .send()?;
-        let status = resp.status();
+        //        let status = resp.status();
         let value: serde_json::Value = resp.json()?;
         println!("{:?}", value.clone().to_string());
 

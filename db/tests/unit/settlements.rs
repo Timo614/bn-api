@@ -2,6 +2,7 @@ use bigneon_db::dev::TestProject;
 use bigneon_db::models::*;
 use bigneon_db::schema::orders;
 use bigneon_db::utils::dates;
+use bigneon_db::utils::errors::ErrorCode::ValidationError;
 use chrono::prelude::*;
 use chrono::Duration;
 use diesel;
@@ -120,6 +121,7 @@ fn create_post_event_entries() {
     let organization = project
         .create_organization()
         .with_event_fee()
+        .with_cc_fee(5f32)
         .with_settlement_type(SettlementTypes::PostEvent)
         .finish();
     let organization2 = project
@@ -266,7 +268,7 @@ fn create_post_event_entries() {
         Some("test comment".to_string()),
         true,
     )
-    .commit(connection)
+    .commit(None, connection)
     .unwrap();
 
     let display_settlement = settlement.clone().for_display(connection).unwrap();
@@ -280,7 +282,7 @@ fn create_post_event_entries() {
         Some("test comment".to_string()),
         true,
     )
-    .commit(connection)
+    .commit(None, connection)
     .unwrap();
 
     let display_settlement = settlement.clone().for_display(connection).unwrap();
@@ -370,12 +372,9 @@ fn create_post_event_entries() {
     assert_eq!(event_fee_entry.ticket_type_id, None);
     assert_eq!(event_fee_entry.face_value_in_cents, 0);
     assert_eq!(event_fee_entry.revenue_share_value_in_cents, 150);
-    assert_eq!(event_fee_entry.online_sold_quantity, 5);
-    assert_eq!(event_fee_entry.fee_sold_quantity, 0);
-    assert_eq!(
-        event_fee_entry.total_sales_in_cents,
-        event_fee_entry.online_sold_quantity * event_fee_entry.face_value_in_cents
-    );
+    assert_eq!(event_fee_entry.online_sold_quantity, 0);
+    assert_eq!(event_fee_entry.fee_sold_quantity, 5);
+    assert_eq!(event_fee_entry.total_sales_in_cents, 750);
 }
 
 #[test]
@@ -386,6 +385,7 @@ fn create_rolling_entries() {
     let organization = project
         .create_organization()
         .with_event_fee()
+        .with_cc_fee(5f32)
         .with_settlement_type(SettlementTypes::Rolling)
         .finish();
     let organization2 = project
@@ -547,7 +547,7 @@ fn create_rolling_entries() {
         Some("test comment".to_string()),
         false,
     )
-    .commit(connection)
+    .commit(None, connection)
     .unwrap();
 
     let display_settlement = settlement.clone().for_display(connection).unwrap();
@@ -639,12 +639,9 @@ fn create_rolling_entries() {
     assert_eq!(event_fee_entry.ticket_type_id, None);
     assert_eq!(event_fee_entry.face_value_in_cents, 0);
     assert_eq!(event_fee_entry.revenue_share_value_in_cents, 150);
-    assert_eq!(event_fee_entry.online_sold_quantity, 4);
-    assert_eq!(event_fee_entry.fee_sold_quantity, 0);
-    assert_eq!(
-        event_fee_entry.total_sales_in_cents,
-        event_fee_entry.online_sold_quantity * event_fee_entry.face_value_in_cents
-    );
+    assert_eq!(event_fee_entry.online_sold_quantity, 0);
+    assert_eq!(event_fee_entry.fee_sold_quantity, 4);
+    assert_eq!(event_fee_entry.total_sales_in_cents, 600);
 
     let event_entries_data = display_settlement
         .event_entries
@@ -690,24 +687,30 @@ fn create_rolling_entries() {
     assert_eq!(event_fee_entry.ticket_type_id, None);
     assert_eq!(event_fee_entry.face_value_in_cents, 0);
     assert_eq!(event_fee_entry.revenue_share_value_in_cents, 150);
-    assert_eq!(event_fee_entry.online_sold_quantity, 1);
-    assert_eq!(event_fee_entry.fee_sold_quantity, 0);
-    assert_eq!(
-        event_fee_entry.total_sales_in_cents,
-        event_fee_entry.online_sold_quantity * event_fee_entry.face_value_in_cents
-    );
+    assert_eq!(event_fee_entry.online_sold_quantity, 0);
+    assert_eq!(event_fee_entry.fee_sold_quantity, 1);
+    assert_eq!(event_fee_entry.total_sales_in_cents, 150);
 }
 
 #[test]
 fn create() {
     let project = TestProject::new();
     let connection = project.get_connection();
+    let user = project.create_user().finish();
     let organization = project.create_organization().finish();
     project
         .create_event()
         .with_name("NewEvent".into())
         .with_organization(&organization)
         .finish();
+    let domain_events = DomainEvent::find(
+        Tables::Organizations,
+        Some(organization.id),
+        Some(DomainEventTypes::SettlementReportProcessed),
+        connection,
+    )
+    .unwrap();
+    assert_eq!(0, domain_events.len());
     let settlement = Settlement::create(
         organization.id,
         NaiveDate::from_ymd(2016, 7, 8).and_hms(4, 10, 11),
@@ -716,11 +719,64 @@ fn create() {
         Some("test comment".to_string()),
         true,
     )
-    .commit(connection)
+    .commit(Some(user.clone()), connection)
     .unwrap();
 
     assert_eq!(settlement.organization_id, organization.id);
     assert_eq!(settlement.comment, Some("test comment".to_string()));
+
+    let domain_events = DomainEvent::find(
+        Tables::Organizations,
+        Some(organization.id),
+        Some(DomainEventTypes::SettlementReportProcessed),
+        connection,
+    )
+    .unwrap();
+    assert_eq!(1, domain_events.len());
+    assert_eq!(domain_events[0].user_id, Some(user.id));
+}
+
+#[test]
+fn create_with_validation_errors() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+    let organization = project.create_organization().finish();
+    project
+        .create_event()
+        .with_name("NewEvent".into())
+        .with_organization(&organization)
+        .finish();
+    let result = Settlement::create(
+        organization.id,
+        NaiveDate::from_ymd(2020, 7, 8).and_hms(4, 10, 11),
+        NaiveDate::from_ymd(2016, 7, 8).and_hms(4, 10, 11),
+        SettlementStatus::PendingSettlement,
+        Some("test comment".to_string()),
+        true,
+    )
+    .commit(None, connection);
+
+    match result {
+        Ok(_) => {
+            panic!("Expected validation error");
+        }
+        Err(error) => match &error.error_code {
+            ValidationError { errors } => {
+                assert!(errors.contains_key("start_time"));
+                assert_eq!(errors["start_time"].len(), 1);
+                assert_eq!(errors["start_time"][0].code, "end_time_before_start_time");
+                assert_eq!(
+                    &errors["start_time"][0]
+                        .message
+                        .clone()
+                        .unwrap()
+                        .into_owned(),
+                    "End time must be after start time"
+                );
+            }
+            _ => panic!("Expected validation error"),
+        },
+    }
 }
 
 #[test]

@@ -1,8 +1,7 @@
-use actix_web::{http, http::StatusCode, HttpResponse, Responder, State};
+use actix_web::{http, http::StatusCode, HttpResponse, Responder};
 use auth::user::User as AuthUser;
 use errors::*;
 use serde_json::{self, Value};
-use server::AppState;
 use std::collections::HashMap;
 
 pub fn unauthorized<T: Responder>(
@@ -52,15 +51,6 @@ pub fn internal_server_error<T: Responder>(message: &str) -> Result<T, BigNeonEr
 
 pub fn no_content() -> Result<HttpResponse, BigNeonError> {
     Ok(HttpResponse::new(StatusCode::NO_CONTENT))
-}
-
-pub fn redirection_json(
-    slug: String,
-    state: State<AppState>,
-) -> Result<HttpResponse, BigNeonError> {
-    Ok(HttpResponse::Ok().json(json!({
-        "redirect": format!("{}/{}", &state.config.front_end_url, &slug)
-    })))
 }
 
 pub fn not_found() -> Result<HttpResponse, BigNeonError> {

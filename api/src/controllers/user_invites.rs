@@ -32,10 +32,11 @@ pub fn create(
         return application::created(json!({}));
     }
 
-    let new_user = User::new_for_invite(
+    let new_user = User::new_stub(
         parameters.first_name.clone(),
         parameters.last_name.clone(),
         Some(parameters.email.clone()),
+        None,
     );
 
     let user = new_user.commit(Some(auth_user.id()), connection)?;

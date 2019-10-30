@@ -1,12 +1,51 @@
 use actix_web::{http::StatusCode, FromRequest, HttpResponse, Path, Query};
-use bigneon_api::controllers::settlements;
+use bigneon_api::controllers::settlements::{self, *};
+use bigneon_api::extractors::*;
 use bigneon_api::models::PathParameters;
 use bigneon_db::prelude::*;
+use bigneon_db::utils::dates;
 use serde_json;
 use support;
 use support::database::TestDatabase;
 use support::test_request::TestRequest;
 use uuid::Uuid;
+
+pub fn create(role: Roles, should_succeed: bool) {
+    let database = TestDatabase::new();
+    let user = database.create_user().finish();
+    let organization = database
+        .create_organization()
+        .with_settlement_type(SettlementTypes::Rolling)
+        .finish();
+    let auth_user =
+        support::create_auth_user_from_user(&user, role, Some(&organization), &database);
+    let start_time = dates::now().add_hours(-12).finish();
+    let end_time = dates::now().add_hours(1).finish();
+    let comment = "Example settlement comment".to_string();
+    let json = Json(NewSettlementRequest {
+        comment: Some(comment.clone()),
+        start_time,
+        end_time,
+    });
+
+    let test_request = TestRequest::create();
+    let mut path = Path::<PathParameters>::extract(&test_request.request).unwrap();
+    path.id = organization.id;
+    let response: HttpResponse =
+        settlements::create((database.connection.into(), json, path, auth_user)).into();
+    if !should_succeed {
+        support::expects_unauthorized(&response);
+        return;
+    }
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let body = support::unwrap_body_to_string(&response).unwrap();
+    let settlement: Settlement = serde_json::from_str(&body).unwrap();
+    assert_eq!(settlement.organization_id, organization.id);
+    assert_eq!(settlement.comment, Some(comment));
+    assert_eq!(settlement.start_time.timestamp(), start_time.timestamp());
+    assert_eq!(settlement.end_time.timestamp(), end_time.timestamp());
+    assert_eq!(settlement.only_finished_events, false);
+}
 
 pub fn index(role: Roles, should_succeed: bool) {
     let database = TestDatabase::new();

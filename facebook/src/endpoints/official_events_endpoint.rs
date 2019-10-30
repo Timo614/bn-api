@@ -1,9 +1,10 @@
-use error::FacebookError;
+use error::{FacebookError, FacebookErrorResponse};
 use facebook_client::FacebookClientInner;
 use facebook_request::FacebookRequest;
 use fbid::FBID;
-use log::Level::{Debug, Info};
+use log::Level::Info;
 use nodes::Event;
+use reqwest::StatusCode;
 use std::rc::Rc;
 
 pub struct OfficialEventsEndpoint {
@@ -23,7 +24,7 @@ impl OfficialEventsEndpoint {
 
         jlog!(Info, "Sending request to Facebook", { "request": &request });
 
-        /// Example json to use at https://developers.facebook.com/tools/explorer
+        // Example json to use at https://developers.facebook.com/tools/explorer
         /*
         {
             "category": "WORKSHOP",
@@ -40,10 +41,10 @@ impl OfficialEventsEndpoint {
         }
         */
         let mut resp = client
-            .post(&format!("{}/v3.1/official_events", &self.client.base_url))
+            .post(&format!("{}/v5.0/official_events", &self.client.base_url))
             .json(&request)
             .send()?;
-        let status = resp.status();
+        //        let status = resp.status();
         //        if status != StatusCode::UNPROCESSABLE_ENTITY && status != StatusCode::OK {
         //            return Err(resp.error_for_status().err().map(|e| e.into()).unwrap_or(
         //                GlobeeError::UnexpectedResponseError(format!(
@@ -57,9 +58,20 @@ impl OfficialEventsEndpoint {
         println!("{:?}", value);
 
         jlog!(Info, "Response from Facebook", { "response": &value });
-        //let value: GlobeeResponse<PaymentResponse> = serde_json::from_value(value)?;
 
-        panic!("oh noes");
-        Ok(FBID("asdf".to_string()))
+        if resp.status() != StatusCode::OK {
+            if let Some(error) = value.get("error") {
+                let error: FacebookErrorResponse = serde_json::from_value(error.clone())?;
+                return Err(FacebookError::FacebookError(error));
+            }
+            resp.error_for_status()?;
+        }
+
+        #[derive(Deserialize)]
+        struct R {
+            id: String,
+        }
+
+        Ok(FBID(serde_json::from_value::<R>(value)?.id))
     }
 }

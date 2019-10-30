@@ -241,6 +241,9 @@ impl<'a> EventBuilder<'a> {
                         TicketTypeVisibility::Always,
                         None,
                         0,
+                        true,
+                        true,
+                        true,
                         None,
                         self.connection,
                     )

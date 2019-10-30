@@ -88,7 +88,9 @@ impl SettlementEntry {
                 settlement_entries::updated_at,
             ))
             .order_by(settlement_entries::event_id)
-            .then_order_by(settlement_entries::settlement_entry_type.nullable())
+            .then_order_by(settlement_entries::settlement_entry_type.nullable().desc())
+            .then_order_by(ticket_types::rank)
+            .then_order_by(settlement_entries::face_value_in_cents)
             .load(conn)
             .to_db_error(ErrorCode::QueryError, "Could not load Settlement Entries")?;
 

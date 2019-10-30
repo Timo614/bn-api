@@ -19,7 +19,7 @@ fn create() {
         Some("test comment".to_string()),
         true,
     )
-    .commit(connection)
+    .commit(None, connection)
     .unwrap();
 
     let settlement_adjustment = project
