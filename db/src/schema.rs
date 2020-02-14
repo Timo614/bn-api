@@ -112,6 +112,69 @@ table! {
 }
 
 table! {
+    chat_sessions (id) {
+        id -> Uuid,
+        user_id -> Uuid,
+        chat_workflow_id -> Uuid,
+        chat_workflow_item_id -> Uuid,
+        context -> Jsonb,
+        expires_at -> Nullable<Timestamp>,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+table! {
+    chat_workflow_interactions (id) {
+        id -> Uuid,
+        chat_workflow_item_id -> Uuid,
+        chat_workflow_response_id -> Uuid,
+        chat_session_id -> Uuid,
+        input -> Nullable<Jsonb>,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+table! {
+    chat_workflow_items (id) {
+        id -> Uuid,
+        chat_workflow_id -> Uuid,
+        item_type -> Text,
+        message -> Nullable<Text>,
+        render_type -> Nullable<Text>,
+        response_wait -> Int4,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+table! {
+    chat_workflow_responses (id) {
+        id -> Uuid,
+        chat_workflow_item_id -> Uuid,
+        response_type -> Text,
+        response -> Nullable<Text>,
+        answer_value -> Nullable<Jsonb>,
+        next_chat_workflow_item_id -> Nullable<Uuid>,
+        rank -> Int4,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+table! {
+    chat_workflows (id) {
+        id -> Uuid,
+        name -> Text,
+        status -> Text,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+        initial_chat_workflow_item_id -> Nullable<Uuid>,
+    }
+}
+
+table! {
     codes (id) {
         id -> Uuid,
         name -> Text,
@@ -887,6 +950,12 @@ joinable!(artists -> genres (main_genre_id));
 joinable!(artists -> organizations (organization_id));
 joinable!(assets -> ticket_types (ticket_type_id));
 joinable!(broadcasts -> events (event_id));
+joinable!(chat_sessions -> chat_workflow_items (chat_workflow_item_id));
+joinable!(chat_sessions -> chat_workflows (chat_workflow_id));
+joinable!(chat_sessions -> users (user_id));
+joinable!(chat_workflow_interactions -> chat_sessions (chat_session_id));
+joinable!(chat_workflow_interactions -> chat_workflow_items (chat_workflow_item_id));
+joinable!(chat_workflow_interactions -> chat_workflow_responses (chat_workflow_response_id));
 joinable!(codes -> events (event_id));
 joinable!(domain_actions -> domain_events (domain_event_id));
 joinable!(domain_event_published -> domain_event_publishers (domain_event_publisher_id));
@@ -971,6 +1040,11 @@ allow_tables_to_appear_in_same_query!(
     artists,
     assets,
     broadcasts,
+    chat_sessions,
+    chat_workflow_interactions,
+    chat_workflow_items,
+    chat_workflow_responses,
+    chat_workflows,
     codes,
     domain_actions,
     domain_event_published,

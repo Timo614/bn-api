@@ -71,6 +71,26 @@ impl TestProject {
         BroadcastBuilder::new(&self.connection)
     }
 
+    pub fn create_chat_session(&self) -> ChatSessionBuilder {
+        ChatSessionBuilder::new(&self.connection)
+    }
+
+    pub fn create_chat_workflow_interaction(&self) -> ChatWorkflowInteractionBuilder {
+        ChatWorkflowInteractionBuilder::new(&self.connection)
+    }
+
+    pub fn create_chat_workflow_item(&self) -> ChatWorkflowItemBuilder {
+        ChatWorkflowItemBuilder::new(&self.connection)
+    }
+
+    pub fn create_chat_workflow_response(&self) -> ChatWorkflowResponseBuilder {
+        ChatWorkflowResponseBuilder::new(&self.connection)
+    }
+
+    pub fn create_chat_workflow(&self) -> ChatWorkflowBuilder {
+        ChatWorkflowBuilder::new(&self.connection)
+    }
+
     pub fn create_code(&self) -> CodeBuilder {
         CodeBuilder::new(&self.connection)
     }

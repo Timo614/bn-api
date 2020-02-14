@@ -97,6 +97,15 @@ define_enum! { AnnouncementEngagementAction [Dismiss] }
 define_enum! { AssetStatus [Unsynced] }
 define_enum! { BroadcastAudience [ PeopleAtTheEvent, TicketHolders, OrganizationMembers ]}
 define_enum! { CartItemStatus [CodeExpired, HoldExpired, TicketNullified, TicketNotReserved, Valid] }
+define_enum! { ChatWorkflowItemType [
+    Render,
+    Question,
+    Message,
+    Done
+] }
+define_enum! { ChatWorkflowItemRenderType [OrderDetails, TicketTransfer] }
+define_enum! { ChatWorkflowResponseType [Answer, Noop] }
+define_enum! { ChatWorkflowStatus [Draft, Published] }
 define_enum! { CheckInSource [GuestList, Scanned] }
 define_enum! { CodeTypes [Access, Discount] }
 define_enum! { CommunicationChannelType [Email, Sms, Push, Webhook]}
@@ -104,6 +113,9 @@ define_enum! { CommunicationType [EmailTemplate, Sms, Push, Webhook]}
 define_enum! { DomainEventTypes [
     AnnouncementCreated,
     AnnouncementDeleted,
+    ChatWorkflowCreated,
+    ChatWorkflowDeleted,
+    ChatWorkflowPublished,
     CodeCreated,
     CodeDeleted,
     CodeUpdated,
@@ -224,8 +236,8 @@ define_enum! { SlugTypes[ Event, Organization, Venue, City, Genre, CityGenre ] }
 define_enum! { SortingDir[ Asc, Desc ] }
 define_enum! { SourceOrDestination [Destination,Source]}
 define_enum! { Tables [
-    Announcements, Artists, Broadcasts, Codes, DomainEventPublishers, Events, EventArtists, EventReportSubscribers, ExternalLogins, FeeSchedules,
-    Holds, Orders, Organizations, Notes, Payments, PaymentMethods, PushNotificationTokens, TemporaryUsers, TicketInstances, TicketTypes,
+    Announcements, Artists, Broadcasts, ChatWorkflows, Codes, DomainEventPublishers, Events, EventArtists, EventReportSubscribers, ExternalLogins,
+    FeeSchedules, Holds, Orders, Organizations, Notes, Payments, PaymentMethods, PushNotificationTokens, TemporaryUsers, TicketInstances, TicketTypes,
     TicketPricing, Transfers, Users, Venues, Genres
 ] }
 define_enum! { TicketInstanceStatus [Available, Reserved, Purchased, Redeemed, Nullified]}

@@ -79,6 +79,32 @@ pub fn routes(app: &mut CorsBuilder<AppState>) -> App<AppState> {
     .resource("/cart/checkout", |r| {
         r.method(Method::POST).with(cart::checkout);
     })
+    .resource("/chat_workflow_items/{id}/chat_workflow_responses", |r| {
+        r.method(Method::POST).with(chat_workflow_responses::create);
+    })
+    .resource("/chat_workflow_items/{id}", |r| {
+        r.method(Method::DELETE).with(chat_workflow_items::destroy);
+        r.method(Method::PUT).with(chat_workflow_items::update);
+    })
+    .resource("/chat_workflow_responses/{id}", |r| {
+        r.method(Method::DELETE).with(chat_workflow_responses::destroy);
+        r.method(Method::PUT).with(chat_workflow_responses::update);
+    })
+    .resource("/chat_workflows", |r| {
+        r.method(Method::GET).with(chat_workflows::index);
+        r.method(Method::POST).with(chat_workflows::create);
+    })
+    .resource("/chat_workflows/{id}", |r| {
+        r.method(Method::DELETE).with(chat_workflows::destroy);
+        r.method(Method::GET).with(chat_workflows::show);
+        r.method(Method::PUT).with(chat_workflows::update);
+    })
+    .resource("/chat_workflows/{id}/chat_workflow_items", |r| {
+        r.method(Method::POST).with(chat_workflow_items::create);
+    })
+    .resource("/chat", |r| {
+        r.method(Method::GET).with(chat::initate);
+    })
     .resource("/codes/{id}/link", |r| {
         r.method(Method::GET).with(codes::link);
     })

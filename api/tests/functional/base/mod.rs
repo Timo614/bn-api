@@ -1,6 +1,9 @@
 pub mod announcements;
 pub mod artists;
 pub mod cart;
+pub mod chat_workflow_items;
+pub mod chat_workflow_responses;
+pub mod chat_workflows;
 pub mod codes;
 pub mod comps;
 pub mod event_report_subscribers;
