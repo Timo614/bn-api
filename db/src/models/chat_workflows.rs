@@ -1,4 +1,5 @@
 use chrono::NaiveDateTime;
+use diesel::dsl::{exists, select};
 use diesel::expression::dsl;
 use diesel::prelude::*;
 use models::*;
@@ -6,6 +7,8 @@ use schema::chat_workflows;
 use serde_json::Value;
 use utils::errors::*;
 use uuid::Uuid;
+use validator::*;
+use validators::{self, *};
 
 #[derive(Clone, Queryable, Identifiable, Insertable, Serialize, Deserialize, PartialEq, Debug)]
 #[table_name = "chat_workflows"]
@@ -44,6 +47,28 @@ pub struct ChatWorkflowEditableAttributes {
 }
 
 impl ChatWorkflow {
+    fn name_unique(
+        name: &str,
+        id: Option<Uuid>,
+        conn: &PgConnection,
+    ) -> Result<Result<(), ValidationError>, DatabaseError> {
+        let mut query = chat_workflows::table.filter(chat_workflows::name.eq(name)).into_boxed();
+        if let Some(id) = id {
+            query = query.filter(chat_workflows::id.ne(id));
+        }
+
+        let name_in_use = select(exists(query))
+            .get_result(conn)
+            .to_db_error(ErrorCode::QueryError, "Could not check if chat workflow name is unique")?;
+
+        if name_in_use {
+            let validation_error = create_validation_error("uniqueness", "Name is already in use");
+            return Ok(Err(validation_error));
+        }
+
+        Ok(Ok(()))
+    }
+
     pub fn publish(&self, current_user_id: Option<Uuid>, conn: &PgConnection) -> Result<ChatWorkflow, DatabaseError> {
         if self.status == ChatWorkflowStatus::Published {
             // Do nothing, returns samer chat workflow
@@ -143,11 +168,30 @@ impl ChatWorkflow {
         }
     }
 
+    fn validate_record(
+        &self,
+        attributes: &ChatWorkflowEditableAttributes,
+        conn: &PgConnection,
+    ) -> Result<(), DatabaseError> {
+        let mut validation_errors = Ok(());
+        if let Some(name) = attributes.name.as_ref() {
+            validation_errors = validators::append_validation_error(
+                validation_errors,
+                "name",
+                ChatWorkflow::name_unique(&name, Some(self.id), conn)?,
+            );
+        }
+
+        Ok(validation_errors?)
+    }
+
     pub fn update(
         &self,
         attributes: ChatWorkflowEditableAttributes,
         conn: &PgConnection,
     ) -> Result<ChatWorkflow, DatabaseError> {
+        self.validate_record(&attributes, conn)?;
+
         if self.status == ChatWorkflowStatus::Published {
             // Value is being removed on a published chat workflow
             if attributes.initial_chat_workflow_item_id == Some(None) {
@@ -162,10 +206,26 @@ impl ChatWorkflow {
             .get_result(conn)
             .to_db_error(ErrorCode::UpdateError, "Could not update chat workflow")
     }
+
+    pub fn find_by_name(name: &str, conn: &PgConnection) -> Result<ChatWorkflow, DatabaseError> {
+        chat_workflows::table
+            .filter(chat_workflows::name.eq(name))
+            .get_result(conn)
+            .to_db_error(ErrorCode::QueryError, "Unable to load chat workflow")
+    }
 }
 
 impl NewChatWorkflow {
+    fn validate_record(&self, conn: &PgConnection) -> Result<(), DatabaseError> {
+        let validation_errors =
+            validators::append_validation_error(Ok(()), "name", ChatWorkflow::name_unique(&self.name, None, conn)?);
+
+        Ok(validation_errors?)
+    }
+
     pub fn commit(&self, current_user_id: Option<Uuid>, conn: &PgConnection) -> Result<ChatWorkflow, DatabaseError> {
+        self.validate_record(conn)?;
+
         let chat_workflow: ChatWorkflow = diesel::insert_into(chat_workflows::table)
             .values((self, chat_workflows::status.eq(ChatWorkflowStatus::Draft)))
             .get_result(conn)

@@ -1,6 +1,7 @@
 use bigneon_db::dev::TestProject;
 use bigneon_db::prelude::*;
 use bigneon_db::utils::errors::DatabaseError;
+use bigneon_db::utils::errors::ErrorCode::ValidationError;
 
 #[test]
 fn for_display() {
@@ -243,6 +244,41 @@ fn create_commit() {
 }
 
 #[test]
+fn create_with_validation_errors() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+    let name = "Workflow Name".to_string();
+
+    // Creates chat workflow without issue
+    assert!(ChatWorkflow::create(name.clone()).commit(None, connection).is_ok());
+
+    // Failure because answer value already in use
+    let result = ChatWorkflow::create(name.clone()).commit(None, connection);
+    match result {
+        Ok(_) => {
+            panic!("Expected validation error");
+        }
+        Err(error) => match &error.error_code {
+            ValidationError { errors } => {
+                assert!(errors.contains_key("name"));
+                assert_eq!(errors["name"].len(), 1);
+                assert_eq!(errors["name"][0].code, "uniqueness");
+                assert_eq!(
+                    &errors["name"][0].message.clone().unwrap().into_owned(),
+                    "Name is already in use"
+                );
+            }
+            _ => panic!("Expected validation error"),
+        },
+    }
+
+    // Additional attempt using a unique name does not lead to errors
+    assert!(ChatWorkflow::create("Workflow Name 2".to_string())
+        .commit(None, connection)
+        .is_ok());
+}
+
+#[test]
 fn find() {
     let project = TestProject::new();
     let connection = project.get_connection();
@@ -282,6 +318,23 @@ fn update_cannot_remove_initial_chat_workflow_item_on_published() {
 }
 
 #[test]
+fn find_by_name() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+    let chat_workflow = project.create_chat_workflow().with_name("Chat Workflow 1").finish();
+    let chat_workflow2 = project.create_chat_workflow().with_name("Chat Workflow 2").finish();
+
+    assert_eq!(
+        ChatWorkflow::find_by_name("Chat Workflow 1", connection).unwrap(),
+        chat_workflow
+    );
+    assert_eq!(
+        ChatWorkflow::find_by_name("Chat Workflow 2", connection).unwrap(),
+        chat_workflow2
+    );
+}
+
+#[test]
 fn update() {
     let project = TestProject::new();
     let connection = project.get_connection();
@@ -296,4 +349,44 @@ fn update() {
 
     let chat_workflow = chat_workflow.update(attributes, connection).unwrap();
     assert_eq!(chat_workflow.name, new_name);
+}
+
+#[test]
+fn update_with_validation_errors() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+
+    let chat_workflow = project.create_chat_workflow().finish();
+    let chat_workflow2 = project.create_chat_workflow().finish();
+
+    let attributes = ChatWorkflowEditableAttributes {
+        name: Some(chat_workflow2.name.clone()),
+        ..Default::default()
+    };
+
+    let result = chat_workflow.update(attributes, connection);
+    match result {
+        Ok(_) => {
+            panic!("Expected validation error");
+        }
+        Err(error) => match &error.error_code {
+            ValidationError { errors } => {
+                assert!(errors.contains_key("name"));
+                assert_eq!(errors["name"].len(), 1);
+                assert_eq!(errors["name"][0].code, "uniqueness");
+                assert_eq!(
+                    &errors["name"][0].message.clone().unwrap().into_owned(),
+                    "Name is already in use"
+                );
+            }
+            _ => panic!("Expected validation error"),
+        },
+    }
+
+    // Additional attempt using a unique name does not lead to errors
+    let attributes = ChatWorkflowEditableAttributes {
+        name: Some("New Name".to_string()),
+        ..Default::default()
+    };
+    assert!(chat_workflow.update(attributes, connection).is_ok());
 }

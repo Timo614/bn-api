@@ -6,7 +6,7 @@ CREATE TABLE chat_workflows
     created_at        TIMESTAMP NOT NULL DEFAULT now(),
     updated_at        TIMESTAMP NOT NULL DEFAULT now()
 );
-CREATE INDEX index_chat_workflows_name ON chat_workflows (name);
+CREATE UNIQUE INDEX index_chat_workflows_name ON chat_workflows (name);
 
 CREATE TABLE chat_workflow_items
 (
