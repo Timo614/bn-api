@@ -199,8 +199,12 @@ fn process_response() {
     assert_eq!(number_of_interactions, 0);
 
     // Failure due to invalid response provided
-    let response =
-        chat_session.process_response(&question_chat_workflow_item, None, Some(json!("Invalid")), connection);
+    let response = chat_session.process_response(
+        &question_chat_workflow_item,
+        None,
+        Some("Invalid".to_string()),
+        connection,
+    );
     assert_eq!(
         response,
         DatabaseError::business_process_error("Unable to process response, no valid input provided")
@@ -268,7 +272,7 @@ fn process_response() {
         answer_selection_key.clone(),
         json!(Some(answer_chat_workflow_response.answer_value.clone())),
     );
-    *context.get_mut(&last_input_key).unwrap() = interaction.input.clone().unwrap();
+    *context.get_mut(&last_input_key).unwrap() = json!(interaction.input.clone().unwrap());
     assert_eq!(context, serde_json::from_value(chat_session.context.clone()).unwrap());
 
     // Can also be provided by the answer input
@@ -288,8 +292,7 @@ fn process_response() {
     assert_eq!(interaction.chat_workflow_response_id, answer_chat_workflow_response2.id);
     assert_eq!(interaction.input, answer_chat_workflow_response2.answer_value);
     *context.get_mut(&answer_selection_key).unwrap() = json!(Some(answer_chat_workflow_response2.answer_value.clone()));
-    *context.get_mut(&last_input_key).unwrap() = interaction.input.clone().unwrap();
-    *context.get_mut(&last_input_key).unwrap() = answer_chat_workflow_response2.answer_value.clone().unwrap();
+    *context.get_mut(&last_input_key).unwrap() = json!(answer_chat_workflow_response2.answer_value.clone().unwrap());
     assert_eq!(context, serde_json::from_value(chat_session.context.clone()).unwrap());
 
     // Render type set on render type processing is stored in context in addition

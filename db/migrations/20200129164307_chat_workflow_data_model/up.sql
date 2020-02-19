@@ -31,7 +31,7 @@ CREATE TABLE chat_workflow_responses
     chat_workflow_item_id       UUID NOT NULL REFERENCES chat_workflow_items(id) ON DELETE CASCADE,
     response_type               TEXT NOT NULL,
     response                    TEXT NULL,
-    answer_value                JSONB NULL,
+    answer_value                TEXT NULL,
     next_chat_workflow_item_id  UUID NULL REFERENCES chat_workflow_items(id) ON DELETE CASCADE,
     rank                        INTEGER NOT NULL,
     created_at                  TIMESTAMP NOT NULL DEFAULT now(),
@@ -62,7 +62,7 @@ CREATE TABLE chat_workflow_interactions
     chat_workflow_item_id UUID NOT NULL REFERENCES chat_workflow_items(id) ON DELETE CASCADE,
     chat_workflow_response_id UUID NOT NULL REFERENCES chat_workflow_responses(id) ON DELETE CASCADE,
     chat_session_id UUID NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
-    input             JSONB NULL,
+    input             TEXT NULL,
     created_at        TIMESTAMP NOT NULL DEFAULT now(),
     updated_at        TIMESTAMP NOT NULL DEFAULT now()
 );

@@ -1,6 +1,5 @@
 use diesel::prelude::*;
 use models::*;
-use serde_json::Value;
 use test::builders::*;
 use uuid::Uuid;
 
@@ -8,7 +7,7 @@ pub struct ChatWorkflowInteractionBuilder<'a> {
     chat_workflow_item_id: Option<Uuid>,
     chat_workflow_response_id: Option<Uuid>,
     chat_session_id: Option<Uuid>,
-    input: Option<Value>,
+    input: Option<String>,
     connection: &'a PgConnection,
 }
 
@@ -38,7 +37,7 @@ impl<'a> ChatWorkflowInteractionBuilder<'a> {
         self
     }
 
-    pub fn with_input(mut self, input: Value) -> Self {
+    pub fn with_input(mut self, input: String) -> Self {
         self.input = Some(input);
         self
     }

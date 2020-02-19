@@ -130,7 +130,7 @@ table! {
         chat_workflow_item_id -> Uuid,
         chat_workflow_response_id -> Uuid,
         chat_session_id -> Uuid,
-        input -> Nullable<Jsonb>,
+        input -> Nullable<Text>,
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }
@@ -155,7 +155,7 @@ table! {
         chat_workflow_item_id -> Uuid,
         response_type -> Text,
         response -> Nullable<Text>,
-        answer_value -> Nullable<Jsonb>,
+        answer_value -> Nullable<Text>,
         next_chat_workflow_item_id -> Nullable<Uuid>,
         rank -> Int4,
         created_at -> Timestamp,

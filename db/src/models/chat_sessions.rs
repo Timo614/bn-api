@@ -105,7 +105,7 @@ impl ChatSession {
         &mut self,
         chat_workflow_item: &ChatWorkflowItem,
         chat_workflow_response: Option<ChatWorkflowResponse>,
-        last_input: Option<Value>,
+        last_input: Option<String>,
         conn: &PgConnection,
     ) -> Result<ChatWorkflowInteraction, DatabaseError> {
         let mut chat_workflow_response = chat_workflow_response;
@@ -130,7 +130,7 @@ impl ChatSession {
             if chat_workflow_response.is_none() {
                 chat_workflow_response = ChatWorkflowResponse::find_by_chat_workflow_item_and_answer_value(
                     &chat_workflow_item,
-                    input.clone(),
+                    &input,
                     conn,
                 )
                 .optional()?;
@@ -178,7 +178,7 @@ impl ChatSession {
         &self,
         chat_workflow_item: &ChatWorkflowItem,
         chat_workflow_response: &ChatWorkflowResponse,
-        input: Option<Value>,
+        input: Option<String>,
         conn: &PgConnection,
     ) -> Result<ChatWorkflowInteraction, DatabaseError> {
         self.update(

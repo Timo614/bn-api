@@ -16,7 +16,7 @@ pub struct ChatWorkflowResponse {
     pub chat_workflow_item_id: Uuid,
     pub response_type: ChatWorkflowResponseType,
     pub response: Option<String>,
-    pub answer_value: Option<Value>,
+    pub answer_value: Option<String>,
     pub next_chat_workflow_item_id: Option<Uuid>,
     pub rank: i32,
     pub created_at: NaiveDateTime,
@@ -29,7 +29,7 @@ pub struct NewChatWorkflowResponse {
     pub chat_workflow_item_id: Uuid,
     pub response_type: ChatWorkflowResponseType,
     pub response: Option<String>,
-    pub answer_value: Option<Value>,
+    pub answer_value: Option<String>,
     pub next_chat_workflow_item_id: Option<Uuid>,
     pub rank: i32,
 }
@@ -40,7 +40,7 @@ pub struct ChatWorkflowResponseEditableAttributes {
     pub response_type: Option<ChatWorkflowResponseType>,
     #[serde(default, deserialize_with = "double_option_deserialize_unless_blank")]
     pub response: Option<Option<String>>,
-    pub answer_value: Option<Option<Value>>,
+    pub answer_value: Option<Option<String>>,
     pub next_chat_workflow_item_id: Option<Option<Uuid>>,
     pub rank: Option<i32>,
 }
@@ -51,7 +51,7 @@ pub struct DisplayChatWorkflowResponse {
     pub chat_workflow_item_id: Uuid,
     pub response_type: ChatWorkflowResponseType,
     pub response: Option<String>,
-    pub answer_value: Option<Value>,
+    pub answer_value: Option<String>,
     pub next_chat_workflow_item_id: Option<Uuid>,
     pub rank: i32,
     pub tree: Value,
@@ -64,7 +64,7 @@ impl ChatWorkflowResponse {
         chat_workflow_item_id: Uuid,
         response_type: ChatWorkflowResponseType,
         response: Option<String>,
-        answer_value: Option<Value>,
+        answer_value: Option<String>,
         next_chat_workflow_item_id: Option<Uuid>,
         rank: i32,
     ) -> NewChatWorkflowResponse {
@@ -215,7 +215,7 @@ impl ChatWorkflowResponse {
 
     pub fn find_by_chat_workflow_item_and_answer_value(
         chat_workflow_item: &ChatWorkflowItem,
-        answer_value: Value,
+        answer_value: &str,
         conn: &PgConnection,
     ) -> Result<ChatWorkflowResponse, DatabaseError> {
         chat_workflow_responses::table
@@ -251,7 +251,7 @@ impl ChatWorkflowResponse {
 
     pub(crate) fn answer_value_unique(
         chat_workflow_item_id: Uuid,
-        answer_value: Option<Value>,
+        answer_value: Option<String>,
         conn: &PgConnection,
     ) -> Result<Result<(), ValidationError>, DatabaseError> {
         if answer_value.is_none() {

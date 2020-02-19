@@ -1,7 +1,6 @@
 use diesel::prelude::*;
 use models::*;
 use rand::prelude::*;
-use serde_json::Value;
 use test::builders::*;
 use uuid::Uuid;
 
@@ -9,7 +8,7 @@ pub struct ChatWorkflowResponseBuilder<'a> {
     chat_workflow_item_id: Option<Uuid>,
     response_type: ChatWorkflowResponseType,
     response: Option<String>,
-    answer_value: Option<Value>,
+    answer_value: Option<String>,
     next_chat_workflow_item_id: Option<Uuid>,
     rank: i32,
     connection: &'a PgConnection,
@@ -28,9 +27,9 @@ impl<'a> ChatWorkflowResponseBuilder<'a> {
         }
     }
 
-    pub fn with_answer_value(mut self, answer_value: Value) -> Self {
+    pub fn with_answer_value(mut self, answer_value: &str) -> Self {
         self.response_type = ChatWorkflowResponseType::Answer;
-        self.answer_value = Some(answer_value);
+        self.answer_value = Some(answer_value.to_string());
         self
     }
 
@@ -62,7 +61,7 @@ impl<'a> ChatWorkflowResponseBuilder<'a> {
         if chat_workflow_item.item_type == ChatWorkflowItemType::Question {
             if self.answer_value.is_none() {
                 let x: u32 = random();
-                self = self.with_answer_value(json!(format!("Answer {}", x)));
+                self = self.with_answer_value(&format!("Answer {}", x));
             }
         }
 

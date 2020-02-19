@@ -134,7 +134,7 @@ fn create_with_validation_errors() {
         chat_workflow_item.id,
         response_type,
         None,
-        Some(json!(answer_value.clone())),
+        Some(answer_value.clone()),
         None,
         1
     )
@@ -146,7 +146,7 @@ fn create_with_validation_errors() {
         chat_workflow_item.id,
         response_type,
         None,
-        Some(json!(answer_value.clone())),
+        Some(answer_value.clone()),
         None,
         1,
     )
@@ -174,7 +174,7 @@ fn create_with_validation_errors() {
         chat_workflow_item.id,
         response_type,
         None,
-        Some(json!("Answer 2".to_string())),
+        Some("Answer 2".to_string()),
         None,
         1
     )
@@ -186,7 +186,7 @@ fn create_with_validation_errors() {
         chat_workflow_item2.id,
         response_type,
         None,
-        Some(json!(answer_value.clone())),
+        Some(answer_value.clone()),
         None,
         1
     )
@@ -383,37 +383,29 @@ fn find_by_chat_workflow_item_and_answer_value() {
     let chat_workflow_item = project.create_chat_workflow_item().finish();
     let chat_workflow_response = project
         .create_chat_workflow_response()
-        .with_answer_value(json!("Yes!"))
+        .with_answer_value("Yes!")
         .with_chat_workflow_item(&chat_workflow_item)
         .finish();
     let chat_workflow_response2 = project
         .create_chat_workflow_response()
-        .with_answer_value(json!("No way!"))
+        .with_answer_value("No way!")
         .with_rank(2)
         .with_chat_workflow_item(&chat_workflow_item)
         .finish();
 
     assert_eq!(
         chat_workflow_response,
-        ChatWorkflowResponse::find_by_chat_workflow_item_and_answer_value(
-            &chat_workflow_item,
-            json!("Yes!"),
-            connection
-        )
-        .unwrap()
+        ChatWorkflowResponse::find_by_chat_workflow_item_and_answer_value(&chat_workflow_item, "Yes!", connection)
+            .unwrap()
     );
     assert_eq!(
         chat_workflow_response2,
-        ChatWorkflowResponse::find_by_chat_workflow_item_and_answer_value(
-            &chat_workflow_item,
-            json!("No way!"),
-            connection
-        )
-        .unwrap()
+        ChatWorkflowResponse::find_by_chat_workflow_item_and_answer_value(&chat_workflow_item, "No way!", connection)
+            .unwrap()
     );
     assert!(ChatWorkflowResponse::find_by_chat_workflow_item_and_answer_value(
         &chat_workflow_item,
-        json!("Not real!"),
+        "Not real!",
         connection
     )
     .is_err());

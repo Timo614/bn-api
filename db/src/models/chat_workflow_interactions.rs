@@ -12,7 +12,7 @@ pub struct ChatWorkflowInteraction {
     pub chat_workflow_item_id: Uuid,
     pub chat_workflow_response_id: Uuid,
     pub chat_session_id: Uuid,
-    pub input: Option<Value>,
+    pub input: Option<String>,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
 }
@@ -23,7 +23,7 @@ pub struct NewChatWorkflowInteraction {
     pub chat_workflow_item_id: Uuid,
     pub chat_workflow_response_id: Uuid,
     pub chat_session_id: Uuid,
-    pub input: Option<Value>,
+    pub input: Option<String>,
 }
 
 impl ChatWorkflowInteraction {
@@ -31,7 +31,7 @@ impl ChatWorkflowInteraction {
         chat_workflow_item_id: Uuid,
         chat_workflow_response_id: Uuid,
         chat_session_id: Uuid,
-        input: Option<Value>,
+        input: Option<String>,
     ) -> NewChatWorkflowInteraction {
         NewChatWorkflowInteraction {
             chat_workflow_item_id,
@@ -66,7 +66,7 @@ impl ChatWorkflowInteraction {
         chat_session: &ChatSession,
         chat_workflow_item: &ChatWorkflowItem,
         chat_workflow_response: &ChatWorkflowResponse,
-        input: Option<Value>,
+        input: Option<String>,
         conn: &PgConnection,
     ) -> Result<ChatWorkflowInteraction, DatabaseError> {
         ChatWorkflowInteraction::create(chat_workflow_item.id, chat_workflow_response.id, chat_session.id, input)

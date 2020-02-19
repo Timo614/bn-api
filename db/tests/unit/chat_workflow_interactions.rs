@@ -15,7 +15,7 @@ fn create_commit() {
         .create_chat_workflow_response()
         .with_chat_workflow_item(&chat_workflow_item)
         .finish();
-    let input = json!("Input");
+    let input = "Input".to_string();
     let chat_workflow_interaction = ChatWorkflowInteraction::create(
         chat_workflow_item.id,
         chat_workflow_response.id,
@@ -56,7 +56,7 @@ fn log_interaction() {
         .create_chat_workflow_response()
         .with_chat_workflow_item(&chat_workflow_item)
         .finish();
-    let input = json!("Input");
+    let input = "Input".to_string();
     assert_eq!(
         ChatWorkflowInteraction::find_by_chat_session(&chat_session, connection)
             .unwrap()
