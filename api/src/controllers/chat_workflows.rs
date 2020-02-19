@@ -1,9 +1,10 @@
 use actix_web::{HttpResponse, Path};
 use auth::user::User;
-use bigneon_db::models::*;
+use bigneon_db::prelude::*;
 use db::Connection;
 use errors::*;
 use extractors::*;
+use helpers::application;
 use models::PathParameters;
 
 pub fn index(connection: Connection, user: User) -> Result<HttpResponse, BigNeonError> {
@@ -20,6 +21,23 @@ pub fn show(
     let connection = connection.get();
     let chat_workflow = ChatWorkflow::find(parameters.id, connection)?;
     Ok(HttpResponse::Ok().json(chat_workflow.for_display(connection)?))
+}
+
+pub fn start(
+    (connection, parameters, user): (Connection, Path<PathParameters>, User),
+) -> Result<HttpResponse, BigNeonError> {
+    let connection = connection.get();
+    let chat_workflow = ChatWorkflow::find(parameters.id, connection)?;
+
+    if ChatSession::find_active_for_user(&user.user, connection)
+        .optional()?
+        .is_some()
+    {
+        return application::unprocessable("Could not start chat workflow as one is already ongoing");
+    }
+
+    let chat_session = ChatSession::create(user.id(), chat_workflow.id, None).commit(connection)?;
+    Ok(HttpResponse::Ok().json(chat_session))
 }
 
 pub fn create(

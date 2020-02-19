@@ -76,6 +76,9 @@ pub fn main() {
       (@arg ADDITIONAL: -a --additional +takes_value "Additional Scopes comma separated")
       (@arg REVOKED: -r --revoked +takes_value "Revoked Scopes comma separated")
       (@arg clear: -c --clear "Clear all scopes"))
+     (@subcommand create_initial_chat_workflows =>
+      (name: "create-initial-chat-workflows")
+      (about: "Creates initial chat workflows"))
      (@subcommand version =>
       (name: "version")
       (about: "Get the current version")))
@@ -95,6 +98,7 @@ pub fn main() {
             update_customer_io_webhooks(args.value_of("site_id"), args.value_of("api_key"), database)
         }
         ("additional_scopes", Some(args)) => additional_scopes(database, args),
+        ("create-initial-chat-workflows", Some(_)) => create_initial_chat_workflows(database),
         _ => {
             eprintln!("Invalid subcommand '{}'", matches.subcommand().0);
         }
@@ -148,6 +152,301 @@ fn additional_scopes(database: Database, args: &ArgMatches) {
         };
         println!("{:?}", additional_scopes);
         org_user.set_additional_scopes(additional_scopes, connection).unwrap();
+    }
+}
+
+fn create_initial_chat_workflows(database: Database) {
+    info!("Creating initial chat workflows");
+    let connection = database.get_connection().expect("Expected connection to establish");
+    let connection = connection.get();
+
+    if ChatWorkflow::find_by_name("01_welcome", connection)
+        .optional()
+        .expect("Expected database query to succeed")
+        .is_none()
+    {
+        let chat_workflow = ChatWorkflow::create("01_welcome".to_string())
+            .commit(None, connection)
+            .expect("Expected workflow to be committed");
+        let chat_workflow_item1 = ChatWorkflowItem::create(
+            chat_workflow.id,
+            ChatWorkflowItemType::Message,
+            Some("Woot woot! You're going to the show! 🎸🕺".to_string()),
+            None,
+            None,
+        )
+        .commit(connection)
+        .expect("Expected workflow item to be committed");
+        // Noop responses are created automatically, fetch so we can update flow
+        let mut chat_workflow_item1_responses = chat_workflow_item1
+            .responses(connection)
+            .expect("Expected to fetch workflow responses");
+        let chat_workflow_item1_response1 = chat_workflow_item1_responses.pop().unwrap();
+
+        // Associate new chat workflow item as initial chat workflow item
+        let chat_workflow = chat_workflow
+            .update(
+                ChatWorkflowEditableAttributes {
+                    initial_chat_workflow_item_id: Some(Some(chat_workflow_item1.id)),
+                    ..Default::default()
+                },
+                connection,
+            )
+            .expect("Expected workflow to be updated with new initial workflow item");
+
+        let chat_workflow_item3 = ChatWorkflowItem::create(
+            chat_workflow.id,
+            ChatWorkflowItemType::Question,
+            Some("Anything else? 🤓".to_string()),
+            None,
+            Some(3),
+        )
+        .commit(connection)
+        .expect("Expected workflow item to be committed");
+        let _chat_workflow_item3_response1 = ChatWorkflowResponse::create(
+            chat_workflow_item3.id,
+            ChatWorkflowResponseType::Answer,
+            Some("Awesome! Enjoy the show! ✌️\n\nIf you need more help in the future submit a request here and we'll get back to you soon.".to_string()),
+            Some("👍 Nope! I'm good.".to_string()),
+            None,
+            1
+        ).commit(connection).expect("Expected workflow response to be committed");
+        let chat_workflow_item3_response2 = ChatWorkflowResponse::create(
+            chat_workflow_item3.id,
+            ChatWorkflowResponseType::Answer,
+            Some("No problem! How can we help? 🤓".to_string()),
+            Some("🙋 Yes, please!".to_string()),
+            None,
+            2,
+        )
+        .commit(connection)
+        .expect("Expected workflow response to be committed");
+
+        let chat_workflow_item2 =
+            ChatWorkflowItem::create(chat_workflow.id, ChatWorkflowItemType::Question, None, None, None)
+                .commit(connection)
+                .expect("Expected workflow item to be committed");
+        let _chat_workflow_item2_response1 = ChatWorkflowResponse::create(
+            chat_workflow_item2.id,
+            ChatWorkflowResponseType::Answer,
+            Some("We get it! Plans change. Generally all sales are final (unless the show cancels),
+            but every venue is different. <a href=\"https://support.bigneon.com/hc/en-us/requests/new\">Submit a request here</a> and we'll get back to you soon.".to_string()),
+            Some("💵 Can I get a refund?".to_string()),
+            Some(chat_workflow_item3.id),
+            1
+        ).commit(connection).expect("Expected workflow response to be committed");
+        let _chat_workflow_item2_response2 = ChatWorkflowResponse::create(
+            chat_workflow_item2.id,
+            ChatWorkflowResponseType::Answer,
+            Some("Just swipe to the right to view your tickets. On the day of the event your barcode will be available to scan at the door.".to_string()),
+            Some("🕵️‍♀️ Where are my tickets?".to_string()),
+            Some(chat_workflow_item3.id),
+            2
+        ).commit(connection).expect("Expected workflow response to be committed");
+        let _chat_workflow_item2_response3 = ChatWorkflowResponse::create(
+            chat_workflow_item2.id,
+            ChatWorkflowResponseType::Answer,
+            Some("Just swipe to the right and then tap “Transfer Tickets” on any ticket. From there you will be able to select which tickets to send to a friend. Need more help? Go <a href=\"https://support.bigneon.com/hc/en-us/requests/new\">here</a>.".to_string()),
+            Some("🎟️ How do I send tickets to my friends?".to_string()),
+            Some(chat_workflow_item3.id),
+            3
+        ).commit(connection).expect("Expected workflow response to be committed");
+
+        // Associate FAQ section with initial message response
+        chat_workflow_item1_response1
+            .update(
+                ChatWorkflowResponseEditableAttributes {
+                    response: Some(Some("Before you go, make sure to check out our FAQ 👇👇👇".to_string())),
+                    next_chat_workflow_item_id: Some(Some(chat_workflow_item2.id)),
+                    ..Default::default()
+                },
+                connection,
+            )
+            .expect("Expected workflow response to be updated");
+
+        chat_workflow_item3_response2
+            .update(
+                ChatWorkflowResponseEditableAttributes {
+                    next_chat_workflow_item_id: Some(Some(chat_workflow_item2.id)),
+                    ..Default::default()
+                },
+                connection,
+            )
+            .expect("Expected workflow response to be updated");
+
+        chat_workflow
+            .publish(None, connection)
+            .expect("Expected chat workflow to publish");
+    }
+
+    if ChatWorkflow::find_by_name("02_welcome_and_transfer", connection)
+        .optional()
+        .expect("Expected database query to succeed")
+        .is_none()
+    {
+        let chat_workflow = ChatWorkflow::create("02_welcome_and_transfer".to_string())
+            .commit(None, connection)
+            .expect("Expected workflow to be committed");
+        let chat_workflow_item1 = ChatWorkflowItem::create(
+            chat_workflow.id,
+            ChatWorkflowItemType::Message,
+            Some("Woot woot! You're going to the show! 🎸🕺".to_string()),
+            None,
+            None,
+        )
+        .commit(connection)
+        .expect("Expected workflow item to be committed");
+        // Noop responses are created automatically, fetch so we can update flow
+        let mut chat_workflow_item1_responses = chat_workflow_item1
+            .responses(connection)
+            .expect("Expected to fetch workflow responses");
+        let chat_workflow_item1_response1 = chat_workflow_item1_responses.pop().unwrap();
+
+        // Associate new chat workflow item as initial chat workflow item
+        let chat_workflow = chat_workflow
+            .update(
+                ChatWorkflowEditableAttributes {
+                    initial_chat_workflow_item_id: Some(Some(chat_workflow_item1.id)),
+                    ..Default::default()
+                },
+                connection,
+            )
+            .expect("Expected workflow to be updated with new initial workflow item");
+
+        let chat_workflow_item5 = ChatWorkflowItem::create(
+            chat_workflow.id,
+            ChatWorkflowItemType::Question,
+            Some("Anything else? 🤓".to_string()),
+            None,
+            Some(3),
+        )
+        .commit(connection)
+        .expect("Expected workflow item to be committed");
+        let _chat_workflow_item5_response1 = ChatWorkflowResponse::create(
+            chat_workflow_item5.id,
+            ChatWorkflowResponseType::Answer,
+            Some("Awesome! Enjoy the show! ✌️\n\nIf you need more help in the future submit a request here and we'll get back to you soon.".to_string()),
+            Some("👍 Nope! I'm good.".to_string()),
+            None,
+            1
+        ).commit(connection).expect("Expected workflow response to be committed");
+        let chat_workflow_item5_response2 = ChatWorkflowResponse::create(
+            chat_workflow_item5.id,
+            ChatWorkflowResponseType::Answer,
+            Some("No problem! How can we help? 🤓".to_string()),
+            Some("🙋 Yes, please!".to_string()),
+            None,
+            2,
+        )
+        .commit(connection)
+        .expect("Expected workflow response to be committed");
+
+        let chat_workflow_item4 =
+            ChatWorkflowItem::create(chat_workflow.id, ChatWorkflowItemType::Question, None, None, Some(0))
+                .commit(connection)
+                .expect("Expected workflow item to be committed");
+        let _chat_workflow_item4_response1 = ChatWorkflowResponse::create(
+            chat_workflow_item4.id,
+            ChatWorkflowResponseType::Answer,
+            Some("We get it! Plans change. Generally all sales are final (unless the show cancels), but every venue is different. <a href =\"https://support.bigneon.com/hc/en-us/requests/new\">Submit a request here</a> and we'll get back to you soon.".to_string()),
+            Some("💵 Can I get a refund?".to_string()),
+            None,
+            1
+        ).commit(connection).expect("Expected workflow response to be committed");
+        let _chat_workflow_item4_response2 = ChatWorkflowResponse::create(
+            chat_workflow_item4.id,
+            ChatWorkflowResponseType::Answer,
+            Some("Just swipe to the right to view your tickets. On the day of the event your barcode will be available to scan at the door. 🤓".to_string()),
+            Some("🕵️‍♀️ Where are my tickets?".to_string()),
+            None,
+            2,
+        )
+        .commit(connection)
+        .expect("Expected workflow response to be committed");
+        let _chat_workflow_item4_response3 = ChatWorkflowResponse::create(
+            chat_workflow_item4.id,
+            ChatWorkflowResponseType::Answer,
+            Some("Just swipe to the right and then tap “Transfer Tickets” on any ticket. From there you will be able to select which tickets to send to a friend. Need more help? Go <a href =\"https://support.bigneon.com/hc/en-us/requests/new\">here</a>.".to_string()),
+            Some("🎟️ How do I send tickets to my friends?".to_string()),
+            None,
+            3,
+        )
+        .commit(connection)
+        .expect("Expected workflow response to be committed");
+
+        chat_workflow_item5_response2
+            .update(
+                ChatWorkflowResponseEditableAttributes {
+                    next_chat_workflow_item_id: Some(Some(chat_workflow_item4.id)),
+                    ..Default::default()
+                },
+                connection,
+            )
+            .expect("Expected workflow response to be updated");
+
+        let chat_workflow_item3 = ChatWorkflowItem::create(
+            chat_workflow.id,
+            ChatWorkflowItemType::Message,
+            Some("Anything else I can help you with?".to_string()),
+            None,
+            Some(3),
+        )
+        .commit(connection)
+        .expect("Expected workflow item to be committed");
+
+        let mut chat_workflow_item3_responses = chat_workflow_item3
+            .responses(connection)
+            .expect("Expected to fetch workflow responses");
+        let chat_workflow_item3_response1 = chat_workflow_item3_responses.pop().unwrap();
+        chat_workflow_item3_response1
+            .update(
+                ChatWorkflowResponseEditableAttributes {
+                    next_chat_workflow_item_id: Some(Some(chat_workflow_item4.id)),
+                    ..Default::default()
+                },
+                connection,
+            )
+            .expect("Expected workflow response to be updated");
+
+        let chat_workflow_item2 = ChatWorkflowItem::create(
+            chat_workflow.id,
+            ChatWorkflowItemType::Question,
+            Some("Looks like you have a few extra tickets, do you want to transfer them to someone else to make it easier for them to get into the event?".to_string()),
+            None,
+            None
+        ).commit(connection).expect("Expected workflow item to be committed");
+
+        let _chat_workflow_item2_response1 = ChatWorkflowResponse::create(
+            chat_workflow_item2.id,
+            ChatWorkflowResponseType::Answer,
+            Some("Just swipe to the right and then tap “Transfer Tickets” on any ticket. From there you will be able to select which tickets to send to a friend. Need more help? Go <a href=\"https://support.bigneon.com/hc/en-us/requests/new\">here</a>.".to_string()),
+            Some("🎟️ Yes, how do I start a transfer?".to_string()),
+            Some(chat_workflow_item3.id),
+            1
+        ).commit(connection).expect("Expected workflow response to be committed");
+        let _chat_workflow_item2_response2 = ChatWorkflowResponse::create(
+            chat_workflow_item2.id,
+            ChatWorkflowResponseType::Answer,
+            Some("Awesome! Just swipe to the right to view each ticket. On the day of the event your barcodes will be available to scan at the door. Enjoy the show! ✌️".to_string()),
+            Some("No thanks, we are arriving together.".to_string()),
+            Some(chat_workflow_item3.id),
+            2
+        ).commit(connection).expect("Expected workflow response to be committed");
+
+        // Associate chat workfow item 2 with flow after initial message chat workflow item
+        chat_workflow_item1_response1
+            .update(
+                ChatWorkflowResponseEditableAttributes {
+                    next_chat_workflow_item_id: Some(Some(chat_workflow_item2.id)),
+                    ..Default::default()
+                },
+                connection,
+            )
+            .expect("Expected workflow response to be updated");
+
+        chat_workflow
+            .publish(None, connection)
+            .expect("Expected chat workflow to publish");
     }
 }
 

@@ -11,6 +11,37 @@ use serde_json::Value;
 use std::collections::HashMap;
 
 #[test]
+fn find_active_for_user() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+    let user = project.create_user().finish();
+    // No active chat session for user
+    assert!(ChatSession::find_active_for_user(&user, connection).is_err());
+
+    // Active session
+    let chat_session = project.create_chat_session().with_user(&user).finish();
+    assert_eq!(
+        ChatSession::find_active_for_user(&user, connection).unwrap(),
+        chat_session.clone()
+    );
+
+    // Set chat session to have an expiration a second in the past
+    diesel::sql_query(
+        r#"
+        UPDATE chat_sessions
+        SET expires_at = $2
+        WHERE id = $1;
+        "#,
+    )
+    .bind::<sql_types::Uuid, _>(chat_session.id)
+    .bind::<sql_types::Timestamp, _>(dates::now().add_seconds(-1).finish())
+    .execute(connection)
+    .unwrap();
+    // No active chat session for user
+    assert!(ChatSession::find_active_for_user(&user, connection).is_err());
+}
+
+#[test]
 fn create_commit() {
     let project = TestProject::new();
     let connection = project.get_connection();

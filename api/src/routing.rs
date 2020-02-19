@@ -79,6 +79,9 @@ pub fn routes(app: &mut CorsBuilder<AppState>) -> App<AppState> {
     .resource("/cart/checkout", |r| {
         r.method(Method::POST).with(cart::checkout);
     })
+    .resource("/chat_sessions", |r| {
+        r.method(Method::POST).with(chat_sessions::create);
+    })
     .resource("/chat_workflow_items/{id}/chat_workflow_responses", |r| {
         r.method(Method::POST).with(chat_workflow_responses::create);
     })

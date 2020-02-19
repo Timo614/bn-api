@@ -3,7 +3,7 @@ use chrono::Utc;
 use diesel::expression::dsl;
 use diesel::prelude::*;
 use models::*;
-use schema::chat_sessions;
+use schema::{chat_sessions, chat_workflows};
 use serde_json::Value;
 use std::collections::HashMap;
 use test::times;
@@ -47,6 +47,17 @@ impl ChatSession {
             chat_workflow_id,
             context: context.unwrap_or(json!({})),
         }
+    }
+
+    pub fn find_active_for_user(user: &User, conn: &PgConnection) -> Result<ChatSession, DatabaseError> {
+        chat_sessions::table
+            .inner_join(chat_workflows::table.on(chat_sessions::chat_workflow_id.eq(chat_workflows::id)))
+            .filter(chat_sessions::user_id.eq(user.id))
+            .filter(chat_sessions::expires_at.ge(Utc::now().naive_utc()))
+            .filter(chat_workflows::status.eq(ChatWorkflowStatus::Published))
+            .select(chat_sessions::all_columns)
+            .get_result(conn)
+            .to_db_error(ErrorCode::QueryError, "Unable to load chat session")
     }
 
     pub fn find(id: Uuid, conn: &PgConnection) -> Result<ChatSession, DatabaseError> {

@@ -4,6 +4,7 @@ mod auth;
 mod base;
 mod broadcast;
 mod cart;
+mod chat_sessions;
 mod chat_workflow_items;
 mod chat_workflow_responses;
 mod chat_workflows;

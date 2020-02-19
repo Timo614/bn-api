@@ -6,6 +6,7 @@ pub mod auth;
 pub mod broadcasts;
 pub mod cart;
 pub mod chat;
+pub mod chat_sessions;
 pub mod chat_workflow_items;
 pub mod chat_workflow_responses;
 pub mod chat_workflows;
