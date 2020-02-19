@@ -3,8 +3,104 @@ use bigneon_db::prelude::*;
 use bigneon_db::utils::errors::DatabaseError;
 
 #[test]
-fn render_tree() {
-    TODO
+fn for_display() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+
+    // Draft chat workflow, lacks an initial_chat_workflow_item_id
+    let chat_workflow = project.create_chat_workflow().draft().finish();
+    assert_eq!(
+        chat_workflow.for_display(connection).unwrap(),
+        DisplayChatWorkflow {
+            id: chat_workflow.id,
+            name: chat_workflow.name.clone(),
+            status: chat_workflow.status,
+            tree: json!({}),
+            created_at: chat_workflow.created_at,
+            updated_at: chat_workflow.updated_at,
+            initial_chat_workflow_item_id: chat_workflow.initial_chat_workflow_item_id,
+        }
+    );
+
+    // Chat workflow with initial_chat_workflow_item_id
+    let chat_workflow_item = project
+        .create_chat_workflow_item()
+        .with_item_type(ChatWorkflowItemType::Question)
+        .with_chat_workflow(&chat_workflow)
+        .finish();
+    let chat_workflow_item2 = project
+        .create_chat_workflow_item()
+        .with_item_type(ChatWorkflowItemType::Message)
+        .with_chat_workflow(&chat_workflow)
+        .finish();
+    let attributes = ChatWorkflowEditableAttributes {
+        initial_chat_workflow_item_id: Some(Some(chat_workflow_item.id)),
+        ..Default::default()
+    };
+    let chat_workflow = chat_workflow.update(attributes, connection).unwrap();
+    project
+        .create_chat_workflow_response()
+        .with_chat_workflow_item(&chat_workflow_item)
+        .finish();
+    project
+        .create_chat_workflow_response()
+        .with_chat_workflow_item(&chat_workflow_item)
+        .with_next_chat_workflow_item(&chat_workflow_item2)
+        .finish();
+    project
+        .create_chat_workflow_response()
+        .with_chat_workflow_item(&chat_workflow_item2)
+        .finish();
+    assert_eq!(
+        chat_workflow.for_display(connection).unwrap(),
+        DisplayChatWorkflow {
+            id: chat_workflow.id,
+            name: chat_workflow.name.clone(),
+            status: chat_workflow.status,
+            tree: json!(chat_workflow_item.for_display(&mut vec![], connection).unwrap()),
+            created_at: chat_workflow.created_at,
+            updated_at: chat_workflow.updated_at,
+            initial_chat_workflow_item_id: chat_workflow.initial_chat_workflow_item_id,
+        }
+    );
+
+    // Chat workflow with recursive loop
+    let chat_workflow = project.create_chat_workflow().draft().finish();
+    let chat_workflow_item = project
+        .create_chat_workflow_item()
+        .with_item_type(ChatWorkflowItemType::Question)
+        .with_chat_workflow(&chat_workflow)
+        .finish();
+    let attributes = ChatWorkflowEditableAttributes {
+        initial_chat_workflow_item_id: Some(Some(chat_workflow_item.id)),
+        ..Default::default()
+    };
+    let chat_workflow = chat_workflow.update(attributes, connection).unwrap();
+    project
+        .create_chat_workflow_response()
+        .with_chat_workflow_item(&chat_workflow_item)
+        .finish();
+    // Loops with self
+    project
+        .create_chat_workflow_response()
+        .with_chat_workflow_item(&chat_workflow_item)
+        .with_next_chat_workflow_item(&chat_workflow_item)
+        .finish();
+    let displayed_chat_workflow = chat_workflow.for_display(connection).unwrap();
+    assert_eq!(
+        displayed_chat_workflow.clone(),
+        DisplayChatWorkflow {
+            id: chat_workflow.id,
+            name: chat_workflow.name.clone(),
+            status: chat_workflow.status,
+            tree: json!(chat_workflow_item.for_display(&mut vec![], connection).unwrap()),
+            created_at: chat_workflow.created_at,
+            updated_at: chat_workflow.updated_at,
+            initial_chat_workflow_item_id: chat_workflow.initial_chat_workflow_item_id,
+        }
+    );
+    let tree_json = displayed_chat_workflow.tree.to_string();
+    assert!(tree_json.contains(&json!({"id": chat_workflow_item.id, "type": "multiple_references"}).to_string()));
 }
 
 #[test]

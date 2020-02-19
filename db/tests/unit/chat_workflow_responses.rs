@@ -3,6 +3,98 @@ use bigneon_db::prelude::*;
 use bigneon_db::utils::errors::ErrorCode::ValidationError;
 
 #[test]
+fn for_display() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+
+    let chat_workflow_item = project
+        .create_chat_workflow_item()
+        .with_item_type(ChatWorkflowItemType::Question)
+        .finish();
+    let chat_workflow_item2 = project
+        .create_chat_workflow_item()
+        .with_item_type(ChatWorkflowItemType::Message)
+        .finish();
+    let chat_workflow_response = project
+        .create_chat_workflow_response()
+        .with_chat_workflow_item(&chat_workflow_item)
+        .with_rank(1)
+        .finish();
+    let chat_workflow_response2 = project
+        .create_chat_workflow_response()
+        .with_chat_workflow_item(&chat_workflow_item)
+        .with_next_chat_workflow_item(&chat_workflow_item2)
+        .with_rank(2)
+        .finish();
+
+    assert_eq!(
+        chat_workflow_response.for_display(&mut vec![], connection).unwrap(),
+        DisplayChatWorkflowResponse {
+            id: chat_workflow_response.id,
+            chat_workflow_item_id: chat_workflow_response.chat_workflow_item_id,
+            response_type: chat_workflow_response.response_type,
+            response: chat_workflow_response.response.clone(),
+            answer_value: chat_workflow_response.answer_value.clone(),
+            next_chat_workflow_item_id: chat_workflow_response.next_chat_workflow_item_id,
+            rank: chat_workflow_response.rank,
+            tree: json!({}),
+            created_at: chat_workflow_response.created_at,
+            updated_at: chat_workflow_response.updated_at,
+        }
+    );
+
+    // Chat workflow item with responses
+    assert_eq!(
+        chat_workflow_response2.for_display(&mut vec![], connection).unwrap(),
+        DisplayChatWorkflowResponse {
+            id: chat_workflow_response.id,
+            chat_workflow_item_id: chat_workflow_response.chat_workflow_item_id,
+            response_type: chat_workflow_response.response_type,
+            response: chat_workflow_response.response.clone(),
+            answer_value: chat_workflow_response.answer_value.clone(),
+            next_chat_workflow_item_id: chat_workflow_response.next_chat_workflow_item_id,
+            rank: chat_workflow_response.rank,
+            tree: json!(chat_workflow_response2.for_display(&mut vec![], connection).unwrap()),
+            created_at: chat_workflow_response.created_at,
+            updated_at: chat_workflow_response.updated_at,
+        }
+    );
+
+    // Chat workflow item with recursive loop
+    let chat_workflow_item = project
+        .create_chat_workflow_item()
+        .with_item_type(ChatWorkflowItemType::Question)
+        .finish();
+    // Loops with self
+    let chat_workflow_response = project
+        .create_chat_workflow_response()
+        .with_chat_workflow_item(&chat_workflow_item)
+        .with_next_chat_workflow_item(&chat_workflow_item)
+        .with_rank(1)
+        .finish();
+    let displayed_chat_workflow_response = chat_workflow_response.for_display(&mut vec![], connection).unwrap();
+    assert_eq!(
+        displayed_chat_workflow_response,
+        DisplayChatWorkflowResponse {
+            id: chat_workflow_response.id,
+            chat_workflow_item_id: chat_workflow_response.chat_workflow_item_id,
+            response_type: chat_workflow_response.response_type,
+            response: chat_workflow_response.response.clone(),
+            answer_value: chat_workflow_response.answer_value.clone(),
+            next_chat_workflow_item_id: chat_workflow_response.next_chat_workflow_item_id,
+            rank: chat_workflow_response.rank,
+            tree: json!(chat_workflow_item2
+                .for_display(&mut vec![chat_workflow_item.id], connection)
+                .unwrap()),
+            created_at: chat_workflow_response.created_at,
+            updated_at: chat_workflow_response.updated_at,
+        }
+    );
+    let tree_json = displayed_chat_workflow_response.tree.to_string();
+    assert!(tree_json.contains(&json!({"id": chat_workflow_item.id, "type": "multiple_references"}).to_string()));
+}
+
+#[test]
 fn destroy() {
     let project = TestProject::new();
     let connection = project.get_connection();

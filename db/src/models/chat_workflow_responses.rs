@@ -45,6 +45,20 @@ pub struct ChatWorkflowResponseEditableAttributes {
     pub rank: Option<i32>,
 }
 
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct DisplayChatWorkflowResponse {
+    pub id: Uuid,
+    pub chat_workflow_item_id: Uuid,
+    pub response_type: ChatWorkflowResponseType,
+    pub response: Option<String>,
+    pub answer_value: Option<Value>,
+    pub next_chat_workflow_item_id: Option<Uuid>,
+    pub rank: i32,
+    pub tree: Value,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
+}
+
 impl ChatWorkflowResponse {
     pub fn create(
         chat_workflow_item_id: Uuid,
@@ -85,6 +99,48 @@ impl ChatWorkflowResponse {
             .filter(chat_workflow_responses::id.eq(id))
             .get_result(conn)
             .to_db_error(ErrorCode::QueryError, "Unable to load chat workflow response")
+    }
+
+    pub fn for_display(
+        &self,
+        rendered_chat_workflow_item_ids: &mut Vec<Uuid>,
+        conn: &PgConnection,
+    ) -> Result<DisplayChatWorkflowResponse, DatabaseError> {
+        Ok(DisplayChatWorkflowResponse {
+            id: self.id,
+            chat_workflow_item_id: self.chat_workflow_item_id,
+            response_type: self.response_type,
+            response: self.response.clone(),
+            answer_value: self.answer_value.clone(),
+            next_chat_workflow_item_id: self.next_chat_workflow_item_id,
+            rank: self.rank,
+            tree: self.tree(rendered_chat_workflow_item_ids, conn)?,
+            created_at: self.created_at,
+            updated_at: self.updated_at,
+        })
+    }
+
+    fn tree(
+        &self,
+        rendered_chat_workflow_item_ids: &mut Vec<Uuid>,
+        conn: &PgConnection,
+    ) -> Result<Value, DatabaseError> {
+        match self.next_chat_workflow_item_id {
+            Some(next_chat_workflow_item_id) => {
+                if rendered_chat_workflow_item_ids.contains(&next_chat_workflow_item_id) {
+                    Ok(json!({
+                        "id": next_chat_workflow_item_id,
+                        "type": "multiple_references",
+                    }))
+                } else {
+                    let next_chat_workflow_item = ChatWorkflowItem::find(next_chat_workflow_item_id, conn)?;
+                    Ok(json!(
+                        next_chat_workflow_item.for_display(rendered_chat_workflow_item_ids, conn)?
+                    ))
+                }
+            }
+            None => Ok(json!({})),
+        }
     }
 
     pub fn find_for_chat_workflow_item(

@@ -24,6 +24,17 @@ pub struct NewChatWorkflow {
     pub name: String,
 }
 
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct DisplayChatWorkflow {
+    pub id: Uuid,
+    pub name: String,
+    pub status: ChatWorkflowStatus,
+    pub tree: Value,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
+    pub initial_chat_workflow_item_id: Option<Uuid>,
+}
+
 #[derive(AsChangeset, Default, Deserialize, Debug)]
 #[table_name = "chat_workflows"]
 pub struct ChatWorkflowEditableAttributes {
@@ -57,7 +68,7 @@ impl ChatWorkflow {
             Tables::ChatWorkflows,
             Some(chat_workflow.id),
             current_user_id,
-            Some(self.render_tree(conn)?),
+            Some(json!(self.for_display(conn)?)),
         )
         .commit(conn)?;
 
@@ -76,7 +87,7 @@ impl ChatWorkflow {
     }
 
     pub fn destroy(&self, current_user_id: Option<Uuid>, conn: &PgConnection) -> Result<(), DatabaseError> {
-        let tree_render = self.render_tree(conn)?;
+        let display_chat_workflow = self.for_display(conn)?;
         diesel::delete(self)
             .execute(conn)
             .to_db_error(ErrorCode::DeleteError, "Failed to destroy workflow")?;
@@ -87,7 +98,7 @@ impl ChatWorkflow {
             Tables::ChatWorkflows,
             Some(self.id),
             current_user_id,
-            Some(tree_render),
+            Some(json!(display_chat_workflow)),
         )
         .commit(conn)?;
 
@@ -100,9 +111,29 @@ impl ChatWorkflow {
             .to_db_error(ErrorCode::QueryError, "Unable to load chat workflow")
     }
 
-    pub fn render_tree(&self, _conn: &PgConnection) -> Result<Value, DatabaseError> {
-        TODO
-        Ok(json!({}))
+    pub fn for_display(&self, conn: &PgConnection) -> Result<DisplayChatWorkflow, DatabaseError> {
+        Ok(DisplayChatWorkflow {
+            id: self.id,
+            name: self.name.clone(),
+            status: self.status,
+            tree: self.tree(conn)?,
+            created_at: self.created_at,
+            updated_at: self.updated_at,
+            initial_chat_workflow_item_id: self.initial_chat_workflow_item_id,
+        })
+    }
+
+    fn tree(&self, conn: &PgConnection) -> Result<Value, DatabaseError> {
+        let mut rendered_chat_workflow_item_ids = Vec::new();
+        match self.initial_chat_workflow_item_id {
+            Some(initial_chat_workflow_item_id) => {
+                let initial_chat_workflow_item = ChatWorkflowItem::find(initial_chat_workflow_item_id, conn)?;
+                Ok(json!(
+                    initial_chat_workflow_item.for_display(&mut rendered_chat_workflow_item_ids, conn)?
+                ))
+            }
+            None => Ok(json!({})),
+        }
     }
 
     pub fn update(
@@ -130,7 +161,7 @@ impl NewChatWorkflow {
             Tables::ChatWorkflows,
             Some(chat_workflow.id),
             current_user_id,
-            Some(chat_workflow.render_tree(conn)?),
+            Some(json!(chat_workflow.for_display(conn)?)),
         )
         .commit(conn)?;
 

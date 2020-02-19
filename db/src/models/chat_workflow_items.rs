@@ -3,6 +3,7 @@ use diesel::expression::dsl;
 use diesel::prelude::*;
 use models::*;
 use schema::{chat_workflow_items, chat_workflow_responses};
+use serde_json::Value;
 use utils::errors::*;
 use uuid::Uuid;
 
@@ -31,6 +32,19 @@ pub struct NewChatWorkflowItem {
     pub response_wait: i32,
 }
 
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct DisplayChatWorkflowItem {
+    pub id: Uuid,
+    pub chat_workflow_id: Uuid,
+    pub item_type: ChatWorkflowItemType,
+    pub message: Option<String>,
+    pub render_type: Option<ChatWorkflowItemRenderType>,
+    pub response_wait: i32,
+    pub tree: Value,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
+}
+
 #[derive(AsChangeset, Default, Deserialize, Debug)]
 #[table_name = "chat_workflow_items"]
 pub struct ChatWorkflowItemEditableAttributes {
@@ -57,6 +71,38 @@ impl ChatWorkflowItem {
         }
 
         Ok(available_response_types)
+    }
+
+    pub fn for_display(
+        &self,
+        rendered_chat_workflow_item_ids: &mut Vec<Uuid>,
+        conn: &PgConnection,
+    ) -> Result<DisplayChatWorkflowItem, DatabaseError> {
+        rendered_chat_workflow_item_ids.push(self.id);
+
+        Ok(DisplayChatWorkflowItem {
+            id: self.id,
+            chat_workflow_id: self.chat_workflow_id,
+            item_type: self.item_type,
+            message: self.message.clone(),
+            render_type: self.render_type,
+            response_wait: self.response_wait,
+            tree: self.tree(rendered_chat_workflow_item_ids, conn)?,
+            created_at: self.created_at,
+            updated_at: self.updated_at,
+        })
+    }
+
+    fn tree(
+        &self,
+        rendered_chat_workflow_item_ids: &mut Vec<Uuid>,
+        conn: &PgConnection,
+    ) -> Result<Value, DatabaseError> {
+        let mut tree = Vec::new();
+        for response in self.responses(conn)? {
+            tree.push(response.for_display(rendered_chat_workflow_item_ids, conn)?);
+        }
+        Ok(json!(tree))
     }
 
     pub fn chat_workflow(&self, conn: &PgConnection) -> Result<ChatWorkflow, DatabaseError> {

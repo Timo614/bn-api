@@ -20,7 +20,7 @@ pub fn show((connection, parameters, user): (Connection, Path<PathParameters>, U
     user.requires_scope(Scopes::ChatWorkflowRead)?;
     let connection = connection.get();
     let chat_workflow = ChatWorkflow::find(parameters.id, connection)?;
-    Ok(HttpResponse::Ok().json(chat_workflow.render_tree(connection)?))
+    Ok(HttpResponse::Ok().json(chat_workflow.for_display(connection)?))
 }
 
 pub fn create(
