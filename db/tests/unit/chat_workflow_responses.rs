@@ -47,16 +47,16 @@ fn for_display() {
     assert_eq!(
         chat_workflow_response2.for_display(&mut vec![], connection).unwrap(),
         DisplayChatWorkflowResponse {
-            id: chat_workflow_response.id,
-            chat_workflow_item_id: chat_workflow_response.chat_workflow_item_id,
-            response_type: chat_workflow_response.response_type,
-            response: chat_workflow_response.response.clone(),
-            answer_value: chat_workflow_response.answer_value.clone(),
-            next_chat_workflow_item_id: chat_workflow_response.next_chat_workflow_item_id,
-            rank: chat_workflow_response.rank,
-            tree: json!(chat_workflow_response2.for_display(&mut vec![], connection).unwrap()),
-            created_at: chat_workflow_response.created_at,
-            updated_at: chat_workflow_response.updated_at,
+            id: chat_workflow_response2.id,
+            chat_workflow_item_id: chat_workflow_response2.chat_workflow_item_id,
+            response_type: chat_workflow_response2.response_type,
+            response: chat_workflow_response2.response.clone(),
+            answer_value: chat_workflow_response2.answer_value.clone(),
+            next_chat_workflow_item_id: chat_workflow_response2.next_chat_workflow_item_id,
+            rank: chat_workflow_response2.rank,
+            tree: json!(chat_workflow_item2.for_display(&mut vec![], connection).unwrap()),
+            created_at: chat_workflow_response2.created_at,
+            updated_at: chat_workflow_response2.updated_at,
         }
     );
 
@@ -83,7 +83,7 @@ fn for_display() {
             answer_value: chat_workflow_response.answer_value.clone(),
             next_chat_workflow_item_id: chat_workflow_response.next_chat_workflow_item_id,
             rank: chat_workflow_response.rank,
-            tree: json!(chat_workflow_item2
+            tree: json!(chat_workflow_item
                 .for_display(&mut vec![chat_workflow_item.id], connection)
                 .unwrap()),
             created_at: chat_workflow_response.created_at,

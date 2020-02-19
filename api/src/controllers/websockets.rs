@@ -12,6 +12,6 @@ pub fn initate(
     let conn = conn.get();
     let event = Event::find(path.id, conn)?;
     user.requires_scope_for_organization_event(Scopes::WebSocketInitiate, &event.organization(conn)?, &event, conn)?;
-    Ok(ws::start(&request, EventWebSocket::new(event.id))
+    Ok(ws::start(&request, EventWebsocket::new(event.id))
         .map_err(|err| ApplicationError::new(format!("Websocket error: {:?}", err)))?)
 }

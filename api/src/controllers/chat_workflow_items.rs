@@ -5,9 +5,10 @@ use db::Connection;
 use errors::*;
 use extractors::*;
 use models::PathParameters;
-use models::WebPayload;
 
-pub fn show((connection, parameters, user): (Connection, Path<PathParameters>, User)) -> Result<HttpResponse, BigNeonError> {
+pub fn show(
+    (connection, parameters, user): (Connection, Path<PathParameters>, User),
+) -> Result<HttpResponse, BigNeonError> {
     user.requires_scope(Scopes::ChatWorkflowRead)?;
     let chat_workflow_item = ChatWorkflowItem::find(parameters.id, connection.get())?;
     Ok(HttpResponse::Ok().json(&chat_workflow_item))
@@ -33,7 +34,8 @@ pub fn update(
     user.requires_scope(Scopes::ChatWorkflowWrite)?;
     let connection = connection.get();
     let chat_workflow_item = ChatWorkflowItem::find(parameters.id, connection)?;
-    let updated_chat_workflow_item = chat_workflow_item.update(chat_workflow_item_parameters.into_inner(), connection)?;
+    let updated_chat_workflow_item =
+        chat_workflow_item.update(chat_workflow_item_parameters.into_inner(), connection)?;
     Ok(HttpResponse::Ok().json(updated_chat_workflow_item))
 }
 
@@ -42,6 +44,6 @@ pub fn destroy((conn, path, user): (Connection, Path<PathParameters>, User)) -> 
     let conn = conn.get();
     let chat_workflow_item = ChatWorkflowItem::find(path.id, conn)?;
 
-    chat_workflow_item.destroy(Some(user.id()), &*conn)?;
+    chat_workflow_item.destroy(&*conn)?;
     Ok(HttpResponse::Ok().json(json!({})))
 }

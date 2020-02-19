@@ -1,5 +1,7 @@
 pub use self::add_venue_to_organization_request::*;
 pub use self::admin_display_ticket_type::*;
+pub use self::chat_websocket::*;
+pub use self::chat_websocket_message::*;
 pub use self::create_artist_request::*;
 pub use self::display_ticket_pricing::*;
 pub use self::event_show_result::*;
@@ -19,6 +21,8 @@ pub use self::user_profile_attributes::*;
 
 mod add_venue_to_organization_request;
 mod admin_display_ticket_type;
+mod chat_websocket;
+mod chat_websocket_message;
 mod create_artist_request;
 mod display_ticket_pricing;
 mod event_show_result;

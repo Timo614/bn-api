@@ -99,6 +99,9 @@ pub fn routes(app: &mut CorsBuilder<AppState>) -> App<AppState> {
         r.method(Method::GET).with(chat_workflows::show);
         r.method(Method::PUT).with(chat_workflows::update);
     })
+    .resource("/chat_workflows/{id}/publish", |r| {
+        r.method(Method::POST).with(chat_workflows::publish);
+    })
     .resource("/chat_workflows/{id}/chat_workflow_items", |r| {
         r.method(Method::POST).with(chat_workflow_items::create);
     })

@@ -21,7 +21,7 @@ use uuid::Uuid;
 const LOGGER_FORMAT: &'static str = r#"{"level": "INFO", "target":"bigneon::request", "remote_ip":"%a", "user_agent": "%{User-Agent}i", "request": "%r", "status_code": %s, "response_time": %D, "api_version":"%{x-app-version}o", "client_version": "%{X-API-Client-Version}i" }"#;
 
 pub struct AppState {
-    pub clients: Arc<Mutex<HashMap<Uuid, Vec<Addr<EventWebSocket>>>>>,
+    pub clients: Arc<Mutex<HashMap<Uuid, Vec<Addr<EventWebsocket>>>>>,
     pub config: Config,
     pub database: Database,
     pub database_ro: Database,
@@ -33,7 +33,7 @@ impl AppState {
         config: Config,
         database: Database,
         database_ro: Database,
-        clients: Arc<Mutex<HashMap<Uuid, Vec<Addr<EventWebSocket>>>>>,
+        clients: Arc<Mutex<HashMap<Uuid, Vec<Addr<EventWebsocket>>>>>,
     ) -> Result<AppState, DatabaseError> {
         Ok(AppState {
             database,

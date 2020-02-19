@@ -22,14 +22,14 @@ pub struct RedisPubSubProcessor {
     config: Config,
     database: Database,
     worker_threads: Vec<(Sender<()>, JoinHandle<Result<(), BigNeonError>>)>,
-    websocket_clients: Arc<Mutex<HashMap<Uuid, Vec<Addr<EventWebSocket>>>>>,
+    websocket_clients: Arc<Mutex<HashMap<Uuid, Vec<Addr<EventWebsocket>>>>>,
 }
 
 impl RedisPubSubProcessor {
     pub fn new(
         config: Config,
         database: Database,
-        websocket_clients: Arc<Mutex<HashMap<Uuid, Vec<Addr<EventWebSocket>>>>>,
+        websocket_clients: Arc<Mutex<HashMap<Uuid, Vec<Addr<EventWebsocket>>>>>,
     ) -> RedisPubSubProcessor {
         RedisPubSubProcessor {
             config,
@@ -42,7 +42,7 @@ impl RedisPubSubProcessor {
     pub fn run_process(
         config: Config,
         database: Database,
-        websocket_clients: Arc<Mutex<HashMap<Uuid, Vec<Addr<EventWebSocket>>>>>,
+        websocket_clients: Arc<Mutex<HashMap<Uuid, Vec<Addr<EventWebsocket>>>>>,
         rx: Receiver<()>,
     ) -> Result<(), BigNeonError> {
         if let Some(mut connection) = database
@@ -78,12 +78,12 @@ impl RedisPubSubProcessor {
                             let clients_mutex = clients.lock().unwrap();
 
                             if let Some(listeners) = clients_mutex.get(&payload.event_id) {
-                                EventWebSocket::send_message(
+                                EventWebsocket::send_message(
                                     &listeners,
-                                    EventWebSocketMessage::new(json!({
+                                    EventWebsocketMessage::new(json!({
                                             "event_id": payload.event_id,
                                             "ticket_id": payload.ticket_id,
-                                            "event_web_socket_type": EventWebSocketType::TicketRedemption
+                                            "event_web_socket_type": EventWebsocketType::TicketRedemption
                                     })),
                                 );
                             }

@@ -1,21 +1,21 @@
 // Websocket based on actix example https://github.com/actix/examples/blob/0.7/websocket/src/main.rs
 
-use crate::models::*;
-use crate::server::AppState;
 use actix::prelude::*;
 use actix_web::ws;
+use models::*;
+use server::AppState;
 use std::time::{Duration, Instant};
 use uuid::Uuid;
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(30);
 
-pub struct EventWebsocket {
+pub struct ChatWebsocket {
     pub heartbeat: Instant,
-    pub event_id: Uuid,
+    pub user_id: Uuid,
 }
 
-impl Actor for EventWebsocket {
+impl Actor for ChatWebsocket {
     type Context = ws::WebsocketContext<Self, AppState>;
 
     fn started(&mut self, context: &mut Self::Context) {
@@ -23,21 +23,19 @@ impl Actor for EventWebsocket {
     }
 }
 
-impl EventWebsocket {
-    pub fn send_message(listeners: &[Addr<EventWebsocket>], message: EventWebsocketMessage) {
-        for listener in listeners {
-            if listener.connected() {
-                if let Err(err) = listener.try_send(message.clone()) {
-                    error!("Websocket send error: {:?}", err);
-                }
+impl ChatWebsocket {
+    pub fn send_message(listener: &Addr<ChatWebsocket>, message: ChatWebsocketMessage) {
+        if listener.connected() {
+            if let Err(err) = listener.try_send(message.clone()) {
+                error!("Websocket send error: {:?}", err);
             }
         }
     }
 
-    pub fn new(event_id: Uuid) -> Self {
+    pub fn new(user_id: Uuid) -> Self {
         Self {
             heartbeat: Instant::now(),
-            event_id,
+            user_id,
         }
     }
 
@@ -52,23 +50,11 @@ impl EventWebsocket {
 
     pub fn close(&mut self, context: &mut <Self as Actor>::Context) {
         context.stop();
-
-        let client_mutex = context.state().clients.clone();
-        let mut clients = client_mutex.lock().unwrap();
-        clients
-            .entry(self.event_id)
-            .and_modify(|listeners| listeners.retain(|l| l != &context.address()));
     }
 }
 
-impl StreamHandler<ws::Message, ws::ProtocolError> for EventWebsocket {
-    fn started(&mut self, context: &mut Self::Context) {
-        let mut clients = context.state().clients.lock().unwrap();
-        clients
-            .entry(self.event_id)
-            .or_insert(Vec::new())
-            .push(context.address());
-    }
+impl StreamHandler<ws::Message, ws::ProtocolError> for ChatWebsocket {
+    fn started(&mut self, _ontext: &mut Self::Context) {}
 
     fn handle(&mut self, message: ws::Message, context: &mut Self::Context) {
         match message {
