@@ -117,6 +117,15 @@ fn destroy() {
         .create_chat_workflow_response()
         .with_chat_workflow_item(&chat_workflow_item)
         .finish();
+    let chat_workflow = chat_workflow
+        .update(
+            ChatWorkflowEditableAttributes {
+                initial_chat_workflow_item_id: Some(Some(chat_workflow_item.id)),
+                ..Default::default()
+            },
+            connection,
+        )
+        .unwrap();
 
     let domain_events = DomainEvent::find(
         Tables::ChatWorkflows,
@@ -250,6 +259,25 @@ fn all() {
     assert_eq!(
         ChatWorkflow::all(connection).unwrap(),
         vec![chat_workflow, chat_workflow2]
+    );
+}
+
+#[test]
+fn update_cannot_remove_initial_chat_workflow_item_on_published() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+
+    let chat_workflow = project.create_chat_workflow().finish();
+    let attributes = ChatWorkflowEditableAttributes {
+        initial_chat_workflow_item_id: Some(None),
+        ..Default::default()
+    };
+
+    assert_eq!(
+        chat_workflow.update(attributes, connection),
+        DatabaseError::business_process_error(
+            "Initial chat workflow item cannot be removed on published chat workflow",
+        )
     );
 }
 

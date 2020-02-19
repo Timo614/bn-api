@@ -87,6 +87,13 @@ impl ChatWorkflow {
     }
 
     pub fn destroy(&self, current_user_id: Option<Uuid>, conn: &PgConnection) -> Result<(), DatabaseError> {
+        // To avoid triggering validation on cascading delete, remove initial chat workflow item
+        let initial_chat_workflow_item_id: Option<Uuid> = None;
+        diesel::update(self)
+            .set(chat_workflows::initial_chat_workflow_item_id.eq(initial_chat_workflow_item_id))
+            .execute(conn)
+            .to_db_error(ErrorCode::UpdateError, "Could not update chat workflow")?;
+
         let display_chat_workflow = self.for_display(conn)?;
         diesel::delete(self)
             .execute(conn)
@@ -141,6 +148,15 @@ impl ChatWorkflow {
         attributes: ChatWorkflowEditableAttributes,
         conn: &PgConnection,
     ) -> Result<ChatWorkflow, DatabaseError> {
+        if self.status == ChatWorkflowStatus::Published {
+            // Value is being removed on a published chat workflow
+            if attributes.initial_chat_workflow_item_id == Some(None) {
+                return DatabaseError::business_process_error(
+                    "Initial chat workflow item cannot be removed on published chat workflow",
+                );
+            }
+        }
+
         diesel::update(self)
             .set((attributes, chat_workflows::updated_at.eq(dsl::now)))
             .get_result(conn)

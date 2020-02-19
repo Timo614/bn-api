@@ -124,6 +124,81 @@ fn destroy() {
 }
 
 #[test]
+fn destroy_recursive_chat_workflow_item() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+    let chat_workflow_item = project.create_chat_workflow_item().finish();
+    let chat_workflow_item2 = project.create_chat_workflow_item().finish();
+    let chat_workflow_response = project
+        .create_chat_workflow_response()
+        .with_chat_workflow_item(&chat_workflow_item)
+        .with_next_chat_workflow_item(&chat_workflow_item2)
+        .finish();
+    let chat_workflow_response2 = project
+        .create_chat_workflow_response()
+        .with_chat_workflow_item(&chat_workflow_item2)
+        .with_next_chat_workflow_item(&chat_workflow_item)
+        .finish();
+
+    assert!(chat_workflow_item.destroy(connection).is_ok());
+    assert!(ChatWorkflowItem::find(chat_workflow_item.id, connection).is_err());
+    assert!(ChatWorkflowResponse::find(chat_workflow_response.id, connection).is_err());
+
+    assert!(ChatWorkflowItem::find(chat_workflow_item2.id, connection).is_ok());
+    let chat_workflow_response2 = ChatWorkflowResponse::find(chat_workflow_response2.id, connection).unwrap();
+    assert_eq!(chat_workflow_response2.next_chat_workflow_item_id, None);
+}
+
+#[test]
+fn destroy_fails_as_initial_chat_workflow_item() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+    let chat_workflow = project.create_chat_workflow().draft().finish();
+    let chat_workflow_item = project
+        .create_chat_workflow_item()
+        .with_chat_workflow(&chat_workflow)
+        .finish();
+    let chat_workflow_response = project
+        .create_chat_workflow_response()
+        .with_chat_workflow_item(&chat_workflow_item)
+        .finish();
+    let chat_workflow = chat_workflow
+        .update(
+            ChatWorkflowEditableAttributes {
+                initial_chat_workflow_item_id: Some(Some(chat_workflow_item.id)),
+                ..Default::default()
+            },
+            connection,
+        )
+        .unwrap();
+
+    assert_eq!(
+        chat_workflow_item.destroy(connection),
+        DatabaseError::business_process_error(
+            "Chat workflow item cannot be destroyed, used as an initial chat workflow item",
+        )
+    );
+    assert!(ChatWorkflow::find(chat_workflow.id, connection).is_ok());
+    assert!(ChatWorkflowItem::find(chat_workflow_item.id, connection).is_ok());
+    assert!(ChatWorkflowResponse::find(chat_workflow_response.id, connection).is_ok());
+
+    // Removing as the initial chat workflow item allow deletion
+    let chat_workflow = chat_workflow
+        .update(
+            ChatWorkflowEditableAttributes {
+                initial_chat_workflow_item_id: Some(None),
+                ..Default::default()
+            },
+            connection,
+        )
+        .unwrap();
+    assert!(chat_workflow_item.destroy(connection).is_ok());
+    assert!(ChatWorkflow::find(chat_workflow.id, connection).is_ok());
+    assert!(ChatWorkflowItem::find(chat_workflow_item.id, connection).is_err());
+    assert!(ChatWorkflowResponse::find(chat_workflow_response.id, connection).is_err());
+}
+
+#[test]
 fn remaining_response_types() {
     let project = TestProject::new();
     let connection = project.get_connection();

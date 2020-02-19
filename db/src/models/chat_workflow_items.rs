@@ -1,8 +1,9 @@
 use chrono::NaiveDateTime;
+use diesel::dsl::{exists, select};
 use diesel::expression::dsl;
 use diesel::prelude::*;
 use models::*;
-use schema::{chat_workflow_items, chat_workflow_responses};
+use schema::{chat_workflow_items, chat_workflow_responses, chat_workflows};
 use serde_json::Value;
 use utils::errors::*;
 use uuid::Uuid;
@@ -194,7 +195,40 @@ impl ChatWorkflowItem {
         }
     }
 
+    fn used_as_initial_chat_workflow_item(&self, conn: &PgConnection) -> Result<bool, DatabaseError> {
+        select(exists(
+            chat_workflows::table.filter(chat_workflows::initial_chat_workflow_item_id.eq(self.id)),
+        ))
+        .get_result(conn)
+        .to_db_error(
+            ErrorCode::QueryError,
+            "Could not confirm if chat workflow item used as an initial chat workflow item",
+        )
+    }
+
     pub fn destroy(&self, conn: &PgConnection) -> Result<(), DatabaseError> {
+        if self.used_as_initial_chat_workflow_item(conn)? {
+            return DatabaseError::business_process_error(
+                "Chat workflow item cannot be destroyed, used as an initial chat workflow item",
+            );
+        }
+
+        // Update all responses to remove this as the next_chat_workflow_item_id
+        let no_chat_workflow_item_id: Option<Uuid> = None;
+        diesel::update(
+            chat_workflow_responses::table
+                .filter(chat_workflow_responses::next_chat_workflow_item_id.eq(Some(self.id))),
+        )
+        .set((
+            chat_workflow_responses::next_chat_workflow_item_id.eq(no_chat_workflow_item_id),
+            chat_workflow_responses::updated_at.eq(dsl::now),
+        ))
+        .execute(conn)
+        .to_db_error(
+            ErrorCode::UpdateError,
+            "Could not update chat workflow responses to remove next chat workflow items associated",
+        )?;
+
         diesel::delete(self)
             .execute(conn)
             .to_db_error(ErrorCode::DeleteError, "Failed to destroy workflow item")?;
