@@ -3,11 +3,6 @@ use errors::*;
 use models::*;
 use serde_json::Value;
 
-#[derive(Debug, Deserialize, PartialEq, Serialize)]
-pub enum ChatWebsocketType {
-    TicketRedemption,
-}
-
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct ChatWebsocketMessage {
     pub payload: Value,

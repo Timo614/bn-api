@@ -116,7 +116,7 @@ table! {
         id -> Uuid,
         user_id -> Uuid,
         chat_workflow_id -> Uuid,
-        chat_workflow_item_id -> Uuid,
+        chat_workflow_item_id -> Nullable<Uuid>,
         context -> Jsonb,
         expires_at -> Nullable<Timestamp>,
         created_at -> Timestamp,

@@ -11,6 +11,64 @@ use serde_json::Value;
 use std::collections::HashMap;
 
 #[test]
+fn next_chat_workflow_item() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+    let chat_workflow = project.create_chat_workflow().draft().finish();
+    let chat_workflow_item = project
+        .create_chat_workflow_item()
+        .with_chat_workflow(&chat_workflow)
+        .finish();
+    let chat_workflow_item2 = project
+        .create_chat_workflow_item()
+        .with_chat_workflow(&chat_workflow)
+        .finish();
+    let _chat_workflow_response = project
+        .create_chat_workflow_response()
+        .with_chat_workflow_item(&chat_workflow_item)
+        .with_next_chat_workflow_item(&chat_workflow_item2)
+        .finish();
+    let chat_workflow = chat_workflow
+        .update(
+            ChatWorkflowEditableAttributes {
+                initial_chat_workflow_item_id: Some(Some(chat_workflow_item.id)),
+                ..Default::default()
+            },
+            connection,
+        )
+        .unwrap();
+    let chat_workflow = chat_workflow.publish(None, connection).unwrap();
+
+    let mut chat_session = project
+        .create_chat_session()
+        .with_chat_workflow(&chat_workflow)
+        .finish();
+    let chat_workflow_item = ChatWorkflowItem::find(chat_session.chat_workflow_item_id.unwrap(), connection).unwrap();
+
+    assert_eq!(
+        chat_session.next_chat_workflow_item(connection).unwrap(),
+        Some(chat_workflow_item.clone())
+    );
+
+    // Process response, noop so empty value is fine
+    chat_session
+        .process_response(&chat_workflow_item, None, None, connection)
+        .unwrap();
+    chat_session = ChatSession::find(chat_session.id, connection).unwrap();
+    assert_eq!(
+        chat_session.next_chat_workflow_item(connection).unwrap(),
+        Some(chat_workflow_item2.clone())
+    );
+
+    // No next chat workflow item
+    chat_session
+        .process_response(&chat_workflow_item2, None, None, connection)
+        .unwrap();
+    chat_session = ChatSession::find(chat_session.id, connection).unwrap();
+    assert_eq!(chat_session.next_chat_workflow_item(connection).unwrap(), None);
+}
+
+#[test]
 fn find_active_for_user() {
     let project = TestProject::new();
     let connection = project.get_connection();
@@ -384,7 +442,10 @@ fn select_response() {
     assert_eq!(interaction.chat_workflow_response_id, answer_chat_workflow_response.id);
     assert_eq!(interaction.input, None);
     let chat_session = ChatSession::find(chat_session.id, connection).unwrap();
-    assert_eq!(chat_session.chat_workflow_item_id, question_chat_workflow_item2.id);
+    assert_eq!(
+        chat_session.chat_workflow_item_id,
+        Some(question_chat_workflow_item2.id)
+    );
 }
 
 fn update_chat_interaction_timing(

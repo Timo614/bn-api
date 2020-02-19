@@ -47,7 +47,7 @@ CREATE TABLE chat_sessions
     id                      UUID PRIMARY KEY     DEFAULT gen_random_uuid() NOT NULL,
     user_id                 UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     chat_workflow_id        UUID NOT NULL REFERENCES chat_workflows(id) ON DELETE CASCADE,
-    chat_workflow_item_id   UUID NOT NULL REFERENCES chat_workflow_items(id) ON DELETE CASCADE,
+    chat_workflow_item_id   UUID NULL REFERENCES chat_workflow_items(id) ON DELETE CASCADE,
     context                 JSONB NOT NULL,
     expires_at              TIMESTAMP NULL,
     created_at              TIMESTAMP NOT NULL DEFAULT now(),

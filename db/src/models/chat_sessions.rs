@@ -17,7 +17,7 @@ pub struct ChatSession {
     pub id: Uuid,
     pub user_id: Uuid,
     pub chat_workflow_id: Uuid,
-    pub chat_workflow_item_id: Uuid,
+    pub chat_workflow_item_id: Option<Uuid>,
     pub context: Value,
     pub expires_at: Option<NaiveDateTime>,
     pub created_at: NaiveDateTime,
@@ -35,7 +35,7 @@ pub struct NewChatSession {
 #[derive(AsChangeset, Default, Deserialize, Debug)]
 #[table_name = "chat_sessions"]
 pub struct ChatSessionEditableAttributes {
-    pub chat_workflow_item_id: Option<Uuid>,
+    pub chat_workflow_item_id: Option<Option<Uuid>>,
     #[serde(default, deserialize_with = "deserialize_unless_blank")]
     pub context: Option<Value>,
 }
@@ -185,6 +185,14 @@ impl ChatSession {
         return DatabaseError::business_process_error("No chat workflow response found for input");
     }
 
+    pub fn next_chat_workflow_item(&self, conn: &PgConnection) -> Result<Option<ChatWorkflowItem>, DatabaseError> {
+        if let Some(chat_workflow_item_id) = self.chat_workflow_item_id {
+            return Ok(Some(ChatWorkflowItem::find(chat_workflow_item_id, conn)?));
+        }
+
+        Ok(None)
+    }
+
     pub fn select_response(
         &self,
         chat_workflow_item: &ChatWorkflowItem,
@@ -194,7 +202,7 @@ impl ChatSession {
     ) -> Result<ChatWorkflowInteraction, DatabaseError> {
         self.update(
             ChatSessionEditableAttributes {
-                chat_workflow_item_id: chat_workflow_response.next_chat_workflow_item_id,
+                chat_workflow_item_id: Some(chat_workflow_response.next_chat_workflow_item_id),
                 ..Default::default()
             },
             conn,
