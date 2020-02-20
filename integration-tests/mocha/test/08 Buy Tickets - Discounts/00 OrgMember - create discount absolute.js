@@ -38,7 +38,7 @@ let requestBody = `{
 	"name":"Discount Tickets",
 	"code_type" : "Discount",
 	"redemption_codes" : ["RedeemDiscountCode{{$timestamp}}_absolute"],
-	"max_uses" : 10,
+	"max_uses" : 2,
 	"discount_in_cents" : 100,
 	"start_date": "2018-01-01T12:00:00",
 	"end_date": "2059-01-01T12:00:00",
@@ -77,7 +77,7 @@ describe('OrgMember - create discount absolute', function () {
         pm.environment.set("last_code_id", json.id);
         pm.environment.set("discount_redemption_code", json.redemption_codes[0]);
         expect(json.name).to.equal("Discount Tickets");
-        expect(json.max_uses).to.equal(10);
+        expect(json.max_uses).to.equal(2);
         expect(json.code_type).to.equal("Discount");
         expect(json.discount_in_cents).to.equal(100);
         expect(json.start_date).to.equal("2018-01-01T12:00:00");
@@ -89,5 +89,3 @@ describe('OrgMember - create discount absolute', function () {
 
 
 });
-
-            

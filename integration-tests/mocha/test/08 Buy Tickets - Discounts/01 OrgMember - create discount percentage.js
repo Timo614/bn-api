@@ -38,7 +38,8 @@ let requestBody = `{
 	"name":"Discount Tickets",
 	"code_type" : "Discount",
 	"redemption_codes" : ["RedeemDiscountCode{{$timestamp}}_percentage"],
-	"max_uses" : 10,
+	"max_uses" : 1,
+	"max_tickets_per_user" : 2,
 	"discount_as_percentage" : 10,
 	"start_date": "2018-01-01T12:00:00",
 	"end_date": "2059-01-01T12:00:00",
@@ -76,7 +77,7 @@ describe('OrgMember - create discount percentage', function () {
         pm.environment.set("last_code_id", json.id);
         pm.environment.set("discount_percentage_redemption_code", json.redemption_codes[0]);
         expect(json.name).to.equal("Discount Tickets");
-        expect(json.max_uses).to.equal(10);
+        expect(json.max_uses).to.equal(1);
         expect(json.code_type).to.equal("Discount");
         expect(json.discount_as_percentage).to.equal(10);
         expect(json.start_date).to.equal("2018-01-01T12:00:00");
@@ -87,5 +88,3 @@ describe('OrgMember - create discount percentage', function () {
 
 
 });
-
-            
