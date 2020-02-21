@@ -24,7 +24,7 @@ fn for_display() {
             message: chat_workflow_item.message.clone(),
             render_type: chat_workflow_item.render_type,
             response_wait: chat_workflow_item.response_wait,
-            tree: json!([]),
+            responses: json!([]),
             created_at: chat_workflow_item.created_at,
             updated_at: chat_workflow_item.updated_at,
         }
@@ -51,7 +51,7 @@ fn for_display() {
             message: chat_workflow_item.message.clone(),
             render_type: chat_workflow_item.render_type,
             response_wait: chat_workflow_item.response_wait,
-            tree: json!(vec![
+            responses: json!(vec![
                 chat_workflow_response.for_display(&mut vec![], connection).unwrap(),
                 chat_workflow_response2.for_display(&mut vec![], connection).unwrap()
             ]),
@@ -87,7 +87,7 @@ fn for_display() {
             message: chat_workflow_item.message.clone(),
             render_type: chat_workflow_item.render_type,
             response_wait: chat_workflow_item.response_wait,
-            tree: json!(vec![
+            responses: json!(vec![
                 chat_workflow_response
                     .for_display(&mut vec![chat_workflow_item.id], connection)
                     .unwrap(),
@@ -99,8 +99,8 @@ fn for_display() {
             updated_at: chat_workflow_item.updated_at,
         }
     );
-    let tree_json = displayed_chat_workflow_item.tree.to_string();
-    assert!(tree_json.contains(&json!({"id": chat_workflow_item.id, "type": "multiple_references"}).to_string()));
+    let responses_json = displayed_chat_workflow_item.responses.to_string();
+    assert!(responses_json.contains(&json!({"id": chat_workflow_item.id, "type": "multiple_references"}).to_string()));
 }
 
 #[test]

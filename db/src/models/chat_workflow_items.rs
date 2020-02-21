@@ -41,7 +41,7 @@ pub struct DisplayChatWorkflowItem {
     pub message: Option<String>,
     pub render_type: Option<ChatWorkflowItemRenderType>,
     pub response_wait: i32,
-    pub tree: Value,
+    pub responses: Value,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
 }
@@ -88,13 +88,13 @@ impl ChatWorkflowItem {
             message: self.message.clone(),
             render_type: self.render_type,
             response_wait: self.response_wait,
-            tree: self.tree(rendered_chat_workflow_item_ids, conn)?,
+            responses: self.display_responses(rendered_chat_workflow_item_ids, conn)?,
             created_at: self.created_at,
             updated_at: self.updated_at,
         })
     }
 
-    fn tree(
+    fn display_responses(
         &self,
         rendered_chat_workflow_item_ids: &mut Vec<Uuid>,
         conn: &PgConnection,

@@ -54,7 +54,7 @@ pub struct DisplayChatWorkflowResponse {
     pub answer_value: Option<String>,
     pub next_chat_workflow_item_id: Option<Uuid>,
     pub rank: i32,
-    pub tree: Value,
+    pub next_chat_workflow_item: Value,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
 }
@@ -114,13 +114,13 @@ impl ChatWorkflowResponse {
             answer_value: self.answer_value.clone(),
             next_chat_workflow_item_id: self.next_chat_workflow_item_id,
             rank: self.rank,
-            tree: self.tree(rendered_chat_workflow_item_ids, conn)?,
+            next_chat_workflow_item: self.display_next_chat_workflow_item(rendered_chat_workflow_item_ids, conn)?,
             created_at: self.created_at,
             updated_at: self.updated_at,
         })
     }
 
-    fn tree(
+    fn display_next_chat_workflow_item(
         &self,
         rendered_chat_workflow_item_ids: &mut Vec<Uuid>,
         conn: &PgConnection,
