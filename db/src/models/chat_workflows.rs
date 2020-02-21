@@ -139,6 +139,7 @@ impl ChatWorkflow {
 
     pub fn all(conn: &PgConnection) -> Result<Vec<ChatWorkflow>, DatabaseError> {
         chat_workflows::table
+            .order_by(chat_workflows::name)
             .get_results(conn)
             .to_db_error(ErrorCode::QueryError, "Unable to load chat workflow")
     }
