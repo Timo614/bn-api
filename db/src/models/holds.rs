@@ -1,7 +1,8 @@
 use chrono::prelude::*;
 use diesel;
-use diesel::dsl;
+use diesel::dsl::{self, sql};
 use diesel::prelude::*;
+use diesel::sql_types::BigInt;
 use models::*;
 use schema::holds;
 use std::borrow::Cow;
@@ -151,6 +152,25 @@ impl Hold {
             }
         }
         Ok(())
+    }
+
+    pub fn purchased_ticket_count(&self, user: &User, conn: &PgConnection) -> Result<i64, DatabaseError> {
+        use schema::*;
+        holds::table
+            .left_join(order_items::table.on(order_items::hold_id.eq(holds::id.nullable())))
+            .left_join(orders::table.on(orders::id.eq(order_items::order_id)))
+            .filter(
+                orders::on_behalf_of_user_id
+                    .eq(user.id)
+                    .or(orders::on_behalf_of_user_id.is_null().and(orders::user_id.eq(user.id))),
+            )
+            .filter(orders::status.eq(OrderStatus::Paid))
+            .select(sql::<BigInt>("CAST(COALESCE(SUM(order_items.quantity), 0) AS BIGINT)"))
+            .first(conn)
+            .to_db_error(
+                ErrorCode::QueryError,
+                "Could not check hold purchased ticket count for user",
+            )
     }
 
     pub fn find_by_parent_id(

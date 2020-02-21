@@ -12,6 +12,46 @@ use time::Duration;
 use uuid::Uuid;
 
 #[test]
+fn purchased_ticket_count() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+    let user = project.create_user().finish();
+    let user2 = project.create_user().finish();
+    let event = project
+        .create_event()
+        .with_ticket_type_count(1)
+        .with_tickets()
+        .with_ticket_pricing()
+        .finish();
+    let code = project
+        .create_code()
+        .with_event(&event)
+        .with_max_tickets_per_user(Some(100))
+        .finish();
+    project
+        .create_order()
+        .for_event(&event)
+        .quantity(10)
+        .with_redemption_code(code.redemption_code.clone())
+        .for_user(&user)
+        .is_paid()
+        .finish();
+    assert_eq!(code.purchased_ticket_count(&user, connection), Ok(10));
+    assert_eq!(code.purchased_ticket_count(&user2, connection), Ok(0));
+
+    project
+        .create_order()
+        .for_event(&event)
+        .quantity(5)
+        .with_redemption_code(code.redemption_code.clone())
+        .for_user(&user2)
+        .is_paid()
+        .finish();
+    assert_eq!(code.purchased_ticket_count(&user, connection), Ok(10));
+    assert_eq!(code.purchased_ticket_count(&user2, connection), Ok(5));
+}
+
+#[test]
 fn available() {
     let project = TestProject::new();
     let connection = project.get_connection();

@@ -92,6 +92,24 @@ pub struct UpdateCodeAttributes {
 }
 
 impl Code {
+    pub fn purchased_ticket_count(&self, user: &User, conn: &PgConnection) -> Result<i64, DatabaseError> {
+        codes::table
+            .left_join(order_items::table.on(order_items::code_id.eq(codes::id.nullable())))
+            .left_join(orders::table.on(orders::id.eq(order_items::order_id)))
+            .filter(
+                orders::on_behalf_of_user_id
+                    .eq(user.id)
+                    .or(orders::on_behalf_of_user_id.is_null().and(orders::user_id.eq(user.id))),
+            )
+            .filter(orders::status.eq(OrderStatus::Paid))
+            .select(sql::<BigInt>("CAST(COALESCE(SUM(order_items.quantity), 0) AS BIGINT)"))
+            .first(conn)
+            .to_db_error(
+                ErrorCode::QueryError,
+                "Could not check code purchased ticket count for user",
+            )
+    }
+
     pub fn find_by_redemption_code_with_availability(
         redemption_code: &str,
         event_id: Option<Uuid>,

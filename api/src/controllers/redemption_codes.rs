@@ -4,6 +4,7 @@ use bigneon_db::prelude::*;
 use chrono::NaiveDateTime;
 use db::Connection;
 use errors::BigNeonError;
+use extractors::*;
 use helpers::application;
 use models::*;
 use uuid::Uuid;
@@ -20,6 +21,7 @@ pub enum RedemptionCodeResponse {
         ticket_types: Vec<UserDisplayTicketType>,
         redemption_code: Option<String>,
         max_per_user: Option<i64>,
+        user_purchased_ticket_count: Option<i64>,
         discount_in_cents: Option<i64>,
         hold_type: HoldTypes,
     },
@@ -34,6 +36,7 @@ pub enum RedemptionCodeResponse {
         start_date: NaiveDateTime,
         end_date: NaiveDateTime,
         max_per_user: Option<i64>,
+        user_purchased_ticket_count: Option<i64>,
     },
 }
 
@@ -43,10 +46,14 @@ pub struct EventParameter {
 }
 
 pub fn show(
-    (connection, query, path): (Connection, Query<EventParameter>, Path<PathParameters>),
+    connection: Connection,
+    query: Query<EventParameter>,
+    path: Path<PathParameters>,
+    auth_user: OptionalUser,
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = connection.get();
     let query = query.into_inner();
+    let user = auth_user.into_inner().and_then(|auth_user| Some(auth_user.user));
     let response =
         if let Some(hold) = Hold::find_by_redemption_code(&path.code.clone(), query.event_id, conn).optional()? {
             let ticket_type = UserDisplayTicketType::from_ticket_type(
@@ -64,6 +71,11 @@ pub fn show(
                 max_per_user: hold.max_per_user,
                 discount_in_cents,
                 hold_type: hold.hold_type,
+                user_purchased_ticket_count: if let Some(user) = user {
+                    Some(hold.purchased_ticket_count(&user, conn)?)
+                } else {
+                    None
+                },
             }
         } else if let Some(code_available) =
             Code::find_by_redemption_code_with_availability(&path.code, query.event_id, conn).optional()?
@@ -93,6 +105,11 @@ pub fn show(
                 start_date: code_available.code.start_date,
                 end_date: code_available.code.end_date,
                 max_per_user: code_available.code.max_tickets_per_user,
+                user_purchased_ticket_count: if let Some(user) = user {
+                    Some(code_available.code.purchased_ticket_count(&user, conn)?)
+                } else {
+                    None
+                },
             }
         } else {
             return application::not_found();
