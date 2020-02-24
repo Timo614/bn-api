@@ -666,7 +666,7 @@ pub struct TicketRedeemRequest {
 pub fn redeem_ticket(
     (connection, parameters, redeem_parameters, auth_user, state, cache_database): (
         Connection,
-        Path<RedeemTicketPathParameters>,
+        Path<PathParameters>,
         Json<TicketRedeemRequest>,
         AuthUser,
         State<AppState>,
@@ -674,62 +674,66 @@ pub fn redeem_ticket(
     ),
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
-    let ticket = TicketInstance::find_for_processing(parameters.ticket_instance_id, parameters.id, connection)?;
-    let db_event = Event::find(ticket.event_id, connection)?;
+    let db_event = Event::find(parameters.id, connection)?;
     let organization = db_event.organization(connection)?;
     auth_user.requires_scope_for_organization_event(Scopes::RedeemTicket, &organization, &db_event, connection)?;
-    let redeemable = TicketInstance::show_redeemable_ticket(parameters.ticket_instance_id, connection)?;
+    match TicketInstance::find_by_event_id_redeem_key(parameters.id, redeem_parameters.redeem_key.clone(), connection)
+        .optional()?
+    {
+        Some(ticket) => {
+            let redeemable = TicketInstance::show_redeemable_ticket(ticket.id, connection)?;
 
-    let result = TicketInstance::redeem_ticket(
-        ticket.id,
-        redeem_parameters.redeem_key.clone(),
-        auth_user.id(),
-        redeem_parameters.check_in_source.unwrap_or(CheckInSource::GuestList),
-        connection,
-    )?;
+            let result = TicketInstance::redeem_ticket(
+                ticket.id,
+                redeem_parameters.redeem_key.clone(),
+                auth_user.id(),
+                redeem_parameters.check_in_source.unwrap_or(CheckInSource::GuestList),
+                connection,
+            )?;
 
-    match result {
-        RedeemResults::TicketRedeemSuccess => {
-            //Redeem ticket on chain
-            let asset = Asset::find(ticket.asset_id, connection)?;
-            match asset.blockchain_asset_id {
-                Some(a) => {
-                    let wallet = Wallet::find(ticket.wallet_id, connection)?;
-                    state.config.tari_client.modify_asset_redeem_token(&wallet.secret_key, &wallet.public_key,
-                                                                       &a,
-                                                                       vec![ticket.token_id as u64],
-                    )?;
+            match result {
+                RedeemResults::TicketRedeemSuccess => {
+                    //Redeem ticket on chain
+                    let asset = Asset::find(ticket.asset_id, connection)?;
+                    match asset.blockchain_asset_id {
+                        Some(a) => {
+                            let wallet = Wallet::find(ticket.wallet_id, connection)?;
+                            state.config.tari_client.modify_asset_redeem_token(&wallet.secret_key, &wallet.public_key,
+                                                                               &a,
+                                                                               vec![ticket.token_id as u64],
+                            )?;
 
-                    //Fetch the redeemable again to include the redeemed_by and redeemed_at fields
-                    let redeemable = TicketInstance::show_redeemable_ticket(parameters.ticket_instance_id, connection)?;
+                            //Fetch the redeemable again to include the redeemed_by and redeemed_at fields
+                            let redeemable = TicketInstance::show_redeemable_ticket(ticket.id, connection)?;
 
-                    // Publish redeem event for redis pubsub
-                    cache_database
-                        .inner
-                        .clone()
-                        .and_then(|conn| caching::publish(conn, RedisPubSubChannel::TicketRedemptions, messages::TicketRedemption {
-                            ticket_id: ticket.id,
-                            event_id: db_event.id,
-                            redeemer_id: auth_user.id()
-                        }).ok());
+                            // Publish redeem event for redis pubsub
+                            cache_database
+                                .inner
+                                .clone()
+                                .and_then(|conn| caching::publish(conn, RedisPubSubChannel::TicketRedemptions, messages::TicketRedemption {
+                                    ticket_id: ticket.id,
+                                    event_id: db_event.id,
+                                    redeemer_id: auth_user.id()
+                                }).ok());
 
-                    Ok(HttpResponse::Ok().json(redeemable))
+                            Ok(HttpResponse::Ok().json(redeemable))
+                        }
+                        None => Ok(HttpResponse::BadRequest().json(json!({ "error": "Could not complete this checkout because the asset has not been assigned on the blockchain.".to_string()}))),
+                    }
                 }
-                None => Ok(HttpResponse::BadRequest().json(json!({ "error": "Could not complete this checkout because the asset has not been assigned on the blockchain.".to_string()}))),
+                RedeemResults::TicketTransferInProcess => Ok(HttpResponse::BadRequest()
+                    .json(json!({"error": "Ticket has pending transfer in progress.".to_string()}))),
+                RedeemResults::TicketAlreadyRedeemed => Ok(HttpResponse::Conflict().json(json!({
+                "error": "Ticket has already been redeemed.".to_string(),
+                "redeemed_by": redeemable.redeemed_by,
+                "redeemed_at": redeemable.redeemed_at
+                }))),
+                RedeemResults::TicketInvalid => {
+                    Ok(HttpResponse::BadRequest().json(json!({"error": "Ticket is invalid.".to_string()})))
+                }
             }
         }
-        RedeemResults::TicketTransferInProcess => {
-            Ok(HttpResponse::BadRequest()
-                .json(json!({"error": "Ticket has pending transfer in progress.".to_string()})))
-        }
-        RedeemResults::TicketAlreadyRedeemed => Ok(HttpResponse::Conflict().json(json!({
-        "error": "Ticket has already been redeemed.".to_string(),
-        "redeemed_by": redeemable.redeemed_by,
-        "redeemed_at": redeemable.redeemed_at
-        }))),
-        RedeemResults::TicketInvalid => {
-            Ok(HttpResponse::BadRequest().json(json!({"error": "Ticket is invalid.".to_string()})))
-        }
+        None => return Ok(HttpResponse::BadRequest().json(json!({"error": "Ticket is invalid.".to_string()}))),
     }
 }
 

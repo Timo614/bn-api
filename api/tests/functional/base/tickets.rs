@@ -3,7 +3,7 @@ use bigneon_api::controllers::events::{self, TicketRedeemRequest};
 use bigneon_api::controllers::tickets::{self, ShowTicketResponse};
 use bigneon_api::db::CacheDatabase;
 use bigneon_api::extractors::*;
-use bigneon_api::models::{PathParameters, RedeemTicketPathParameters};
+use bigneon_api::models::PathParameters;
 use bigneon_db::models::*;
 use bigneon_db::utils::dates;
 use serde_json;
@@ -148,12 +148,10 @@ pub fn redeem_ticket(role: Roles, should_test_succeed: bool) {
     let ticket = database.create_purchased_tickets(&user2, ticket_type, 5).remove(0);
     let auth_user = support::create_auth_user_from_user(&user, role, Some(&organization), &database);
 
-    let mut path = Path::<RedeemTicketPathParameters>::extract(&request.request).unwrap();
+    let mut path = Path::<PathParameters>::extract(&request.request).unwrap();
     path.id = event.id;
-    path.ticket_instance_id = ticket.id;
-    let mut path2 = Path::<RedeemTicketPathParameters>::extract(&request.request).unwrap();
+    let mut path2 = Path::<PathParameters>::extract(&request.request).unwrap();
     path2.id = event.id;
-    path2.ticket_instance_id = ticket.id;
 
     //First try when Redeem code is wrong
     let request_data = TicketRedeemRequest {
