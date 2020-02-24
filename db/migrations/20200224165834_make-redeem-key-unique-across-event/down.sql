@@ -1,1 +1,0 @@
-DROP FUNCTION redeem_key_unique_per_event;

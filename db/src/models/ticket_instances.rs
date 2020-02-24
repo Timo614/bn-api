@@ -22,7 +22,6 @@ use uuid::Uuid;
 use validators::*;
 
 const TICKET_NUMBER_LENGTH: usize = 8;
-sql_function!(fn redeem_key_unique_per_event(id: dUuid, redeem_key: Text) -> Bool);
 
 #[derive(Clone, Debug, Identifiable, PartialEq, Deserialize, Serialize, Queryable, QueryableByName)]
 #[table_name = "ticket_instances"]
@@ -71,12 +70,28 @@ impl TicketInstance {
         redeem_key: String,
         conn: &PgConnection,
     ) -> Result<bool, DatabaseError> {
-        select(redeem_key_unique_per_event(id, redeem_key))
-            .get_result::<bool>(conn)
-            .to_db_error(
-                ErrorCode::UpdateError,
-                "Could not confirm if redeem key is unique for event",
-            )
+        let event_id: Uuid = ticket_types::table
+            .inner_join(assets::table.on(ticket_types::id.eq(assets::ticket_type_id)))
+            .inner_join(ticket_instances::table.on(assets::id.eq(ticket_instances::asset_id)))
+            .filter(ticket_instances::id.eq(id))
+            .select(ticket_types::event_id)
+            .get_result(conn)
+            .to_db_error(ErrorCode::QueryError, "Could not get event_id for ticket instance")?;
+
+        select(exists(
+            ticket_instances::table
+                .inner_join(assets::table.on(assets::id.eq(ticket_instances::asset_id)))
+                .inner_join(ticket_types::table.on(ticket_types::id.eq(assets::ticket_type_id)))
+                .filter(ticket_instances::id.ne(id))
+                .filter(ticket_instances::redeem_key.eq(redeem_key))
+                .filter(ticket_types::event_id.eq(event_id)),
+        ))
+        .get_result(conn)
+        .to_db_error(
+            ErrorCode::QueryError,
+            "Could not confirm if redeem key is unique per event",
+        )
+        .map(|exists: bool| !exists)
     }
 
     pub fn parse_ticket_number(id: Uuid) -> String {
