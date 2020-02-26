@@ -1,9 +1,13 @@
+use actix_web::http::header::{HeaderName, HeaderValue};
+use actix_web::http::{HttpTryFrom, Method};
 use actix_web::middleware::{Middleware, Response, Started};
-use actix_web::{http::Method, FromRequest, HttpRequest, HttpResponse, Result};
+use actix_web::{FromRequest, HttpRequest, HttpResponse, Result};
 use extractors::*;
 use helpers::*;
 use server::AppState;
 use std::collections::BTreeMap;
+
+const CACHED_RESPONSE_HEADER: &'static str = "X-Cached-Response";
 
 #[derive(Clone)]
 pub struct CacheResource {}
@@ -55,7 +59,7 @@ impl Middleware<AppState> for CacheResource {
         Ok(Started::Done)
     }
 
-    fn response(&self, request: &HttpRequest<AppState>, response: HttpResponse) -> Result<Response> {
+    fn response(&self, request: &HttpRequest<AppState>, mut response: HttpResponse) -> Result<Response> {
         if request.method() == Method::GET {
             let mut query = BTreeMap::new();
             let resource = request.resource().clone();
@@ -84,6 +88,11 @@ impl Middleware<AppState> for CacheResource {
                     .inner
                     .clone()
                     .and_then(|conn| caching::set_cached_value(conn, &config, &response, &query).ok());
+            } else if cached.is_some() {
+                response.headers_mut().insert(
+                    &HeaderName::try_from(CACHED_RESPONSE_HEADER).unwrap(),
+                    HeaderValue::from_static("1"),
+                );
             }
         }
 
