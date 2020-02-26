@@ -694,30 +694,30 @@ pub fn redeem_ticket(
             //Redeem ticket on chain
             let asset = Asset::find(ticket.asset_id, connection)?;
             match asset.blockchain_asset_id {
-                        Some(a) => {
-                            let wallet = Wallet::find(ticket.wallet_id, connection)?;
-                            state.config.tari_client.modify_asset_redeem_token(&wallet.secret_key, &wallet.public_key,
-                                                                               &a,
-                                                                               vec![ticket.token_id as u64],
-                            )?;
+                Some(a) => {
+                    let wallet = Wallet::find(ticket.wallet_id, connection)?;
+                    state.config.tari_client.modify_asset_redeem_token(&wallet.secret_key, &wallet.public_key,
+                                                                       &a,
+                                                                       vec![ticket.token_id as u64],
+                    )?;
 
-                            //Fetch the redeemable again to include the redeemed_by and redeemed_at fields
-                            let redeemable = TicketInstance::show_redeemable_ticket(ticket.id, connection)?;
+                    //Fetch the redeemable again to include the redeemed_by and redeemed_at fields
+                    let redeemable = TicketInstance::show_redeemable_ticket(ticket.id, connection)?;
 
-                            // Publish redeem event for redis pubsub
-                            cache_database
-                                .inner
-                                .clone()
-                                .and_then(|conn| caching::publish(conn, RedisPubSubChannel::TicketRedemptions, messages::TicketRedemption {
-                                    ticket_id: ticket.id,
-                                    event_id: db_event.id,
-                                    redeemer_id: auth_user.id()
-                                }).ok());
+                    // Publish redeem event for redis pubsub
+                    cache_database
+                        .inner
+                        .clone()
+                        .and_then(|conn| caching::publish(conn, RedisPubSubChannel::TicketRedemptions, messages::TicketRedemption {
+                            ticket_id: ticket.id,
+                            event_id: db_event.id,
+                            redeemer_id: auth_user.id()
+                        }).ok());
 
-                            Ok(HttpResponse::Ok().json(redeemable))
-                        }
-                        None => Ok(HttpResponse::BadRequest().json(json!({ "error": "Could not complete this checkout because the asset has not been assigned on the blockchain.".to_string()}))),
-                    }
+                    Ok(HttpResponse::Ok().json(redeemable))
+                }
+                None => Ok(HttpResponse::BadRequest().json(json!({ "error": "Could not redeem because the asset has not been assigned on the blockchain.".to_string()}))),
+            }
         }
         RedeemResults::TicketTransferInProcess => {
             Ok(HttpResponse::BadRequest()
