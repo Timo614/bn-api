@@ -1872,18 +1872,32 @@ fn guest_list() {
     let guest_list = event
         .guest_list(Some(order_id.clone()), &None, None, connection)
         .unwrap();
-    let guest_list_item = guest_list.0.first().unwrap();
-    assert_eq!(1, guest_list.1);
-    assert_eq!(normal_order.id, guest_list_item.ticket.order_id);
+    // Occasionally multiple orders have the same first few characters of their GUID leading to errors in test processing
+    assert!(guest_list.1 >= 1);
+
+    let mut found_guest_list_item = None;
+    for guest_list_item in guest_list.0 {
+        if guest_list_item.ticket.order_id == normal_order.id {
+            found_guest_list_item = Some(guest_list_item);
+        }
+    }
+    assert!(found_guest_list_item.is_some());
+
     //Search by ticket_instance id
     let ticket_id = first_ticket.id.to_string();
     let ticket_id = ticket_id[&ticket_id.len() - 8..].to_string();
     let guest_list = event
         .guest_list(Some(ticket_id.clone()), &None, None, connection)
         .unwrap();
-    let guest_list_item = guest_list.0.first().unwrap();
-    assert_eq!(1, guest_list.1);
-    assert_eq!(first_ticket.id, guest_list_item.ticket.id);
+    assert!(guest_list.1 >= 1);
+
+    let mut found_guest_list_item = None;
+    for guest_list_item in guest_list.0 {
+        if guest_list_item.ticket.id == first_ticket.id {
+            found_guest_list_item = Some(guest_list_item);
+        }
+    }
+    assert!(found_guest_list_item.is_some());
 }
 
 #[test]
