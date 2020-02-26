@@ -3,7 +3,6 @@ use actix_web::{HttpResponse, Query};
 use auth::user::User;
 use bigneon_db::models::scopes::Scopes;
 use bigneon_db::models::*;
-use bigneon_db::prelude::Optional;
 use db::Connection;
 use errors::BigNeonError;
 use extractors::Json;
@@ -20,19 +19,25 @@ pub fn create(
     Ok(HttpResponse::Created().json(json!(organization_venue)))
 }
 
-pub fn index(
+pub fn organizations_index(
     (conn, path, query, user): (Connection, Path<PathParameters>, Query<PagingParameters>, User),
 ) -> Result<WebPayload<OrganizationVenue>, BigNeonError> {
     user.requires_scope(Scopes::OrgVenueRead)?;
     let connection = conn.get();
+    let organization = Organization::find(path.id, connection)?;
+    let organization_venues =
+        OrganizationVenue::find_by_organization(organization.id, Some(query.page()), Some(query.limit()), connection)?;
+    Ok(WebPayload::new(StatusCode::OK, organization_venues))
+}
 
-    // Route is used for venue and organization lookups
-    let organization_venues = if Organization::find(path.id, connection).optional()?.is_some() {
-        OrganizationVenue::find_by_organization(path.id, Some(query.page()), Some(query.limit()), connection)?
-    } else {
-        OrganizationVenue::find_by_venue(path.id, Some(query.page()), Some(query.limit()), connection)?
-    };
-
+pub fn venues_index(
+    (conn, path, query, user): (Connection, Path<PathParameters>, Query<PagingParameters>, User),
+) -> Result<WebPayload<OrganizationVenue>, BigNeonError> {
+    user.requires_scope(Scopes::OrgVenueRead)?;
+    let connection = conn.get();
+    let venue = Venue::find(path.id, connection)?;
+    let organization_venues =
+        OrganizationVenue::find_by_venue(venue.id, Some(query.page()), Some(query.limit()), connection)?;
     Ok(WebPayload::new(StatusCode::OK, organization_venues))
 }
 
