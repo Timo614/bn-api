@@ -1877,6 +1877,12 @@ fn guest_list() {
 
     let mut found_guest_list_item = None;
     for guest_list_item in guest_list.0 {
+        assert_eq!(
+            order_id,
+            guest_list_item.ticket.order_id.to_string()[&guest_list_item.ticket.order_id.to_string().len() - 8..]
+                .to_string()
+        );
+
         if guest_list_item.ticket.order_id == normal_order.id {
             found_guest_list_item = Some(guest_list_item);
         }
@@ -1894,6 +1900,10 @@ fn guest_list() {
     let mut found_guest_list_item = None;
     for guest_list_item in guest_list.0 {
         if guest_list_item.ticket.id == first_ticket.id {
+            assert_eq!(
+                ticket_id,
+                guest_list_item.ticket.id.to_string()[&guest_list_item.ticket.id.to_string().len() - 8..].to_string()
+            );
             found_guest_list_item = Some(guest_list_item);
         }
     }
