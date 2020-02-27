@@ -52,10 +52,6 @@ fn next_finalization_date() {
     let pt_timezone: Tz = "America/Los_Angeles".parse().unwrap();
     let now = pt_timezone.from_utc_datetime(&Utc::now().naive_utc());
     let pt_today = pt_timezone.ymd(now.year(), now.month(), now.day()).and_hms(0, 0, 0);
-    let expected_pt = pt_today.naive_utc()
-        + Duration::days(7 - pt_today.naive_local().weekday().num_days_from_monday() as i64 + 2)
-        + Duration::hours(12);
-
     let days_since_monday = pt_today.naive_local().weekday().num_days_from_monday();
     let expected_pt = if days_since_monday < 2 || (days_since_monday == 2 && now.naive_local().hour() < 12) {
         pt_today.naive_utc()
