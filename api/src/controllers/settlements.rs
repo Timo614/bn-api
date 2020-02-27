@@ -1,4 +1,4 @@
-use actix_web::{http::StatusCode, HttpResponse, Path, Query, State};
+use actix_web::{http::StatusCode, HttpResponse, Path, Query};
 use auth::user::User as AuthUser;
 use bigneon_db::models::*;
 use chrono::prelude::*;
@@ -7,7 +7,6 @@ use errors::*;
 use extractors::*;
 use helpers::application;
 use models::{PathParameters, WebPayload};
-use server::AppState;
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct NewSettlementRequest {
@@ -17,13 +16,7 @@ pub struct NewSettlementRequest {
 }
 
 pub fn index(
-    (connection, state, query, path, user): (
-        Connection,
-        State<AppState>,
-        Query<PagingParameters>,
-        Path<PathParameters>,
-        AuthUser,
-    ),
+    (connection, query, path, user): (Connection, Query<PagingParameters>, Path<PathParameters>, AuthUser),
 ) -> Result<WebPayload<Settlement>, BigNeonError> {
     let connection = connection.get();
     let organization = Organization::find(path.id, connection)?;
@@ -34,8 +27,7 @@ pub fn index(
         Some(query.limit()),
         Some(query.page() * query.limit()),
         // Hide settlements for default settlement period where users lack settlement read early scope
-        state.config.settlement_period_in_days.is_none()
-            && !user.has_scope_for_organization(Scopes::SettlementReadEarly, &organization, connection)?,
+        !user.has_scope_for_organization(Scopes::SettlementReadEarly, &organization, connection)?,
         connection,
     )?;
 
@@ -61,7 +53,7 @@ pub fn create(
 }
 
 pub fn show(
-    (connection, state, path, user): (Connection, State<AppState>, Path<PathParameters>, AuthUser),
+    (connection, path, user): (Connection, Path<PathParameters>, AuthUser),
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let settlement = Settlement::find(path.id, connection)?;
@@ -69,9 +61,8 @@ pub fn show(
     user.requires_scope_for_organization(Scopes::SettlementRead, &organization, connection)?;
 
     // Unauthorized access to settlement for default settlement period where users lack settlement read early scope
-    if state.config.settlement_period_in_days.is_none()
-        && !user.has_scope_for_organization(Scopes::SettlementReadEarly, &organization, connection)?
-        && !settlement.visible(&organization)?
+    if !user.has_scope_for_organization(Scopes::SettlementReadEarly, &organization, connection)?
+        && settlement.status != SettlementStatus::FinalizedSettlement
     {
         return application::unauthorized_with_message("Unauthorized access of settlement", None, None);
     }

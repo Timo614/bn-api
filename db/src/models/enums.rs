@@ -178,6 +178,7 @@ define_enum! { DomainActionTypes [
     BroadcastPushNotification,
     // Email/SMS/Push Communication
     Communication,
+    FinalizeSettlements,
     PaymentProviderIPN,
     ProcessSettlementReport,
     ProcessTransferDrip,
@@ -212,7 +213,7 @@ define_enum! { PastOrUpcoming [Past,Upcoming]}
 define_enum! { Platforms [Web, App, BoxOffice]}
 define_enum! { ReportTypes [TicketCounts]}
 define_enum! { Roles [Admin, DoorPerson, OrgAdmin, OrgBoxOffice, OrgMember, OrgOwner, PrismIntegration, Promoter, PromoterReadOnly, User, Super] }
-define_enum! { SettlementStatus[PendingSettlement, RequiresAudit, SettledInFull] }
+define_enum! { SettlementStatus[PendingSettlement, FinalizedSettlement] }
 define_enum! { SettlementTypes [Rolling, PostEvent]}
 define_enum! { SettlementAdjustmentTypes [ManualCredit, ManualDeduction, Chargeback]}
 define_enum! { SettlementEntryTypes [EventFees, TicketType]}

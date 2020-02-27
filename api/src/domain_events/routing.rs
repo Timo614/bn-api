@@ -48,7 +48,7 @@ impl DomainActionRouter {
             match action_type {
                 Communication => Box::new(SendCommunicationExecutor::new(conf)),
                 BroadcastPushNotification => Box::new(BroadcastPushNotificationExecutor::new(&conf)),
-
+                FinalizeSettlements => Box::new(FinalizeSettlementsExecutor::new()),
                 PaymentProviderIPN => Box::new(ProcessPaymentIPNExecutor::new(&conf)),
                 RegenerateDripActions => Box::new(RegenerateDripActionsExecutor::new(conf)),
                 SendPurchaseCompletedCommunication => Box::new(SendOrderCompleteExecutor::new(conf)),
@@ -70,6 +70,9 @@ impl DomainActionRouter {
             .expect("Configuration error");
 
         self.add_executor(BroadcastPushNotification, find_executor(BroadcastPushNotification))
+            .expect("Configuration error");
+
+        self.add_executor(FinalizeSettlements, find_executor(FinalizeSettlements))
             .expect("Configuration error");
 
         self.add_executor(PaymentProviderIPN, find_executor(PaymentProviderIPN))

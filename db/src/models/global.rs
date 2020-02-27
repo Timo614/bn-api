@@ -12,5 +12,9 @@ pub fn schedule_domain_actions(conn: &PgConnection) -> Result<(), DatabaseError>
         Order::create_next_retarget_abandoned_cart_domain_action(conn)?;
     }
 
+    if DomainAction::upcoming_domain_action(None, None, DomainActionTypes::FinalizeSettlements, conn)?.is_none() {
+        Settlement::create_next_finalize_settlements_domain_action(conn)?;
+    }
+
     Ok(())
 }

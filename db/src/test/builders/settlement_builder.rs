@@ -11,6 +11,7 @@ pub struct SettlementBuilder<'a> {
     end_time: Option<NaiveDateTime>,
     comment: Option<String>,
     only_finished_events: bool,
+    status: SettlementStatus,
     connection: &'a PgConnection,
 }
 
@@ -22,8 +23,14 @@ impl<'a> SettlementBuilder<'a> {
             end_time: None,
             comment: None,
             only_finished_events: true,
+            status: SettlementStatus::PendingSettlement,
             connection,
         }
+    }
+
+    pub fn finalized(mut self) -> Self {
+        self.status = SettlementStatus::FinalizedSettlement;
+        self
     }
 
     pub fn with_start_time(mut self, start_time: NaiveDateTime) -> Self {
@@ -63,7 +70,7 @@ impl<'a> SettlementBuilder<'a> {
             organization_id,
             start_time,
             end_time,
-            SettlementStatus::PendingSettlement,
+            self.status,
             self.comment.clone(),
             self.only_finished_events,
         )
