@@ -11,9 +11,9 @@ pub struct BranchDeepLinker {
     client: BranchClient,
 }
 impl BranchDeepLinker {
-    pub fn new(url: String, branch_key: String) -> BranchDeepLinker {
+    pub fn new(url: String, branch_key: String, timeout: u64) -> BranchDeepLinker {
         BranchDeepLinker {
-            client: BranchClient::new(url, branch_key),
+            client: BranchClient::new(url, branch_key, timeout),
         }
     }
 }
