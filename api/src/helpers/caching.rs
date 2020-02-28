@@ -15,9 +15,9 @@ pub(crate) fn set_cached_value<T: Serialize>(
     query: &T,
 ) -> Result<(), BigNeonError> {
     let body = application::unwrap_body_to_string(http_response).map_err(|e| ApplicationError::new(e.to_string()))?;
-    let cache_period = config.redis_cache_period.clone();
+    let cache_period = config.redis_cache_period;
     let query_serialized = serde_json::to_string(query)?;
-    if let Err(err) = cache_connection.add(query_serialized.borrow(), body, cache_period) {
+    if let Err(err) = cache_connection.add(query_serialized.borrow(), body, Some(cache_period as usize)) {
         error!("helpers::caching#set_cached_value: {:?}", err);
     }
     Ok(())
@@ -28,9 +28,8 @@ pub(crate) fn get_cached_value<T: Serialize>(
     config: &Config,
     query: T,
 ) -> Option<HttpResponse> {
-    let cache_period = config.redis_cache_period.clone();
     let query_serialized = serde_json::to_string(&query).ok()?;
-    if cache_period.is_some() {
+    if config.redis_connection_string.is_some() {
         match cache_connection.get(&query_serialized) {
             Ok(cached_value) => {
                 let payload: Value = serde_json::from_str(&cached_value).ok()?;
