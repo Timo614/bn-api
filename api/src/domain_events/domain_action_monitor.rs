@@ -77,42 +77,34 @@ impl DomainActionMonitor {
         let mut domain_event_publishers = DomainEventPublisher::find_all(connection)?;
 
         if domain_event_publishers.len() == 0 {
-            //            jlog!(Debug, "bigneon::domain_events", "No event publishers found", {});
             return Ok(0);
         };
-        //        jlog!(
-        //            Debug,
-        //            "bigneon::domain_events",
-        //            "Event publishers found",
-        //            {"num_publishers": domain_event_publishers.len()}
-        //        );
         let mut events_published = 0;
-        let domain_events = DomainEvent::find_after_seq(
-            domain_event_publishers[0].last_domain_event_seq.unwrap_or(-1),
-            500,
-            connection,
-        )?;
-        //        jlog!(Debug, "bigneon::domain_events", "Events found", {"events": domain_events.len()});
-        for event in domain_events {
-            conn.begin_transaction()?;
-            //            jlog!(Debug, "bigneon::domain_events", "Checking event for publishers", { "event_type": &event.event_type, "organization_id": event.organization_id});
-            // Process
-            for publisher in domain_event_publishers
-                .iter_mut()
-                .filter(|p| p.last_domain_event_seq.unwrap_or(-1) < event.seq)
-            {
-                if publisher.event_types.contains(&event.event_type)
-                    && (publisher.organization_id.is_none() || publisher.organization_id == event.organization_id)
-                {
-                    jlog!(Info, "bigneon::domain_events", "Publishing event", {"publisher_id": publisher.id, "event_type": &event.event_type, "organization_id": event.organization_id, "event": &event});
-                    publisher.publish(&event, &config.front_end_url, connection)?;
-                }
-                publisher.update_last_domain_event_seq(event.seq, connection)?;
+        let mut last_seq = domain_event_publishers[0].last_domain_event_seq.unwrap_or(-1);
+        loop {
+            let domain_events = DomainEvent::find_after_seq(last_seq, 500, connection)?;
+            if domain_events.len() == 0 {
+                break;
             }
-            events_published += 1;
-            conn.commit_transaction()?;
+            last_seq = domain_events.last().map(|x| x.seq).unwrap_or(last_seq);
+            for event in domain_events {
+                conn.begin_transaction()?;
+                for publisher in domain_event_publishers
+                    .iter_mut()
+                    .filter(|p| p.last_domain_event_seq.unwrap_or(-1) < event.seq)
+                {
+                    if publisher.event_types.contains(&event.event_type)
+                        && (publisher.organization_id.is_none() || publisher.organization_id == event.organization_id)
+                    {
+                        jlog!(Info, "bigneon::domain_events", "Publishing event", {"publisher_id": publisher.id, "event_type": &event.event_type, "organization_id": event.organization_id, "event": &event});
+                        publisher.publish(&event, &config.front_end_url, connection)?;
+                    }
+                    publisher.update_last_domain_event_seq(event.seq, connection)?;
+                }
+                events_published += 1;
+                conn.commit_transaction()?;
+            }
         }
-
         Ok(events_published)
     }
 
