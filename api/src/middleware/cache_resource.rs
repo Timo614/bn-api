@@ -5,18 +5,34 @@ use actix_web::{Body, FromRequest, HttpRequest, HttpResponse, Result};
 use bigneon_http::caching::*;
 use extractors::*;
 use helpers::*;
+use itertools::Itertools;
 use serde_json::Value;
 use server::AppState;
 use std::collections::BTreeMap;
-use uuid::Uuid;
 
 const CACHED_RESPONSE_HEADER: &'static str = "X-Cached-Response";
 
-pub struct CacheResource {}
+#[derive(PartialEq)]
+pub enum CacheUsersBy {
+    // Logged in users and anonymous users receive cached results
+    None,
+    // Logged in users are not cached, anonymous users receive cached results
+    AnonymousOnly,
+    // Users are cached into groups according to the combination of roles on the users row
+    // e.g. "Admin,Super", "Admin", "" is used for both logged in users with no roles and anon users
+    // Organization access is not taken into account
+    GlobalRoles,
+    // Users are cached by their ID
+    UserId,
+}
+
+pub struct CacheResource {
+    cache_users_by: CacheUsersBy,
+}
 
 impl CacheResource {
-    pub fn new() -> CacheResource {
-        CacheResource {}
+    pub fn new(cache_users_by: CacheUsersBy) -> CacheResource {
+        CacheResource { cache_users_by }
     }
 }
 
@@ -24,7 +40,7 @@ pub struct CacheConfiguration {
     cache_response: bool,
     served_cache: bool,
     error: bool,
-    user_id: Option<Uuid>,
+    user_key: Option<String>,
 }
 
 impl CacheConfiguration {
@@ -33,7 +49,7 @@ impl CacheConfiguration {
             cache_response: false,
             served_cache: false,
             error: false,
-            user_id: None,
+            user_key: None,
         }
     }
 }
@@ -46,7 +62,7 @@ impl Middleware<AppState> for CacheResource {
             let resource = request.resource().clone();
             let query_parameters = request.query().clone();
             for (key, value) in query_parameters.iter() {
-                query.insert(key, value);
+                query.insert(key, value.to_string());
             }
             let resource_def = resource.rdef().clone();
             if resource_def.is_none() {
@@ -56,25 +72,39 @@ impl Middleware<AppState> for CacheResource {
             let path_text = "path".to_string();
             let method = request.method().to_string();
             let method_text = "method".to_string();
-            let user_text = "x-user-id".to_string();
-            query.insert(&path_text, &path);
-            query.insert(&method_text, &method);
+            let user_text = "x-user-role".to_string();
+            query.insert(&path_text, path);
+            query.insert(&method_text, method);
             let state = request.state().clone();
             let config = state.config.clone();
-            let mut user_value = "".to_string();
-            match OptionalUser::from_request(request, &()) {
-                Ok(user) => {
-                    cache_configuration.user_id = user.0.map(|u| u.id());
-                    if let Some(user_id) = cache_configuration.user_id {
-                        user_value = user_id.to_string();
+
+            if self.cache_users_by != CacheUsersBy::None {
+                let user = match OptionalUser::from_request(request, &()) {
+                    Ok(user) => user,
+                    Err(error) => {
+                        cache_configuration.error = true;
+                        error!("CacheResource Middleware start: {:?}", error);
+                        request.extensions_mut().insert(cache_configuration);
+                        return Ok(Started::Done);
                     }
-                    query.insert(&user_text, &user_value);
-                }
-                Err(error) => {
-                    cache_configuration.error = true;
-                    error!("CacheResource Middleware start: {:?}", error);
-                    request.extensions_mut().insert(cache_configuration);
-                    return Ok(Started::Done);
+                };
+                if let Some(user) = user.0 {
+                    match self.cache_users_by {
+                        CacheUsersBy::None => (),
+                        CacheUsersBy::AnonymousOnly => {
+                            // Do not cache
+                            return Ok(Started::Done);
+                        }
+                        CacheUsersBy::UserId => {
+                            cache_configuration.user_key = Some(user.id().to_string());
+                        }
+                        CacheUsersBy::GlobalRoles => {
+                            cache_configuration.user_key = Some(user.user.role.iter().map(|r| r.to_string()).join(","));
+                        }
+                    }
+                    if let Some(ref user_key) = cache_configuration.user_key {
+                        query.insert(&user_text, user_key.to_string());
+                    }
                 }
             }
 
@@ -111,7 +141,7 @@ impl Middleware<AppState> for CacheResource {
                     let resource = request.resource().clone();
                     let query_parameters = request.query();
                     for (key, value) in query_parameters.iter() {
-                        query.insert(key, value);
+                        query.insert(key, value.to_string());
                     }
                     let resource_def = resource.rdef().clone();
                     if resource_def.is_none() {
@@ -121,14 +151,11 @@ impl Middleware<AppState> for CacheResource {
                     let path_text = "path".to_string();
                     let method = request.method().to_string();
                     let method_text = "method".to_string();
-                    let user_text = "x-user-id".to_string();
-                    let user_id = cache_configuration
-                        .user_id
-                        .map(|u| u.to_string())
-                        .unwrap_or("".to_string());
-                    query.insert(&path_text, &path);
-                    query.insert(&method_text, &method);
-                    query.insert(&user_text, &user_id);
+                    let user_text = "x-user-role".to_string();
+                    let user_key = cache_configuration.user_key.clone();
+                    query.insert(&path_text, path);
+                    query.insert(&method_text, method);
+                    query.insert(&user_text, user_key.unwrap_or("".to_string()));
 
                     cache_database
                         .inner
@@ -148,7 +175,7 @@ impl Middleware<AppState> for CacheResource {
                     // Cache headers for client
                     if let Ok(cache_control_header_value) = HeaderValue::from_str(&format!(
                         "{}, max-age={}",
-                        if cache_configuration.user_id.is_none() {
+                        if cache_configuration.user_key.is_none() {
                             "public"
                         } else {
                             "private"

@@ -1,7 +1,7 @@
 use actix_web::middleware::cors::CorsBuilder;
 use actix_web::{http::Method, App, HttpResponse};
 use controllers::*;
-use middleware::CacheResource;
+use middleware::{CacheResource, CacheUsersBy};
 use server::AppState;
 
 pub fn routes(app: &mut CorsBuilder<AppState>) -> App<AppState> {
@@ -20,19 +20,19 @@ pub fn routes(app: &mut CorsBuilder<AppState>) -> App<AppState> {
         r.method(Method::GET).with(analytics::track);
     })
     .resource("/artists/search", |r| {
-        r.middleware(CacheResource::new());
+        r.middleware(CacheResource::new(CacheUsersBy::AnonymousOnly));
         r.method(Method::GET).with(artists::search);
     })
     .resource("/artists/{id}/toggle_privacy", |r| {
         r.method(Method::PUT).with(artists::toggle_privacy);
     })
     .resource("/artists/{id}", |r| {
-        r.middleware(CacheResource::new());
+        r.middleware(CacheResource::new(CacheUsersBy::None));
         r.method(Method::GET).with(artists::show);
         r.method(Method::PUT).with(artists::update);
     })
     .resource("/artists", |r| {
-        r.middleware(CacheResource::new());
+        r.middleware(CacheResource::new(CacheUsersBy::AnonymousOnly));
         r.method(Method::GET).with(artists::index);
         r.method(Method::POST).with(artists::create);
     })
@@ -80,7 +80,8 @@ pub fn routes(app: &mut CorsBuilder<AppState>) -> App<AppState> {
         r.method(Method::DELETE).with(event_report_subscribers::destroy);
     })
     .resource("/events", |r| {
-        r.middleware(CacheResource::new());
+        // In future it may be better to cache this for every user to save the database hit
+        r.middleware(CacheResource::new(CacheUsersBy::GlobalRoles));
         r.method(Method::GET).with(events::index);
         r.method(Method::POST).with(events::create);
     })
@@ -88,7 +89,8 @@ pub fn routes(app: &mut CorsBuilder<AppState>) -> App<AppState> {
         r.method(Method::GET).with(events::checkins);
     })
     .resource("/events/{id}", |r| {
-        r.middleware(CacheResource::new());
+        // In future it may be better to cache this for every user to save the database hit
+        r.middleware(CacheResource::new(CacheUsersBy::GlobalRoles));
         r.method(Method::GET).with(events::show);
         r.method(Method::PUT).with(events::update);
         r.method(Method::DELETE).with(events::cancel);
@@ -191,7 +193,7 @@ pub fn routes(app: &mut CorsBuilder<AppState>) -> App<AppState> {
         r.method(Method::DELETE).with(external::facebook::disconnect);
     })
     .resource("/genres", |r| {
-        r.middleware(CacheResource::new());
+        r.middleware(CacheResource::new(CacheUsersBy::None));
         r.method(Method::GET).with(genres::index);
     })
     .resource("/invitations/{id}", |r| {
@@ -333,12 +335,12 @@ pub fn routes(app: &mut CorsBuilder<AppState>) -> App<AppState> {
         r.method(Method::GET).with(redemption_codes::show)
     })
     .resource("/regions/{id}", |r| {
-        r.middleware(CacheResource::new());
+        r.middleware(CacheResource::new(CacheUsersBy::None));
         r.method(Method::GET).with(regions::show);
         r.method(Method::PUT).with(regions::update);
     })
     .resource("/regions", |r| {
-        r.middleware(CacheResource::new());
+        r.middleware(CacheResource::new(CacheUsersBy::None));
         r.method(Method::GET).with(regions::index);
         r.method(Method::POST).with(regions::create)
     })
@@ -441,17 +443,17 @@ pub fn routes(app: &mut CorsBuilder<AppState>) -> App<AppState> {
         r.method(Method::PUT).with(venues::toggle_privacy);
     })
     .resource("/venues/{id}", |r| {
-        r.middleware(CacheResource::new());
+        r.middleware(CacheResource::new(CacheUsersBy::None));
         r.method(Method::GET).with(venues::show);
         r.method(Method::PUT).with(venues::update);
     })
     .resource("/venues", |r| {
-        r.middleware(CacheResource::new());
+        r.middleware(CacheResource::new(CacheUsersBy::AnonymousOnly));
         r.method(Method::GET).with(venues::index);
         r.method(Method::POST).with(venues::create);
     })
     .resource("/sitemap.xml", |r| {
-        r.middleware(CacheResource::new());
+        r.middleware(CacheResource::new(CacheUsersBy::None));
         r.method(Method::GET).with(sitemap_gen::index);
     })
     .register()
