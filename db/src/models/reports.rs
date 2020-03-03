@@ -2,7 +2,7 @@ use chrono::prelude::*;
 use chrono_tz::Tz;
 use diesel;
 use diesel::prelude::*;
-use diesel::sql_types::{BigInt, Bool, Nullable, Text, Timestamp, Time, Uuid as dUuid};
+use diesel::sql_types::{BigInt, Bool, Nullable, Text, Time, Timestamp, Uuid as dUuid};
 use itertools::Itertools;
 use models::*;
 use std::collections::HashMap;
