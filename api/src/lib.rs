@@ -10,6 +10,7 @@ extern crate actix;
 extern crate actix_web;
 #[macro_use]
 extern crate bigneon_db;
+extern crate bigneon_http;
 extern crate branch_rs;
 extern crate chrono;
 extern crate customer_io;

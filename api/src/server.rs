@@ -125,7 +125,7 @@ impl Server {
                                         .unwrap(),
                                 ])
                                 .allowed_header(http::header::CONTENT_TYPE)
-                                .expose_headers(vec!["x-app-version"])
+                                .expose_headers(vec!["x-app-version", "x-cached-response"])
                                 .max_age(3600);
 
                             routing::routes(&mut cors_config)
