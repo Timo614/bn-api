@@ -107,7 +107,7 @@ pub fn destroy(role: Roles, with_number_of_extra_venues: i64, should_succeed: bo
     }
 }
 
-pub fn index(role: Roles, use_organization_id: bool, should_test_succeed: bool) {
+pub fn organizations_index(role: Roles, should_test_succeed: bool) {
     let database = TestDatabase::new();
     let connection = database.connection.get();
     let user = database.create_user().finish();
@@ -129,6 +129,87 @@ pub fn index(role: Roles, use_organization_id: bool, should_test_succeed: bool) 
     let organization_venue2 = OrganizationVenue::create(organization.id, venue2.id)
         .commit(connection)
         .unwrap();
+    let _organization_venue3 = OrganizationVenue::create(organization2.id, venue2.id)
+        .commit(connection)
+        .unwrap();
+    let _organization_venue4 = OrganizationVenue::create(organization2.id, venue3.id)
+        .commit(connection)
+        .unwrap();
+
+    let test_request = TestRequest::create();
+    let query_parameters = Query::<PagingParameters>::extract(&test_request.request).unwrap();
+
+    let mut path = Path::<PathParameters>::extract(&test_request.request).unwrap();
+    path.id = organization.id;
+
+    let response = organization_venues::organizations_index((
+        database.connection.clone().into(),
+        path,
+        query_parameters,
+        auth_user,
+    ));
+
+    let wrapped_expected_organization_venues = Payload {
+        data: vec![
+            OrganizationVenue {
+                id: organization_venue.id,
+                organization_id: organization_venue.organization_id,
+                venue_id: organization_venue.venue_id,
+                created_at: organization_venue.created_at,
+                updated_at: organization_venue.updated_at,
+            },
+            OrganizationVenue {
+                id: organization_venue2.id,
+                organization_id: organization_venue2.organization_id,
+                venue_id: organization_venue2.venue_id,
+                created_at: organization_venue2.created_at,
+                updated_at: organization_venue2.updated_at,
+            },
+        ],
+        paging: Paging {
+            page: 0,
+            limit: 100,
+            sort: "".to_string(),
+            dir: SortingDir::Asc,
+            total: 2 as u64,
+            tags: HashMap::new(),
+        },
+    };
+
+    if should_test_succeed {
+        let response = response.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(wrapped_expected_organization_venues, *response.payload());
+    } else {
+        assert_eq!(
+            response.err().unwrap().to_string(),
+            "User does not have the required permissions"
+        );
+    }
+}
+
+pub fn venues_index(role: Roles, should_test_succeed: bool) {
+    let database = TestDatabase::new();
+    let connection = database.connection.get();
+    let user = database.create_user().finish();
+    let organization = database
+        .create_organization()
+        .with_name("Organization1".to_string())
+        .finish();
+    let organization2 = database
+        .create_organization()
+        .with_name("Organization2".to_string())
+        .finish();
+    let auth_user = support::create_auth_user_from_user(&user, role, Some(&organization), &database);
+    let venue = database.create_venue().with_name("Venue1".to_string()).finish();
+    let venue2 = database.create_venue().with_name("Venue2".to_string()).finish();
+    let venue3 = database.create_venue().with_name("Venue3".to_string()).finish();
+    let _organization_venue = OrganizationVenue::create(organization.id, venue.id)
+        .commit(connection)
+        .unwrap();
+    let organization_venue2 = OrganizationVenue::create(organization.id, venue2.id)
+        .commit(connection)
+        .unwrap();
     let organization_venue3 = OrganizationVenue::create(organization2.id, venue2.id)
         .commit(connection)
         .unwrap();
@@ -140,69 +221,36 @@ pub fn index(role: Roles, use_organization_id: bool, should_test_succeed: bool) 
     let query_parameters = Query::<PagingParameters>::extract(&test_request.request).unwrap();
 
     let mut path = Path::<PathParameters>::extract(&test_request.request).unwrap();
+    path.id = venue2.id;
 
-    if use_organization_id {
-        path.id = organization.id;
-    } else {
-        path.id = venue2.id;
-    }
+    let response =
+        organization_venues::venues_index((database.connection.clone().into(), path, query_parameters, auth_user));
 
-    let response = organization_venues::index((database.connection.clone().into(), path, query_parameters, auth_user));
-
-    let wrapped_expected_organization_venues = if use_organization_id {
-        Payload {
-            data: vec![
-                OrganizationVenue {
-                    id: organization_venue.id,
-                    organization_id: organization_venue.organization_id,
-                    venue_id: organization_venue.venue_id,
-                    created_at: organization_venue.created_at,
-                    updated_at: organization_venue.updated_at,
-                },
-                OrganizationVenue {
-                    id: organization_venue2.id,
-                    organization_id: organization_venue2.organization_id,
-                    venue_id: organization_venue2.venue_id,
-                    created_at: organization_venue2.created_at,
-                    updated_at: organization_venue2.updated_at,
-                },
-            ],
-            paging: Paging {
-                page: 0,
-                limit: 100,
-                sort: "".to_string(),
-                dir: SortingDir::Asc,
-                total: 2 as u64,
-                tags: HashMap::new(),
+    let wrapped_expected_organization_venues = Payload {
+        data: vec![
+            OrganizationVenue {
+                id: organization_venue2.id,
+                organization_id: organization_venue2.organization_id,
+                venue_id: organization_venue2.venue_id,
+                created_at: organization_venue2.created_at,
+                updated_at: organization_venue2.updated_at,
             },
-        }
-    } else {
-        Payload {
-            data: vec![
-                OrganizationVenue {
-                    id: organization_venue2.id,
-                    organization_id: organization_venue2.organization_id,
-                    venue_id: organization_venue2.venue_id,
-                    created_at: organization_venue2.created_at,
-                    updated_at: organization_venue2.updated_at,
-                },
-                OrganizationVenue {
-                    id: organization_venue3.id,
-                    organization_id: organization_venue3.organization_id,
-                    venue_id: organization_venue3.venue_id,
-                    created_at: organization_venue3.created_at,
-                    updated_at: organization_venue3.updated_at,
-                },
-            ],
-            paging: Paging {
-                page: 0,
-                limit: 100,
-                sort: "".to_string(),
-                dir: SortingDir::Asc,
-                total: 2 as u64,
-                tags: HashMap::new(),
+            OrganizationVenue {
+                id: organization_venue3.id,
+                organization_id: organization_venue3.organization_id,
+                venue_id: organization_venue3.venue_id,
+                created_at: organization_venue3.created_at,
+                updated_at: organization_venue3.updated_at,
             },
-        }
+        ],
+        paging: Paging {
+            page: 0,
+            limit: 100,
+            sort: "".to_string(),
+            dir: SortingDir::Asc,
+            total: 2 as u64,
+            tags: HashMap::new(),
+        },
     };
 
     if should_test_succeed {

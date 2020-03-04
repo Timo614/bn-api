@@ -294,7 +294,7 @@ pub fn routes(app: &mut CorsBuilder<AppState>) -> App<AppState> {
         r.method(Method::DELETE).with(organization_invites::destroy);
     })
     .resource("/organizations/{id}/organization_venues", |r| {
-        r.method(Method::GET).with(organization_venues::index);
+        r.method(Method::GET).with(organization_venues::organizations_index);
         r.method(Method::POST).with(organization_venues::create);
     })
     .resource("/organizations/{id}/settlements", |r| {
@@ -435,7 +435,7 @@ pub fn routes(app: &mut CorsBuilder<AppState>) -> App<AppState> {
         r.method(Method::GET).with(users::list_organizations);
     })
     .resource("/venues/{id}/organization_venues", |r| {
-        r.method(Method::GET).with(organization_venues::index);
+        r.method(Method::GET).with(organization_venues::venues_index);
         r.method(Method::POST).with(organization_venues::create);
     })
     .resource("/venues/{id}/stages", |r| {
