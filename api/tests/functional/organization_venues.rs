@@ -92,47 +92,47 @@ mod create_tests {
 }
 
 #[cfg(test)]
-mod index_venue_id_tests {
+mod venues_index_tests {
     use super::*;
     #[test]
-    fn index_venue_id_org_member() {
-        base::organization_venues::index(Roles::OrgMember, false, false);
+    fn venues_venues_index_org_member() {
+        base::organization_venues::venues_index(Roles::OrgMember, false);
     }
     #[test]
-    fn index_venue_id_admin() {
-        base::organization_venues::index(Roles::Admin, false, true);
+    fn venues_index_admin() {
+        base::organization_venues::venues_index(Roles::Admin, true);
     }
     #[test]
-    fn index_venue_id_super() {
-        base::organization_venues::index(Roles::Super, false, true);
+    fn venues_index_super() {
+        base::organization_venues::venues_index(Roles::Super, true);
     }
     #[test]
-    fn index_venue_id_user() {
-        base::organization_venues::index(Roles::User, false, false);
+    fn venues_index_user() {
+        base::organization_venues::venues_index(Roles::User, false);
     }
     #[test]
-    fn index_venue_id_org_owner() {
-        base::organization_venues::index(Roles::OrgOwner, false, false);
+    fn venues_index_org_owner() {
+        base::organization_venues::venues_index(Roles::OrgOwner, false);
     }
     #[test]
-    fn index_venue_id_door_person() {
-        base::organization_venues::index(Roles::DoorPerson, false, false);
+    fn venues_index_door_person() {
+        base::organization_venues::venues_index(Roles::DoorPerson, false);
     }
     #[test]
-    fn index_venue_id_promoter() {
-        base::organization_venues::index(Roles::Promoter, false, false);
+    fn venues_index_promoter() {
+        base::organization_venues::venues_index(Roles::Promoter, false);
     }
     #[test]
-    fn index_venue_id_promoter_read_only() {
-        base::organization_venues::index(Roles::PromoterReadOnly, false, false);
+    fn venues_index_promoter_read_only() {
+        base::organization_venues::venues_index(Roles::PromoterReadOnly, false);
     }
     #[test]
-    fn index_venue_id_org_admin() {
-        base::organization_venues::index(Roles::OrgAdmin, false, false);
+    fn venues_index_org_admin() {
+        base::organization_venues::venues_index(Roles::OrgAdmin, false);
     }
     #[test]
-    fn index_venue_id_box_office() {
-        base::organization_venues::index(Roles::OrgBoxOffice, false, false);
+    fn venues_index_box_office() {
+        base::organization_venues::venues_index(Roles::OrgBoxOffice, false);
     }
 }
 
@@ -140,44 +140,44 @@ mod index_venue_id_tests {
 mod index_organization_id_tests {
     use super::*;
     #[test]
-    fn index_organization_id_org_member() {
-        base::organization_venues::index(Roles::OrgMember, true, false);
+    fn organizations_index_org_member() {
+        base::organization_venues::organizations_index(Roles::OrgMember, false);
     }
     #[test]
-    fn index_organization_id_admin() {
-        base::organization_venues::index(Roles::Admin, true, true);
+    fn organizations_index_admin() {
+        base::organization_venues::organizations_index(Roles::Admin, true);
     }
     #[test]
-    fn index_organization_id_super() {
-        base::organization_venues::index(Roles::Super, true, true);
+    fn organizations_index_super() {
+        base::organization_venues::organizations_index(Roles::Super, true);
     }
     #[test]
-    fn index_organization_id_user() {
-        base::organization_venues::index(Roles::User, true, false);
+    fn organizations_index_user() {
+        base::organization_venues::organizations_index(Roles::User, false);
     }
     #[test]
-    fn index_organization_id_org_owner() {
-        base::organization_venues::index(Roles::OrgOwner, true, false);
+    fn organizations_index_org_owner() {
+        base::organization_venues::organizations_index(Roles::OrgOwner, false);
     }
     #[test]
-    fn index_organization_id_door_person() {
-        base::organization_venues::index(Roles::DoorPerson, true, false);
+    fn organizations_index_door_person() {
+        base::organization_venues::organizations_index(Roles::DoorPerson, false);
     }
     #[test]
-    fn index_organization_id_promoter() {
-        base::organization_venues::index(Roles::Promoter, true, false);
+    fn organizations_index_promoter() {
+        base::organization_venues::organizations_index(Roles::Promoter, false);
     }
     #[test]
-    fn index_organization_id_promoter_read_only() {
-        base::organization_venues::index(Roles::PromoterReadOnly, true, false);
+    fn organizations_index_promoter_read_only() {
+        base::organization_venues::organizations_index(Roles::PromoterReadOnly, false);
     }
     #[test]
-    fn index_organization_id_org_admin() {
-        base::organization_venues::index(Roles::OrgAdmin, true, false);
+    fn organizations_index_org_admin() {
+        base::organization_venues::organizations_index(Roles::OrgAdmin, false);
     }
     #[test]
-    fn index_organization_id_box_office() {
-        base::organization_venues::index(Roles::OrgBoxOffice, true, false);
+    fn organizations_index_box_office() {
+        base::organization_venues::organizations_index(Roles::OrgBoxOffice, false);
     }
 }
 

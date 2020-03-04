@@ -52,7 +52,7 @@ pub fn send_async(
         CommunicationType::Push => expo::send_push_notification_async(
             &destination_addresses,
             &communication.body.unwrap_or(communication.title),
-            Some(json!(communication.extra_data.clone())),
+            communication.extra_data.map(|ed| json!(ed.clone())),
         ),
         CommunicationType::Webhook => webhook::send_webhook_async(
             &destination_addresses,

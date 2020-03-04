@@ -15,6 +15,7 @@ pub struct ServiceLocator {
     globee_base_url: String,
     branch_io_base_url: String,
     branch_io_branch_key: String,
+    branch_io_timeout: u64,
     api_keys_encryption_key: String,
     country_lookup_service: CountryLookup,
 }
@@ -34,6 +35,7 @@ impl ServiceLocator {
             globee_base_url: config.globee_base_url.clone(),
             branch_io_base_url: config.branch_io_base_url.clone(),
             branch_io_branch_key: config.branch_io_branch_key.clone(),
+            branch_io_timeout: config.branch_io_timeout,
             api_keys_encryption_key: config.api_keys_encryption_key.clone(),
             country_lookup_service,
         })
@@ -71,6 +73,7 @@ impl ServiceLocator {
         Ok(Box::new(BranchDeepLinker::new(
             self.branch_io_base_url.clone(),
             self.branch_io_branch_key.clone(),
+            self.branch_io_timeout,
         )))
     }
 

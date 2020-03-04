@@ -230,45 +230,6 @@ pub fn checkins(
     Ok(HttpResponse::Ok().json(&payload))
 }
 
-pub fn index_cached(
-    (state, connection, query, auth_user, cache_database): (
-        State<AppState>,
-        ReadonlyConnection,
-        Query<SearchParameters>,
-        OptionalUser,
-        CacheDatabase,
-    ),
-) -> Result<HttpResponse, BigNeonError> {
-    let search_params = query.clone();
-    let user = auth_user
-        .clone()
-        .into_inner()
-        .and_then(|auth_user| Some(auth_user.user));
-
-    let config = state.config.clone();
-    if user.is_none() {
-        // if there is a error in the cache, the value does not exist
-        let cached_value = cache_database
-            .clone()
-            .inner
-            .clone()
-            .and_then(|conn| caching::get_cached_value(conn, &config, &search_params));
-        if let Some(response) = cached_value {
-            return Ok(response);
-        }
-    }
-    let index_value = index((state, connection, query, auth_user))?;
-
-    if user.is_none() {
-        cache_database
-            .inner
-            .clone()
-            .and_then(|conn| caching::set_cached_value(conn, &config, &index_value, &search_params).ok());
-    }
-
-    return Ok(index_value);
-}
-
 pub fn index(
     (state, connection, query, auth_user): (
         State<AppState>,
@@ -1361,7 +1322,7 @@ pub fn create_link(
     let long_link_url = Url::parse(long_link_raw.as_str())?;
 
     let deep_linker = state.service_locator.create_deep_linker()?;
-    let short_link = deep_linker.create_deep_link(&long_link_raw)?;
+    let short_link = deep_linker.create_deep_link_with_fallback(&long_link_raw);
     Ok(HttpResponse::Ok().json(LinkResult {
         link: short_link,
         long_link: long_link_url.as_str().to_string(),

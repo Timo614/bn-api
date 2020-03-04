@@ -57,7 +57,6 @@ describe('OrgMember - Get Guest List', function () {
     ;
 
     it("guests should be present", function () {
-
         let json = JSON.parse(responseBody);
         expect(json.data.length).to.be.greaterThan(6);
 

@@ -17,15 +17,16 @@ extern crate serde;
 
 use log::Level::Debug;
 use reqwest::StatusCode;
+use std::time::Duration;
 
 pub struct BranchClient {
     pub links: LinksResource,
 }
 
 impl BranchClient {
-    pub fn new(url: String, api_key: String) -> BranchClient {
+    pub fn new(url: String, api_key: String, timeout: u64) -> BranchClient {
         BranchClient {
-            links: LinksResource::new(&url, api_key),
+            links: LinksResource::new(&url, api_key, timeout),
         }
     }
 }
@@ -33,18 +34,22 @@ impl BranchClient {
 pub struct LinksResource {
     url: String,
     branch_key: String,
+    timeout: u64,
 }
 
 impl LinksResource {
-    fn new(url: &str, branch_key: String) -> LinksResource {
+    fn new(url: &str, branch_key: String, timeout: u64) -> LinksResource {
         LinksResource {
             url: format!("{}/url", url),
             branch_key,
+            timeout,
         }
     }
 
     pub fn create(&self, link: DeepLink) -> Result<String, BranchError> {
-        let client = reqwest::Client::new();
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(self.timeout as u64))
+            .build()?;
         let link = BranchApiRequest {
             data: link,
             branch_key: &self.branch_key,

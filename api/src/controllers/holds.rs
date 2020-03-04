@@ -196,7 +196,7 @@ pub fn link(
             jlog!(Warn, "Error when creating an aliased link",
             {"error": e.description(), "raw_url": &raw_url, "alias": hold.redemption_code.as_ref().unwrap()});
             // Alias might not be unique, create without
-            linker.create_deep_link(&raw_url)?
+            linker.create_deep_link_with_fallback(&raw_url)
         }
     };
     Ok(HttpResponse::Ok().json(json!({ "link": link })))
