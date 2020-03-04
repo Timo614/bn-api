@@ -19,7 +19,6 @@ const post = async function (request_body) {
         .post(pm.substitute(apiEndPoint))
         .set('Accept', 'application/json')
         .set('Content-Type', 'application/json')
-        .set('Authorization', pm.substitute('Bearer '))
 
         .send(pm.substitute(request_body));
 };
@@ -27,9 +26,6 @@ const post = async function (request_body) {
 const get = async function (request_body) {
     return baseUrl
         .get(pm.substitute(apiEndPoint))
-
-        .set('Authorization', pm.substitute('Bearer '))
-
         .set('Accept', 'application/json')
         .send();
 };
@@ -72,5 +68,3 @@ describe('Guest - get redemption code', function () {
 
 
 });
-
-            

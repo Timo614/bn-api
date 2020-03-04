@@ -12,6 +12,46 @@ use time::Duration;
 use uuid::Uuid;
 
 #[test]
+fn purchased_ticket_count() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+    let user = project.create_user().finish();
+    let user2 = project.create_user().finish();
+    let event = project
+        .create_event()
+        .with_ticket_type_count(1)
+        .with_tickets()
+        .with_ticket_pricing()
+        .finish();
+    let code = project
+        .create_code()
+        .with_event(&event)
+        .with_max_tickets_per_user(Some(100))
+        .finish();
+    project
+        .create_order()
+        .for_event(&event)
+        .quantity(10)
+        .with_redemption_code(code.redemption_code.clone())
+        .for_user(&user)
+        .is_paid()
+        .finish();
+    assert_eq!(code.purchased_ticket_count(&user, connection), Ok(10));
+    assert_eq!(code.purchased_ticket_count(&user2, connection), Ok(0));
+
+    project
+        .create_order()
+        .for_event(&event)
+        .quantity(5)
+        .with_redemption_code(code.redemption_code.clone())
+        .for_user(&user2)
+        .is_paid()
+        .finish();
+    assert_eq!(code.purchased_ticket_count(&user, connection), Ok(10));
+    assert_eq!(code.purchased_ticket_count(&user2, connection), Ok(5));
+}
+
+#[test]
 fn available() {
     let project = TestProject::new();
     let connection = project.get_connection();
@@ -30,7 +70,7 @@ fn available() {
         .with_redemption_code(code.redemption_code.clone())
         .is_paid()
         .finish();
-    assert_eq!(code.available(connection).unwrap(), 90);
+    assert_eq!(code.available(connection).unwrap(), 99);
 }
 
 #[test]
@@ -546,15 +586,17 @@ pub fn find_number_of_uses() {
         .create_code()
         .with_name("Discount 1".into())
         .with_event(&event)
+        .with_max_uses(2)
         .with_code_type(CodeTypes::Discount)
         .finish();
 
     let code_availability =
         Code::find_by_redemption_code_with_availability(code.redemption_code.clone().as_str(), Some(event.id), conn)
             .unwrap();
-    assert_eq!(code_availability.available, 30);
+    assert_eq!(code_availability.available, 2);
+    assert_eq!(Code::find_number_of_uses(code.id, None, conn), Ok(0));
 
-    //Add some tickets to the cart
+    // Add some tickets to the cart
     let mut cart = Order::find_or_create_cart(&user, conn).unwrap();
 
     cart.update_quantities(
@@ -562,12 +604,12 @@ pub fn find_number_of_uses() {
         &[
             UpdateOrderItem {
                 ticket_type_id: ticket_type.id,
-                quantity: 10,
+                quantity: 2,
                 redemption_code: Some(code.redemption_code.clone()),
             },
             UpdateOrderItem {
                 ticket_type_id: ticket_type2.id,
-                quantity: 10,
+                quantity: 2,
                 redemption_code: None,
             },
         ],
@@ -580,9 +622,10 @@ pub fn find_number_of_uses() {
     let code_availability =
         Code::find_by_redemption_code_with_availability(code.redemption_code.clone().as_str(), Some(event.id), conn)
             .unwrap();
-    assert_eq!(code_availability.available, 20);
+    assert_eq!(code_availability.available, 1);
+    assert_eq!(Code::find_number_of_uses(code.id, None, conn), Ok(1));
 
-    //Make cart expire
+    // Make cart expire
     // 1 minute ago expires
     let order = Order::find(cart.id, conn).unwrap();
     let one_minute_ago = NaiveDateTime::from(Utc::now().naive_utc() - Duration::minutes(1));
@@ -594,20 +637,21 @@ pub fn find_number_of_uses() {
     let code_availability =
         Code::find_by_redemption_code_with_availability(code.redemption_code.clone().as_str(), Some(event.id), conn)
             .unwrap();
-    assert_eq!(code_availability.available, 30);
+    assert_eq!(code_availability.available, 2);
+    assert_eq!(Code::find_number_of_uses(code.id, None, conn), Ok(0));
 
-    //Now buy the tickets and make the order expire
+    // Now buy the tickets and make the order expire
     cart.update_quantities(
         user.id,
         &[
             UpdateOrderItem {
                 ticket_type_id: ticket_type.id,
-                quantity: 10,
+                quantity: 2,
                 redemption_code: Some(code.redemption_code.clone()),
             },
             UpdateOrderItem {
                 ticket_type_id: ticket_type2.id,
-                quantity: 10,
+                quantity: 2,
                 redemption_code: None,
             },
         ],
@@ -618,7 +662,7 @@ pub fn find_number_of_uses() {
     .unwrap();
 
     let total = cart.calculate_total(conn).unwrap();
-    assert_eq!(total, 3000);
+    assert_eq!(total, 600);
     cart.add_external_payment(
         Some("Test".to_string()),
         ExternalPaymentType::CreditCard,
@@ -640,13 +684,18 @@ pub fn find_number_of_uses() {
     let code_availability =
         Code::find_by_redemption_code_with_availability(code.redemption_code.clone().as_str(), Some(event.id), conn)
             .unwrap();
-    assert_eq!(code_availability.available, 20);
+    assert_eq!(code_availability.available, 1);
+    assert_eq!(Code::find_number_of_uses(code.id, None, conn), Ok(1));
 
-    //Lets refund those tickets
+    // Refund 1 of the 2 purchased tickets
     let items = cart.items(&conn).unwrap();
-    let order_item = items.iter().find(|i| i.ticket_type_id == Some(ticket_type.id)).unwrap();
+    let order_item = items
+        .iter()
+        .find(|i| i.ticket_type_id == Some(ticket_type.id) && i.code_id.is_some())
+        .unwrap();
     let tickets = TicketInstance::find_for_order_item(order_item.id, conn).unwrap();
     let ticket = &tickets[0];
+    let ticket2 = &tickets[1];
     let refund_items = vec![RefundItemRequest {
         order_item_id: order_item.id,
         ticket_instance_id: Some(ticket.id),
@@ -656,7 +705,48 @@ pub fn find_number_of_uses() {
     let code_availability =
         Code::find_by_redemption_code_with_availability(code.redemption_code.clone().as_str(), Some(event.id), conn)
             .unwrap();
-    assert_eq!(code_availability.available, 30);
+    assert_eq!(code_availability.available, 1);
+    assert_eq!(Code::find_number_of_uses(code.id, None, conn), Ok(1));
+
+    // Refund remaining ticket
+    let refund_items = vec![RefundItemRequest {
+        order_item_id: order_item.id,
+        ticket_instance_id: Some(ticket2.id),
+    }];
+    cart.refund(&refund_items, user.id, None, false, conn).unwrap();
+
+    let code_availability =
+        Code::find_by_redemption_code_with_availability(code.redemption_code.clone().as_str(), Some(event.id), conn)
+            .unwrap();
+    assert_eq!(code_availability.available, 2);
+    assert_eq!(Code::find_number_of_uses(code.id, None, conn), Ok(0));
+
+    // Place two purchases
+    project
+        .create_order()
+        .for_event(&event)
+        .quantity(10)
+        .with_redemption_code(code.redemption_code.clone())
+        .is_paid()
+        .finish();
+    let code_availability =
+        Code::find_by_redemption_code_with_availability(code.redemption_code.clone().as_str(), Some(event.id), conn)
+            .unwrap();
+    assert_eq!(code_availability.available, 1);
+    assert_eq!(Code::find_number_of_uses(code.id, None, conn), Ok(1));
+
+    project
+        .create_order()
+        .for_event(&event)
+        .quantity(10)
+        .with_redemption_code(code.redemption_code.clone())
+        .is_paid()
+        .finish();
+    let code_availability =
+        Code::find_by_redemption_code_with_availability(code.redemption_code.clone().as_str(), Some(event.id), conn)
+            .unwrap();
+    assert_eq!(code_availability.available, 0);
+    assert_eq!(Code::find_number_of_uses(code.id, None, conn), Ok(2));
 }
 
 #[test]

@@ -79,5 +79,3 @@ describe('User - add more than max discount uses to cart', function () {
 
 
 });
-
-            

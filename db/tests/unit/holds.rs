@@ -6,6 +6,50 @@ use time::Duration;
 use uuid::Uuid;
 
 #[test]
+fn purchased_ticket_count() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+    let user = project.create_user().finish();
+    let user2 = project.create_user().finish();
+    let event = project
+        .create_event()
+        .with_ticket_type_count(1)
+        .with_tickets()
+        .with_ticket_pricing()
+        .finish();
+    let ticket_types = &event.ticket_types(true, None, connection).unwrap();
+    let hold = project
+        .create_hold()
+        .with_hold_type(HoldTypes::Discount)
+        .with_quantity(100)
+        .with_max_per_user(10)
+        .with_ticket_type_id(ticket_types[0].id)
+        .finish();
+
+    project
+        .create_order()
+        .for_event(&event)
+        .quantity(10)
+        .with_redemption_code(hold.redemption_code.clone().unwrap())
+        .for_user(&user)
+        .is_paid()
+        .finish();
+    assert_eq!(hold.purchased_ticket_count(&user, connection), Ok(10));
+    assert_eq!(hold.purchased_ticket_count(&user2, connection), Ok(0));
+
+    project
+        .create_order()
+        .for_event(&event)
+        .quantity(5)
+        .with_redemption_code(hold.redemption_code.clone().unwrap())
+        .for_user(&user2)
+        .is_paid()
+        .finish();
+    assert_eq!(hold.purchased_ticket_count(&user, connection), Ok(10));
+    assert_eq!(hold.purchased_ticket_count(&user2, connection), Ok(5));
+}
+
+#[test]
 fn quantity_and_children_quantity() {
     let db = TestProject::new();
     let connection = db.get_connection();

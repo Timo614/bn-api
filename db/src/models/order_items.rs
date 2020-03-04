@@ -344,7 +344,7 @@ impl OrderItem {
         let validation_errors = validators::append_validation_error(
             validation_errors,
             "quantity",
-            OrderItem::code_id_max_uses_valid(self.order_id, self.code_id, self.quantity, conn)?,
+            OrderItem::code_id_max_uses_valid(self.order_id, self.code_id, conn)?,
         );
         Ok(validation_errors?)
     }
@@ -390,7 +390,6 @@ impl OrderItem {
     fn code_id_max_uses_valid(
         order_id: Uuid,
         code_id: Option<Uuid>,
-        quantity: i64,
         conn: &PgConnection,
     ) -> Result<Result<(), ValidationError>, DatabaseError> {
         match code_id {
@@ -398,7 +397,7 @@ impl OrderItem {
             Some(code_id) => {
                 let code = Code::find(code_id, conn)?;
                 let uses = Code::find_number_of_uses(code_id, Some(order_id), conn)?;
-                if code.max_uses > 0 && code.max_uses < uses + quantity {
+                if code.max_uses > 0 && code.max_uses < uses + 1 {
                     let mut validation_error =
                         create_validation_error("max_uses_reached", "Redemption code maximum uses limit exceeded");
                     validation_error.add_param(Cow::from("order_id"), &order_id);
@@ -656,7 +655,7 @@ impl NewTicketsOrderItem {
         validation_errors = validators::append_validation_error(
             validation_errors,
             "quantity",
-            OrderItem::code_id_max_uses_valid(self.order_id, self.code_id, self.quantity, conn)?,
+            OrderItem::code_id_max_uses_valid(self.order_id, self.code_id, conn)?,
         );
         validation_errors = validators::append_validation_error(
             validation_errors,
