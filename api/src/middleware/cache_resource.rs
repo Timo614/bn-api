@@ -59,7 +59,6 @@ impl Middleware<AppState> for CacheResource {
         let mut cache_configuration = CacheConfiguration::new();
         if request.method() == Method::GET {
             let mut query = BTreeMap::new();
-            let resource = request.resource().clone();
             let query_parameters = request.query().clone();
             for (key, value) in query_parameters.iter() {
                 query.insert(key, value.to_string());
@@ -134,7 +133,6 @@ impl Middleware<AppState> for CacheResource {
                 if cache_configuration.cache_response {
                     let cache_database = state.database.cache_database.clone();
                     let mut query = BTreeMap::new();
-                    let resource = request.resource().clone();
                     let query_parameters = request.query();
                     for (key, value) in query_parameters.iter() {
                         query.insert(key, value.to_string());
