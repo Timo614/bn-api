@@ -142,8 +142,12 @@ fn next_automatic_report_date() {
     let organization = project.create_organization().finish();
     let pt_timezone: Tz = "America/Los_Angeles".parse().unwrap();
     let now = pt_timezone.from_utc_datetime(&Utc::now().naive_utc());
-    let pt_today = pt_timezone.ymd(now.year(), now.month(), now.day()).and_hms(4, 0, 0);
-    let expected = pt_today.naive_utc() + Duration::days(1);
+    let pt_today = pt_timezone.ymd(now.year(), now.month(), now.day()).and_hms(0, 0, 0);
+    let tomorrow = pt_today.naive_utc() + Duration::days(1);
+    let expected = pt_timezone
+        .ymd(tomorrow.year(), tomorrow.month(), tomorrow.day())
+        .and_hms(4, 0, 0)
+        .naive_utc();
     assert_eq!(Report::next_automatic_report_date().unwrap(), expected);
 
     // Organization timezone has no effect on the date

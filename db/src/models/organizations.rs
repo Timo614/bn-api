@@ -321,20 +321,23 @@ impl Organization {
         // Else set as number of days from today
         if let Some(settlement_period) = settlement_period_in_days {
             let next_period = today.naive_local() + Duration::days(settlement_period as i64);
-            let next_date = timezone
+            Ok(timezone
                 .ymd(next_period.year(), next_period.month(), next_period.day())
                 .and_hms(start_hour, 0, 0)
-                .naive_utc();
-
-            Ok(next_date)
+                .naive_utc())
         } else {
-            let next_date = today.naive_utc()
+            let next_period_date = now
                 + Duration::days(
                     DEFAULT_SETTLEMENT_PERIOD_IN_DAYS - today.naive_local().weekday().num_days_from_monday() as i64,
+                );
+            Ok(timezone
+                .ymd(
+                    next_period_date.year(),
+                    next_period_date.month(),
+                    next_period_date.day(),
                 )
-                + Duration::hours(start_hour as i64);
-
-            Ok(next_date)
+                .and_hms(start_hour, 0, 0)
+                .naive_utc())
         }
     }
 

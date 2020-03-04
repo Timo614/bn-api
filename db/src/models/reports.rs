@@ -2,7 +2,7 @@ use chrono::prelude::*;
 use chrono_tz::Tz;
 use diesel;
 use diesel::prelude::*;
-use diesel::sql_types::{BigInt, Bool, Nullable, Text, Timestamp, Uuid as dUuid};
+use diesel::sql_types::{BigInt, Bool, Nullable, Text, Time, Timestamp, Uuid as dUuid};
 use itertools::Itertools;
 use models::*;
 use std::collections::HashMap;
@@ -11,7 +11,6 @@ use utils::errors::*;
 use uuid::Uuid;
 
 sql_function!(fn ticket_sales_per_ticket_pricing(start: Nullable<Timestamp>, end: Nullable<Timestamp>, group_by: Option<Text>) -> Vec<TicketSalesRow>);
-sql_function!(fn ticket_count_per_ticket_type(event_id: Nullable<dUuid>, organization_id: Nullable<dUuid>, group_by: Option<Text>) -> Vec<TicketCountRow>);
 pub struct Report {}
 
 #[derive(Default, Clone, Debug, Serialize, Deserialize, PartialEq, QueryableByName)]
@@ -565,18 +564,24 @@ impl TicketCountRow {
         group_by_ticket_type: bool,
         conn: &PgConnection,
     ) -> Result<Vec<TicketCountRow>, DatabaseError> {
+        let timezone = "America/Los_Angeles"
+            .parse::<Tz>()
+            .map_err(|e| DatabaseError::business_process_error::<Tz>(&e).unwrap_err())?;
+        let now = Utc::now().naive_utc();
+        let four_am_pacific = timezone
+            .ymd(now.year(), now.month(), now.day())
+            .and_hms(4, 0, 0)
+            .naive_utc()
+            .time();
         let group_by = group_by_string(group_by_ticket_type, false, false, group_by_event);
         let query_ticket_counts = include_str!("../queries/reports/reports_tickets_counts.sql");
-        let q = diesel::sql_query(query_ticket_counts)
+        diesel::sql_query(query_ticket_counts)
             .bind::<Nullable<dUuid>, _>(event_id)
             .bind::<Nullable<dUuid>, _>(organization_id)
-            .bind::<Nullable<Text>, _>(group_by);
-
-        let rows: Vec<TicketCountRow> = q
+            .bind::<Nullable<Text>, _>(group_by)
+            .bind::<Time, _>(four_am_pacific)
             .get_results(conn)
-            .to_db_error(ErrorCode::QueryError, "Could not fetch ticket counts")?;
-
-        Ok(rows)
+            .to_db_error(ErrorCode::QueryError, "Could not fetch ticket counts")
     }
 }
 
@@ -619,11 +624,11 @@ impl Report {
             .map_err(|e| DatabaseError::business_process_error::<Tz>(&e).unwrap_err())?;
         let now = timezone.from_utc_datetime(&Utc::now().naive_utc());
         // 4 AM tomorrow PT
+        let tomorrow = now + Duration::days(1);
         Ok(timezone
-            .ymd(now.year(), now.month(), now.day())
+            .ymd(tomorrow.year(), tomorrow.month(), tomorrow.day())
             .and_hms(4, 0, 0)
-            .naive_utc()
-            + Duration::days(1))
+            .naive_utc())
     }
 
     pub fn create_next_automatic_report_domain_action(conn: &PgConnection) -> Result<(), DatabaseError> {

@@ -7,7 +7,7 @@ DROP FUNCTION IF EXISTS ticket_count_per_ticket_type(event_id UUID, organization
 DROP FUNCTION IF EXISTS ticket_count_per_ticket_type(event_id UUID, organization_id UUID, group_by TEXT);
 -- group_by can be 'event', 'ticket_type', 'event|ticket_type'
 -- Default grouping is by organization
-CREATE OR REPLACE FUNCTION ticket_count_per_ticket_type(event_id UUID, organization_id UUID, group_by TEXT)
+CREATE OR REPLACE FUNCTION ticket_count_per_ticket_type(event_id UUID, organization_id UUID, group_by TEXT, run_hour TIME)
     RETURNS TABLE
     (
         organization_id                      UUID,
@@ -70,24 +70,24 @@ SELECT o.id                                                                     
        CAST(
          COALESCE(COUNT(DISTINCT ti.id) FILTER (
               WHERE ti.status in ('Purchased', 'Redeemed')
-              AND CASE WHEN CURRENT_DATE + '12:00:00'::time < now()
-                THEN o2.paid_at >= CURRENT_DATE - 1 + '12:00:00'::time
-                ELSE o2.paid_at >= CURRENT_DATE - 2 + '12:00:00'::time END
-              AND CASE WHEN CURRENT_DATE + '12:00:00'::time < now()
-                THEN o2.paid_at < CURRENT_DATE + '12:00:00'::time
-                ELSE o2.paid_at < CURRENT_DATE - 1 + '12:00:00'::time END
+              AND CASE WHEN CURRENT_DATE + run_hour < now()
+                THEN o2.paid_at >= CURRENT_DATE - 1 + run_hour
+                ELSE o2.paid_at >= CURRENT_DATE - 2 + run_hour END
+              AND CASE WHEN CURRENT_DATE + run_hour < now()
+                THEN o2.paid_at < CURRENT_DATE + run_hour
+                ELSE o2.paid_at < CURRENT_DATE - 1 + run_hour END
          ), 0) AS BIGINT)  AS purchased_yesterday_count,
        CAST(
          COALESCE(COUNT(DISTINCT ti.id) FILTER (
               WHERE ti.hold_id IS NOT NULL
               AND h.hold_type = 'Comp'
               AND ti.status in ('Purchased', 'Redeemed')
-              AND CASE WHEN CURRENT_DATE + '12:00:00'::time < now()
-                THEN o2.paid_at >= CURRENT_DATE - 1 + '12:00:00'::time
-                ELSE o2.paid_at >= CURRENT_DATE - 2 + '12:00:00'::time END
-              AND CASE WHEN CURRENT_DATE + '12:00:00'::time < now()
-                THEN o2.paid_at < CURRENT_DATE + '12:00:00'::time
-                ELSE o2.paid_at < CURRENT_DATE - 1 + '12:00:00'::time END
+              AND CASE WHEN CURRENT_DATE + run_hour < now()
+                THEN o2.paid_at >= CURRENT_DATE - 1 + run_hour
+                ELSE o2.paid_at >= CURRENT_DATE - 2 + run_hour END
+              AND CASE WHEN CURRENT_DATE + run_hour < now()
+                THEN o2.paid_at < CURRENT_DATE + run_hour
+                ELSE o2.paid_at < CURRENT_DATE - 1 + run_hour END
          ), 0) AS BIGINT)  AS comp_purchased_yesterday_count,
        CAST(
            COALESCE(COUNT(DISTINCT ti.id) FILTER (WHERE ti.status = 'Nullified'), 0) AS BIGINT)  AS nullified_count,
