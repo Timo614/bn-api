@@ -205,15 +205,28 @@ fn next_settlement_date() {
     let pt_timezone: Tz = "America/Los_Angeles".parse().unwrap();
     let now = pt_timezone.from_utc_datetime(&Utc::now().naive_utc());
     let pt_today = pt_timezone.ymd(now.year(), now.month(), now.day()).and_hms(0, 0, 0);
-    let expected_pt = pt_today.naive_utc()
-        + Duration::days(7 - pt_today.naive_local().weekday().num_days_from_monday() as i64)
-        + Duration::hours(3);
+    let next_period_date = now + Duration::days(7 - pt_today.naive_local().weekday().num_days_from_monday() as i64);
+    let expected_pt = pt_timezone
+        .ymd(
+            next_period_date.year(),
+            next_period_date.month(),
+            next_period_date.day(),
+        )
+        .and_hms(3, 0, 0)
+        .naive_utc();
+
     let sa_timezone: Tz = "Africa/Johannesburg".parse().unwrap();
     let now = sa_timezone.from_utc_datetime(&Utc::now().naive_utc());
     let sa_today = sa_timezone.ymd(now.year(), now.month(), now.day()).and_hms(0, 0, 0);
-    let expected_sa = sa_today.naive_utc()
-        + Duration::days(7 - sa_today.naive_local().weekday().num_days_from_monday() as i64)
-        + Duration::hours(3);
+    let next_period_date = now + Duration::days(7 - sa_today.naive_local().weekday().num_days_from_monday() as i64);
+    let expected_sa = sa_timezone
+        .ymd(
+            next_period_date.year(),
+            next_period_date.month(),
+            next_period_date.day(),
+        )
+        .and_hms(3, 0, 0)
+        .naive_utc();
 
     // Default behavior no timezone, upcoming Monday 3:00 AM PT
     assert_eq!(organization.next_settlement_date(None).unwrap(), expected_pt);
@@ -233,8 +246,14 @@ fn next_settlement_date() {
     assert_eq!(organization.next_settlement_date(None).unwrap(), expected_sa);
 
     // Switch to rolling which always uses PT
-    let expected_pt =
-        pt_today.naive_utc() + Duration::days(7 - pt_today.naive_local().weekday().num_days_from_monday() as i64);
+    let expected_pt = pt_timezone
+        .ymd(
+            next_period_date.year(),
+            next_period_date.month(),
+            next_period_date.day(),
+        )
+        .and_hms(0, 0, 0)
+        .naive_utc();
     let organization = organization
         .update(
             OrganizationEditableAttributes {
@@ -249,9 +268,14 @@ fn next_settlement_date() {
     assert_eq!(organization.next_settlement_date(None).unwrap(), expected_pt);
 
     // Override organization timezone to PT and switch back to PostEvent
-    let expected_pt = pt_today.naive_utc()
-        + Duration::days(7 - pt_today.naive_local().weekday().num_days_from_monday() as i64)
-        + Duration::hours(3);
+    let expected_pt = pt_timezone
+        .ymd(
+            next_period_date.year(),
+            next_period_date.month(),
+            next_period_date.day(),
+        )
+        .and_hms(3, 0, 0)
+        .naive_utc();
     let organization = organization
         .update(
             OrganizationEditableAttributes {
@@ -267,7 +291,15 @@ fn next_settlement_date() {
     assert_eq!(organization.next_settlement_date(None).unwrap(), expected_pt);
 
     // Using a passed in settlement period
-    let expected_pt = pt_today.naive_utc() + Duration::days(1) + Duration::hours(3);
+    let next_period_date = now + Duration::days(1);
+    let expected_pt = pt_timezone
+        .ymd(
+            next_period_date.year(),
+            next_period_date.month(),
+            next_period_date.day(),
+        )
+        .and_hms(3, 0, 0)
+        .naive_utc();
     assert_eq!(organization.next_settlement_date(Some(1)).unwrap(), expected_pt);
 
     let organization = organization
@@ -281,7 +313,15 @@ fn next_settlement_date() {
             connection,
         )
         .unwrap();
-    let expected_sa = sa_today.naive_utc() + Duration::days(1) + Duration::hours(3);
+
+    let expected_sa = sa_timezone
+        .ymd(
+            next_period_date.year(),
+            next_period_date.month(),
+            next_period_date.day(),
+        )
+        .and_hms(3, 0, 0)
+        .naive_utc();
     assert_eq!(organization.next_settlement_date(Some(1)).unwrap(), expected_sa);
 
     // Rolling with passed in settlement period
@@ -296,7 +336,14 @@ fn next_settlement_date() {
             connection,
         )
         .unwrap();
-    let expected_pt = pt_today.naive_utc() + Duration::days(1);
+    let expected_pt = pt_timezone
+        .ymd(
+            next_period_date.year(),
+            next_period_date.month(),
+            next_period_date.day(),
+        )
+        .and_hms(0, 0, 0)
+        .naive_utc();
     assert_eq!(organization.next_settlement_date(Some(1)).unwrap(), expected_pt);
 }
 
