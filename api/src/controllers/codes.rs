@@ -107,7 +107,7 @@ pub fn link(
         Ok(l) => l,
         Err(_) => {
             // Alias might not be unique, create without
-            linker.create_deep_link(&raw_url)?
+            linker.create_deep_link_with_fallback(&raw_url)
         }
     };
     Ok(HttpResponse::Ok().json(json!({ "link": link })))

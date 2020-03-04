@@ -65,6 +65,7 @@ pub struct Config {
     pub jwt_expiry_time: u64,
     pub branch_io_base_url: String,
     pub branch_io_branch_key: String,
+    pub branch_io_timeout: u64,
     pub max_instances_per_ticket_type: i64,
     pub connection_pool: ConnectionPoolConfig,
     pub ssr_trigger_header: String,
@@ -210,6 +211,7 @@ const API_KEYS_ENCRYPTION_KEY: &str = "API_KEYS_ENCRYPTION_KEY";
 const JWT_EXPIRY_TIME: &str = "JWT_EXPIRY_TIME";
 const BRANCH_IO_BASE_URL: &str = "BRANCH_IO_BASE_URL";
 const BRANCH_IO_BRANCH_KEY: &str = "BRANCH_IO_BRANCH_KEY";
+const BRANCH_IO_TIMEOUT: &str = "BRANCH_IO_TIMEOUT";
 
 const MAX_INSTANCES_PER_TICKET_TYPE: &str = "MAX_INSTANCES_PER_TICKET_TYPE";
 const CONNECTION_POOL_MIN: &str = "CONNECTION_POOL_MIN";
@@ -328,6 +330,13 @@ impl Config {
 
         let branch_io_base_url = env::var(&BRANCH_IO_BASE_URL).unwrap_or("https://api2.branch.io/v1".to_string());
         let branch_io_branch_key = get_env_var(BRANCH_IO_BRANCH_KEY);
+        let branch_io_timeout = env::var(BRANCH_IO_TIMEOUT)
+            .ok()
+            .map(|s| {
+                s.parse()
+                    .expect("Not a valid value for branch.io write timeout in seconds")
+            })
+            .unwrap_or(10);
 
         let api_base_url = get_env_var(API_BASE_URL);
 
@@ -481,6 +490,7 @@ impl Config {
             api_keys_encryption_key,
             jwt_expiry_time,
             branch_io_branch_key,
+            branch_io_timeout,
             max_instances_per_ticket_type,
             connection_pool,
             ssr_trigger_header,

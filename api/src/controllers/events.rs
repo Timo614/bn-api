@@ -1322,7 +1322,7 @@ pub fn create_link(
     let long_link_url = Url::parse(long_link_raw.as_str())?;
 
     let deep_linker = state.service_locator.create_deep_linker()?;
-    let short_link = deep_linker.create_deep_link(&long_link_raw)?;
+    let short_link = deep_linker.create_deep_link_with_fallback(&long_link_raw);
     Ok(HttpResponse::Ok().json(LinkResult {
         link: short_link,
         long_link: long_link_url.as_str().to_string(),

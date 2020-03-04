@@ -3,6 +3,7 @@ use errors::*;
 
 pub trait DeepLinker {
     fn create_deep_link(&self, raw_link: &str) -> Result<String, BigNeonError>;
+    fn create_deep_link_with_fallback(&self, raw_link: &str) -> String;
     fn create_deep_link_with_alias(&self, raw_link: &str, alias: &str) -> Result<String, BigNeonError>;
 }
 
@@ -10,9 +11,9 @@ pub struct BranchDeepLinker {
     client: BranchClient,
 }
 impl BranchDeepLinker {
-    pub fn new(url: String, branch_key: String) -> BranchDeepLinker {
+    pub fn new(url: String, branch_key: String, timeout: u64) -> BranchDeepLinker {
         BranchDeepLinker {
-            client: BranchClient::new(url, branch_key),
+            client: BranchClient::new(url, branch_key, timeout),
         }
     }
 }
@@ -31,6 +32,16 @@ impl DeepLinker for BranchDeepLinker {
             },
             ..Default::default()
         })?)
+    }
+
+    fn create_deep_link_with_fallback(&self, raw_link: &str) -> String {
+        match self.create_deep_link(raw_link) {
+            Ok(deep_link) => deep_link,
+            Err(error) => {
+                error!("BranchDeepLinker Error: {:?}", error);
+                raw_link.to_string()
+            }
+        }
     }
 
     fn create_deep_link_with_alias(&self, raw_link: &str, alias: &str) -> Result<String, BigNeonError> {
