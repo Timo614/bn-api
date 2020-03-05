@@ -146,20 +146,31 @@ impl Settlement {
         let now = timezone.from_utc_datetime(&Utc::now().naive_utc());
         let today = timezone.ymd(now.year(), now.month(), now.day()).and_hms(0, 0, 0);
         let days_since_monday = today.naive_local().weekday().num_days_from_monday();
-        let next_action_date = if days_since_monday < 2 || (days_since_monday == 2 && now.naive_local().hour() < 12) {
-            today.naive_utc()
-                + Duration::days(2 - today.naive_local().weekday().num_days_from_monday() as i64)
-                + Duration::hours(12)
+        if days_since_monday < 2 || (days_since_monday == 2 && now.naive_local().hour() < 12) {
+            let next_period_date = now + Duration::days(2 - days_since_monday as i64);
+            Ok(timezone
+                .ymd(
+                    next_period_date.year(),
+                    next_period_date.month(),
+                    next_period_date.day(),
+                )
+                .and_hms(12, 0, 0)
+                .naive_utc())
         } else {
-            today.naive_utc()
+            let next_period_date = now
                 + Duration::days(
                     // Week - days since Monday + 2 days (Mon -> Wed)
                     7 - today.naive_local().weekday().num_days_from_monday() as i64 + 2,
+                );
+            Ok(timezone
+                .ymd(
+                    next_period_date.year(),
+                    next_period_date.month(),
+                    next_period_date.day(),
                 )
-                + Duration::hours(12)
-        };
-
-        Ok(next_action_date)
+                .and_hms(12, 0, 0)
+                .naive_utc())
+        }
     }
 
     pub fn find_last_settlement_for_organization(
