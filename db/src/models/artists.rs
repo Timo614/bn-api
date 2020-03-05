@@ -6,6 +6,7 @@ use diesel::sql_types::{Array, Bool, Uuid as dUuid};
 use models::*;
 use schema::{artist_genres, artists, event_artists, events, genres, organization_users, organizations};
 use utils::errors::*;
+use utils::pagination::*;
 use utils::text;
 use uuid::Uuid;
 use validator::Validate;
@@ -202,14 +203,15 @@ impl Artist {
     pub fn search(
         user: &Option<User>,
         query_filter: Option<String>,
+        paging: &Paging,
         conn: &PgConnection,
-    ) -> Result<Vec<DisplayArtist>, DatabaseError> {
+    ) -> Result<(Vec<DisplayArtist>, i64), DatabaseError> {
         let query_like = match query_filter {
             Some(n) => format!("%{}%", text::escape_control_chars(&n)),
             None => "%".to_string(),
         };
-        //TODO Add pagination to the query
-        let artists: Vec<Artist> = match user {
+        //
+        let (artists, count): (Vec<Artist>, i64) = match user {
             Some(u) => artists::table
                 .left_join(
                     organization_users::table.on(artists::organization_id
@@ -226,14 +228,18 @@ impl Artist {
                 .filter(artists::name.ilike(query_like.clone()))
                 .order_by(artists::name)
                 .select(artists::all_columns)
-                .load(conn),
+                .paginate(paging.page as i64)
+                .per_page(paging.limit as i64)
+                .load_and_count_pages(conn),
 
             None => artists::table
                 .filter(artists::is_private.eq(false))
                 .filter(artists::name.ilike(query_like.clone()))
                 .order_by(artists::name)
                 .select(artists::all_columns)
-                .load(conn),
+                .paginate(paging.page as i64)
+                .per_page(paging.limit as i64)
+                .load_and_count_pages(conn),
         }
         .to_db_error(ErrorCode::QueryError, "Unable to search artists")?;
 
@@ -248,7 +254,7 @@ impl Artist {
             result.push(DisplayArtist::from(artist, genres, conn)?);
         }
 
-        Ok(result)
+        Ok((result, count))
     }
 
     pub fn all(user: Option<&User>, conn: &PgConnection) -> Result<Vec<DisplayArtist>, DatabaseError> {

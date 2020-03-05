@@ -14,7 +14,8 @@ pub fn search(
 ) -> Result<WebPayload<CreateArtistRequest>, BigNeonError> {
     let connection = connection.get();
     let db_user = user.into_inner().map(|u| u.user);
-    let artists = Artist::search(&db_user, query_parameters.get_tag("q"), connection)?;
+    let paging: Paging = query_parameters.clone().into();
+    let (artists, _) = Artist::search(&db_user, query_parameters.get_tag("q"), &paging, connection)?;
 
     let try_spotify = query_parameters
         .get_tag("spotify")
@@ -38,8 +39,14 @@ pub fn index(
     (connection, query_parameters, user): (Connection, Query<PagingParameters>, OptionalUser),
 ) -> Result<HttpResponse, BigNeonError> {
     let db_user = user.into_inner().map(|u| u.user);
-    let artists = Artist::search(&db_user, query_parameters.get_tag("q"), connection.get())?;
-    let payload = Payload::from_data(artists, query_parameters.page(), query_parameters.limit(), None);
+    let paging: Paging = query_parameters.clone().into();
+    let (artists, total) = Artist::search(&db_user, query_parameters.get_tag("q"), &paging, connection.get())?;
+    let payload = Payload::from_data(
+        artists,
+        query_parameters.page(),
+        query_parameters.limit(),
+        Some(total as u64),
+    );
     Ok(HttpResponse::Ok().json(&payload))
 }
 

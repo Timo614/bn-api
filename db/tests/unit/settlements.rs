@@ -4,11 +4,67 @@ use bigneon_db::schema::{orders, refunds};
 use bigneon_db::utils::dates;
 use bigneon_db::utils::errors::ErrorCode::ValidationError;
 use chrono::prelude::*;
-use chrono::Duration;
+use chrono::{Duration, Timelike};
+use chrono_tz::Tz;
 use diesel;
 use diesel::prelude::*;
 use diesel::sql_types;
 use diesel::RunQueryDsl;
+
+#[test]
+fn finalize_settlements() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+    let settlement = project.create_settlement().finish();
+    let settlement2 = project.create_settlement().finish();
+    Settlement::finalize_settlements(connection).unwrap();
+
+    let settlement = Settlement::find(settlement.id, connection).unwrap();
+    let settlement2 = Settlement::find(settlement2.id, connection).unwrap();
+    assert_eq!(SettlementStatus::FinalizedSettlement, settlement.status);
+    assert_eq!(SettlementStatus::FinalizedSettlement, settlement2.status);
+}
+
+#[test]
+fn create_next_finalize_settlements_domain_action() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+    assert!(
+        DomainAction::upcoming_domain_action(None, None, DomainActionTypes::FinalizeSettlements, connection,)
+            .unwrap()
+            .is_none()
+    );
+
+    Settlement::create_next_finalize_settlements_domain_action(connection).unwrap();
+    let domain_action =
+        DomainAction::upcoming_domain_action(None, None, DomainActionTypes::FinalizeSettlements, connection)
+            .unwrap()
+            .unwrap();
+    assert_eq!(
+        domain_action.scheduled_at,
+        Settlement::next_finalization_date().unwrap()
+    );
+    assert_eq!(domain_action.status, DomainActionStatus::Pending);
+}
+
+#[test]
+fn next_finalization_date() {
+    let pt_timezone: Tz = "America/Los_Angeles".parse().unwrap();
+    let now = pt_timezone.from_utc_datetime(&Utc::now().naive_utc());
+    let pt_today = pt_timezone.ymd(now.year(), now.month(), now.day()).and_hms(0, 0, 0);
+    let days_since_monday = pt_today.naive_local().weekday().num_days_from_monday();
+    let expected_pt = if days_since_monday < 2 || (days_since_monday == 2 && now.naive_local().hour() < 12) {
+        pt_today.naive_utc()
+            + Duration::days(2 - pt_today.naive_local().weekday().num_days_from_monday() as i64)
+            + Duration::hours(12)
+    } else {
+        pt_today.naive_utc()
+            + Duration::days(7 - pt_today.naive_local().weekday().num_days_from_monday() as i64 + 2)
+            + Duration::hours(12)
+    };
+
+    assert_eq!(Settlement::next_finalization_date().unwrap(), expected_pt);
+}
 
 #[test]
 fn find_last_settlement_for_organization() {

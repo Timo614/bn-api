@@ -1,5 +1,6 @@
 use bigneon_db::dev::TestProject;
 use bigneon_db::prelude::*;
+use std::collections::HashMap;
 use uuid::Uuid;
 use validator::Validate;
 
@@ -206,6 +207,14 @@ fn new_artist_validate() {
 fn artist_search() {
     let project = TestProject::new();
     let connection = project.get_connection();
+    let paging: &Paging = &Paging {
+        page: 0,
+        limit: 10,
+        sort: "".to_string(),
+        dir: SortingDir::Asc,
+        total: 0,
+        tags: HashMap::new(),
+    };
     let owner = project.create_user().finish();
     let member = project.create_user().finish();
     let organization = project
@@ -239,27 +248,29 @@ fn artist_search() {
     );
 
     // Logged out search
-    let found_artists = Artist::search(&None, Some("many".to_string()), connection).expect("No artists found");
-    assert_eq!(1, found_artists.len());
+    let (found_artists, total) =
+        Artist::search(&None, Some("many".to_string()), paging, connection).expect("No artists found");
+    assert_eq!(1, total);
     assert!(found_artists.iter().any(|a| a.name == sample_artists[1]));
 
     //  Logged out search, no filter query
-    let found_artists = Artist::search(&None, None, connection).expect("No artists found");
-    assert_eq!(3, found_artists.len());
+    let (found_artists, total) = Artist::search(&None, None, paging, connection).expect("No artists found");
+    assert_eq!(3, total);
     for name in &sample_artists {
         assert!(found_artists.iter().any(|a| a.name == *name));
     }
 
     // Owner search, with filter query
-    let found_artists = Artist::search(&Some(owner), Some("artist".to_string()), connection).expect("No artists found");
-    assert_eq!(4, found_artists.len());
+    let (found_artists, total) =
+        Artist::search(&Some(owner), Some("artist".to_string()), paging, connection).expect("No artists found");
+    assert_eq!(4, total);
     for name in &sample_artists {
         assert!(found_artists.iter().any(|a| a.name == *name));
     }
 
     // Member search, no filter query
-    let found_artists = Artist::search(&Some(member), None, connection).expect("No artists found");
-    assert_eq!(4, found_artists.len());
+    let (found_artists, total) = Artist::search(&Some(member), None, paging, connection).expect("No artists found");
+    assert_eq!(4, total);
     for name in &sample_artists {
         assert!(found_artists.iter().any(|a| a.name == *name));
     }

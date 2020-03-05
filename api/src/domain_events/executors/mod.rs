@@ -1,4 +1,5 @@
 pub use self::broadcast_push_notification::*;
+pub use self::finalize_settlements::*;
 pub use self::process_payment_ipn::*;
 pub use self::process_settlement_report::*;
 pub use self::process_transfer_drip_event::*;
@@ -11,6 +12,7 @@ pub use self::submit_sitemap_to_search_engines::*;
 pub use self::update_genres::*;
 
 mod broadcast_push_notification;
+mod finalize_settlements;
 mod process_payment_ipn;
 mod process_settlement_report;
 mod process_transfer_drip_event;
