@@ -23,6 +23,18 @@ pub fn routes(app: &mut CorsBuilder<AppState>) -> App<AppState> {
     .resource("/a/t", |r| {
         r.method(Method::GET).with(analytics::track);
     })
+    .resource("/announcements/{id}/engage", |r| {
+        r.method(Method::PUT).with(announcements::engage);
+    })
+    .resource("/announcements/{id}", |r| {
+        r.method(Method::GET).with(announcements::show);
+        r.method(Method::PUT).with(announcements::update);
+        r.method(Method::DELETE).with(announcements::destroy);
+    })
+    .resource("/announcements", |r| {
+        r.method(Method::GET).with(announcements::index);
+        r.method(Method::POST).with(announcements::create);
+    })
     .resource("/artists/search", |r| {
         r.middleware(CacheResource::new(CacheUsersBy::AnonymousOnly));
         r.method(Method::GET).with(artists::search);
@@ -267,6 +279,9 @@ pub fn routes(app: &mut CorsBuilder<AppState>) -> App<AppState> {
     .resource("/organization_venues/{id}", |r| {
         r.method(Method::GET).with(organization_venues::show);
         r.method(Method::DELETE).with(organization_venues::destroy);
+    })
+    .resource("/organizations/{id}/announcements", |r| {
+        r.method(Method::GET).with(announcements::show_from_organization);
     })
     .resource("/organizations/{id}/artists", |r| {
         r.method(Method::GET).with(artists::show_from_organizations);
