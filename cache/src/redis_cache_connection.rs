@@ -67,7 +67,7 @@ impl CacheConnection for RedisCacheConnection {
     }
 
     fn delete_by_key_fragment(&mut self, key_fragment: &str) -> Result<(), CacheError> {
-        let matches: Vec<String> = self.conn()?.keys(format!("*/{}*", key_fragment))?;
+        let matches: Vec<String> = self.conn()?.keys(format!("*{}*", key_fragment))?;
         for key in matches {
             self.conn()?.del(key.to_string())?;
         }

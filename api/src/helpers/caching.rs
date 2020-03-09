@@ -47,9 +47,9 @@ pub(crate) fn get_cached_value<T: Serialize>(
 
 pub(crate) fn delete_by_key_fragment(
     mut cache_connection: impl CacheConnection,
-    key_fragment: Uuid,
+    key_fragment: String,
 ) -> Result<(), BigNeonError> {
-    if let Err(err) = cache_connection.delete_by_key_fragment(&key_fragment.to_string()) {
+    if let Err(err) = cache_connection.delete_by_key_fragment(&key_fragment) {
         error!("helpers::caching#delete_by_key_fragment: {:?}", err);
     }
     Ok(())

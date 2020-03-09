@@ -1,8 +1,7 @@
 use crate::auth::user::User;
-use crate::db::{CacheDatabase, Connection};
+use crate::db::Connection;
 use crate::errors::*;
 use crate::extractors::*;
-use crate::helpers::*;
 use crate::models::PathParameters;
 use crate::models::WebPayload;
 use actix_web::{http::StatusCode, HttpResponse, Path, Query};
@@ -35,22 +34,16 @@ pub fn create(
 }
 
 pub fn update(
-    (connection, parameters, region_parameters, user, cache_database): (
+    (connection, parameters, region_parameters, user): (
         Connection,
         Path<PathParameters>,
         Json<RegionEditableAttributes>,
         User,
-        CacheDatabase,
     ),
 ) -> Result<HttpResponse, BigNeonError> {
     user.requires_scope(Scopes::RegionWrite)?;
     let connection = connection.get();
     let region = Region::find(parameters.id, connection)?;
     let updated_region = region.update(region_parameters.into_inner(), connection)?;
-
-    cache_database
-        .inner
-        .clone()
-        .and_then(|conn| caching::delete_by_key_fragment(conn, region.id).ok());
     Ok(HttpResponse::Ok().json(updated_region))
 }

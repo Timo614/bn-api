@@ -1,9 +1,9 @@
 use crate::auth::user::User;
-use crate::db::{CacheDatabase, Connection};
+use crate::db::Connection;
 use crate::domain_events::executors::UpdateGenresPayload;
 use crate::errors::*;
 use crate::extractors::*;
-use crate::helpers::*;
+use crate::helpers::application;
 use crate::models::{CreateArtistRequest, PathParameters, UpdateArtistRequest, WebPayload};
 use crate::utils::spotify;
 use actix_web::{http::StatusCode, HttpResponse, Path, Query};
@@ -131,12 +131,11 @@ pub fn show_from_organizations(
 }
 
 pub fn update(
-    (connection, parameters, artist_parameters, user, cache_database): (
+    (connection, parameters, artist_parameters, user): (
         Connection,
         Path<PathParameters>,
         Json<UpdateArtistRequest>,
         User,
-        CacheDatabase,
     ),
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
@@ -175,11 +174,6 @@ pub fn update(
         );
         action.commit(connection)?;
     }
-
-    cache_database
-        .inner
-        .clone()
-        .and_then(|conn| caching::delete_by_key_fragment(conn, artist.id).ok());
 
     Ok(HttpResponse::Ok().json(&updated_artist.for_display(connection)?))
 }

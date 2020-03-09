@@ -598,7 +598,7 @@ pub fn publish(
     cache_database
         .inner
         .clone()
-        .and_then(|conn| caching::delete_by_key_fragment(conn, event.id).ok());
+        .and_then(|conn| caching::delete_by_key_fragment(conn, event.id.to_string()).ok());
 
     Ok(HttpResponse::Ok().finish())
 }
@@ -614,7 +614,7 @@ pub fn unpublish(
     cache_database
         .inner
         .clone()
-        .and_then(|conn| caching::delete_by_key_fragment(conn, event.id).ok());
+        .and_then(|conn| caching::delete_by_key_fragment(conn, event.id.to_string()).ok());
 
     Ok(HttpResponse::Ok().finish())
 }
@@ -850,12 +850,11 @@ pub fn create(
 }
 
 pub fn update(
-    (connection, parameters, event_parameters, user, cache_database): (
+    (connection, parameters, event_parameters, user): (
         Connection,
         Path<PathParameters>,
         Json<EventEditableAttributes>,
         AuthUser,
-        CacheDatabase,
     ),
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
@@ -872,11 +871,6 @@ pub fn update(
     let updated_event = event.update(Some(user.id()), event_parameters, connection)?;
 
     create_domain_action_event(updated_event.id, connection);
-
-    cache_database
-        .inner
-        .clone()
-        .and_then(|conn| caching::delete_by_key_fragment(conn, event.id).ok());
 
     Ok(HttpResponse::Ok().json(&updated_event))
 }

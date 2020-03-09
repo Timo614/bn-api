@@ -1,8 +1,7 @@
 use crate::auth::user::User;
-use crate::db::{CacheDatabase, Connection};
+use crate::db::Connection;
 use crate::errors::*;
 use crate::extractors::*;
-use crate::helpers::*;
 use crate::models::PathParameters;
 use actix_web::{HttpResponse, Path, Query};
 use bigneon_db::models::*;
@@ -124,12 +123,11 @@ pub fn toggle_privacy(
 }
 
 pub fn update(
-    (connection, parameters, venue_parameters, user, cache_database): (
+    (connection, parameters, venue_parameters, user): (
         Connection,
         Path<PathParameters>,
         Json<VenueEditableAttributes>,
         User,
-        CacheDatabase,
     ),
 ) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
@@ -151,11 +149,5 @@ pub fn update(
     }
 
     let updated_venue = venue.update(venue_parameters.into_inner(), connection)?;
-
-    cache_database
-        .inner
-        .clone()
-        .and_then(|conn| caching::delete_by_key_fragment(conn, venue.id).ok());
-
     Ok(HttpResponse::Ok().json(updated_venue))
 }

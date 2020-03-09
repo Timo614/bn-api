@@ -126,20 +126,21 @@ impl Middleware<AppState> for CacheResource {
     }
 
     fn response(&self, request: &HttpRequest<AppState>, mut response: HttpResponse) -> Result<Response> {
+        let state = request.state().clone();
+        let cache_database = state.database.cache_database.clone();
+        let path = request.path().to_string();
+
         if request.method() == Method::GET {
             let extensions = request.extensions();
             if let Some(cache_configuration) = extensions.get::<CacheConfiguration>() {
-                let state = request.state().clone();
                 let config = state.config.clone();
 
                 if cache_configuration.cache_response {
-                    let cache_database = state.database.cache_database.clone();
                     let mut query = BTreeMap::new();
                     let query_parameters = request.query();
                     for (key, value) in query_parameters.iter() {
                         query.insert(key, value.to_string());
                     }
-                    let path = request.path().to_string();
                     let path_text = "path".to_string();
                     let method = request.method().to_string();
                     let method_text = "method".to_string();
@@ -199,6 +200,12 @@ impl Middleware<AppState> for CacheResource {
                     }
                 }
             }
+        } else {
+            // Method besides GET requested, PUT/POST/DELETE so clear any matching path cache
+            cache_database
+                .inner
+                .clone()
+                .and_then(|conn| caching::delete_by_key_fragment(conn, path).ok());
         }
 
         Ok(Response::Done(response))
