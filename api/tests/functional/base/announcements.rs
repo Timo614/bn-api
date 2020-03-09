@@ -77,7 +77,7 @@ pub fn destroy(role: Roles, should_succeed: bool) {
 
     if should_succeed {
         assert_eq!(response.status(), StatusCode::OK);
-        let announcement = Announcement::find(announcement.id, false, connection).unwrap();
+        let announcement = Announcement::find(announcement.id, true, connection).unwrap();
         assert!(announcement.deleted_at.is_some());
     } else {
         support::expects_unauthorized(&response);
