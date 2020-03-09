@@ -299,14 +299,7 @@ pub fn update(role: Roles, should_test_succeed: bool) {
     let mut path = Path::<PathParameters>::extract(&test_request.request).unwrap();
     path.id = event.id;
 
-    let response: HttpResponse = events::update((
-        database.connection.into(),
-        path,
-        json,
-        auth_user.clone(),
-        CacheDatabase { inner: None },
-    ))
-    .into();
+    let response: HttpResponse = events::update((database.connection.into(), path, json, auth_user.clone())).into();
     let body = support::unwrap_body_to_string(&response).unwrap();
     if should_test_succeed {
         assert_eq!(response.status(), StatusCode::OK);

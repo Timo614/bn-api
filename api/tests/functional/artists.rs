@@ -4,7 +4,6 @@ use crate::support::database::TestDatabase;
 use crate::support::test_request::TestRequest;
 use actix_web::{http::StatusCode, FromRequest, HttpResponse, Path, Query};
 use bigneon_api::controllers::artists;
-use bigneon_api::db::CacheDatabase;
 use bigneon_api::extractors::*;
 use bigneon_api::models::{CreateArtistRequest, PathParameters, UpdateArtistRequest};
 use bigneon_db::prelude::*;
@@ -580,14 +579,7 @@ pub fn update_with_validation_errors() {
     attributes.youtube_video_urls = Some(vec!["invalid".to_string()]);
     let json = Json(attributes);
 
-    let response: HttpResponse = artists::update((
-        database.connection.into(),
-        path,
-        json,
-        user,
-        CacheDatabase { inner: None },
-    ))
-    .into();
+    let response: HttpResponse = artists::update((database.connection.into(), path, json, user)).into();
 
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     assert!(response.error().is_some());

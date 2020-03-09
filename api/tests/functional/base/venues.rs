@@ -3,7 +3,6 @@ use crate::support::database::TestDatabase;
 use crate::support::test_request::TestRequest;
 use actix_web::{http::StatusCode, FromRequest, HttpResponse, Path, Query};
 use bigneon_api::controllers::venues::{self, NewVenueData};
-use bigneon_api::db::CacheDatabase;
 use bigneon_api::extractors::*;
 use bigneon_api::models::PathParameters;
 use bigneon_db::models::*;
@@ -97,14 +96,7 @@ pub fn update(role: Roles, should_succeed: bool) {
     attributes.name = Some(new_name.to_string());
     let json = Json(attributes);
 
-    let response: HttpResponse = venues::update((
-        database.connection.into(),
-        path,
-        json,
-        user,
-        CacheDatabase { inner: None },
-    ))
-    .into();
+    let response: HttpResponse = venues::update((database.connection.into(), path, json, user)).into();
     if !should_succeed {
         support::expects_unauthorized(&response);
         return;
@@ -157,14 +149,7 @@ pub fn update_with_organization(role: Roles, should_succeed: bool, is_private: b
     attributes.name = Some(new_name.to_string());
     let json = Json(attributes);
 
-    let response: HttpResponse = venues::update((
-        database.connection.into(),
-        path,
-        json,
-        auth_user.clone(),
-        CacheDatabase { inner: None },
-    ))
-    .into();
+    let response: HttpResponse = venues::update((database.connection.into(), path, json, auth_user.clone())).into();
     if !should_succeed {
         support::expects_unauthorized(&response);
         return;

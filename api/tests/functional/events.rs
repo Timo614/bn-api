@@ -6,7 +6,6 @@ use actix_web::Query;
 use actix_web::{http::StatusCode, FromRequest, HttpResponse, Path};
 use bigneon_api::controllers::events;
 use bigneon_api::controllers::events::*;
-use bigneon_api::db::CacheDatabase;
 use bigneon_api::extractors::*;
 use bigneon_api::models::*;
 use bigneon_db::models::*;
@@ -2187,14 +2186,8 @@ fn update_promoter_fails_lacks_event_id() {
     let mut path = Path::<PathParameters>::extract(&test_request.request).unwrap();
     path.id = event.id;
 
-    let response: HttpResponse = events::update((
-        database.connection.clone().into(),
-        path,
-        json,
-        auth_user.clone(),
-        CacheDatabase { inner: None },
-    ))
-    .into();
+    let response: HttpResponse =
+        events::update((database.connection.clone().into(), path, json, auth_user.clone())).into();
     support::expects_unauthorized(&response);
 }
 
