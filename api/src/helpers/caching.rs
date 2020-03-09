@@ -7,7 +7,6 @@ use cache::CacheConnection;
 use serde::Serialize;
 use serde_json::{self, Value};
 use std::borrow::Borrow;
-use uuid::Uuid;
 
 pub(crate) fn set_cached_value<T: Serialize>(
     mut cache_connection: impl CacheConnection,

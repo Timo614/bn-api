@@ -202,10 +202,17 @@ impl Middleware<AppState> for CacheResource {
             }
         } else {
             // Method besides GET requested, PUT/POST/DELETE so clear any matching path cache
-            cache_database
-                .inner
-                .clone()
-                .and_then(|conn| caching::delete_by_key_fragment(conn, path).ok());
+            match *request.method() {
+                Method::PUT | Method::PATCH | Method::POST | Method::DELETE => {
+                    if response.error().is_none() {
+                        cache_database
+                            .inner
+                            .clone()
+                            .and_then(|conn| caching::delete_by_key_fragment(conn, path).ok());
+                    }
+                }
+                _ => (),
+            }
         }
 
         Ok(Response::Done(response))
