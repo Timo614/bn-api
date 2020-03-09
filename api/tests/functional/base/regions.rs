@@ -3,6 +3,7 @@ use crate::support::database::TestDatabase;
 use crate::support::test_request::TestRequest;
 use actix_web::{http::StatusCode, FromRequest, HttpResponse, Path};
 use bigneon_api::controllers::regions;
+use bigneon_api::db::CacheDatabase;
 use bigneon_api::extractors::*;
 use bigneon_api::models::PathParameters;
 use bigneon_db::models::{NewRegion, Region, RegionEditableAttributes, Roles};
@@ -41,7 +42,14 @@ pub fn update(role: Roles, should_succeed: bool) {
     attributes.name = Some(new_name.to_string());
     let json = Json(attributes);
 
-    let response: HttpResponse = regions::update((database.connection.into(), path, json, user)).into();
+    let response: HttpResponse = regions::update((
+        database.connection.into(),
+        path,
+        json,
+        user,
+        CacheDatabase { inner: None },
+    ))
+    .into();
     if !should_succeed {
         support::expects_unauthorized(&response);
         return;

@@ -7,6 +7,7 @@ use cache::CacheConnection;
 use serde::Serialize;
 use serde_json::{self, Value};
 use std::borrow::Borrow;
+use uuid::Uuid;
 
 pub(crate) fn set_cached_value<T: Serialize>(
     mut cache_connection: impl CacheConnection,
@@ -42,6 +43,16 @@ pub(crate) fn get_cached_value<T: Serialize>(
         }
     }
     None
+}
+
+pub(crate) fn delete_by_key_fragment(
+    mut cache_connection: impl CacheConnection,
+    key_fragment: Uuid,
+) -> Result<(), BigNeonError> {
+    if let Err(err) = cache_connection.delete_by_key_fragment(&key_fragment.to_string()) {
+        error!("helpers::caching#delete_by_key_fragment: {:?}", err);
+    }
+    Ok(())
 }
 
 pub(crate) fn publish<T: Serialize>(
