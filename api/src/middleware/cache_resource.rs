@@ -52,6 +52,7 @@ pub struct CacheConfiguration {
     served_cache: bool,
     error: bool,
     user_key: Option<String>,
+    cache_data: BTreeMap<String, String>,
 }
 
 impl CacheConfiguration {
@@ -61,6 +62,7 @@ impl CacheConfiguration {
             served_cache: false,
             error: false,
             user_key: None,
+            cache_data: BTreeMap::new(),
         }
     }
 }
@@ -69,18 +71,19 @@ impl Middleware<AppState> for CacheResource {
     fn start(&self, request: &HttpRequest<AppState>) -> Result<Started> {
         let mut cache_configuration = CacheConfiguration::new();
         if request.method() == Method::GET {
-            let mut query = BTreeMap::new();
             let query_parameters = request.query().clone();
             for (key, value) in query_parameters.iter() {
-                query.insert(key, value.to_string());
+                cache_configuration
+                    .cache_data
+                    .insert(key.to_string(), value.to_string());
             }
-            let path = request.path().to_string();
-            let path_text = "path".to_string();
-            let method = request.method().to_string();
-            let method_text = "method".to_string();
             let user_text = "x-user-role".to_string();
-            query.insert(&path_text, path);
-            query.insert(&method_text, method);
+            cache_configuration
+                .cache_data
+                .insert("path".to_string(), request.path().to_string());
+            cache_configuration
+                .cache_data
+                .insert("method".to_string(), request.method().to_string());
             let state = request.state().clone();
             let config = state.config.clone();
 
@@ -136,7 +139,6 @@ impl Middleware<AppState> for CacheResource {
                                                 }
                                             };
 
-                                        // Includes global roles to prevent any overruling of logic for an admin, etc. from being cached / fetched
                                         cache_configuration.user_key =
                                             Some(format!("{}-{}", scope, if has_scope { "t" } else { "f" }));
                                     }
@@ -150,11 +152,11 @@ impl Middleware<AppState> for CacheResource {
                         }
                     }
                     if let Some(ref user_key) = cache_configuration.user_key {
-                        query.insert(&user_text, user_key.to_string());
+                        cache_configuration.cache_data.insert(user_text, user_key.to_string());
                     }
                 }
             } else {
-                query.insert(&user_text, "".to_string());
+                cache_configuration.cache_data.insert(user_text, "".to_string());
             }
 
             let cache_database = state.database.cache_database.clone();
@@ -163,7 +165,7 @@ impl Middleware<AppState> for CacheResource {
                 .clone()
                 .inner
                 .clone()
-                .and_then(|conn| caching::get_cached_value(conn, &config, &query));
+                .and_then(|conn| caching::get_cached_value(conn, &config, &cache_configuration.cache_data));
             if let Some(response) = cached_value {
                 // Insert self into extensions to let response know not to set the value
                 cache_configuration.served_cache = true;
@@ -187,26 +189,10 @@ impl Middleware<AppState> for CacheResource {
                 let extensions = request.extensions();
                 if let Some(cache_configuration) = extensions.get::<CacheConfiguration>() {
                     let config = state.config.clone();
-
                     if cache_configuration.cache_response {
-                        let mut query = BTreeMap::new();
-                        let query_parameters = request.query();
-                        for (key, value) in query_parameters.iter() {
-                            query.insert(key, value.to_string());
-                        }
-                        let path_text = "path".to_string();
-                        let method = request.method().to_string();
-                        let method_text = "method".to_string();
-                        let user_text = "x-user-role".to_string();
-                        let user_key = cache_configuration.user_key.clone();
-                        query.insert(&path_text, path);
-                        query.insert(&method_text, method);
-                        query.insert(&user_text, user_key.unwrap_or("".to_string()));
-
-                        cache_database
-                            .inner
-                            .clone()
-                            .and_then(|conn| caching::set_cached_value(conn, &config, &response, &query).ok());
+                        cache_database.inner.clone().and_then(|conn| {
+                            caching::set_cached_value(conn, &config, &response, &cache_configuration.cache_data).ok()
+                        });
                     }
 
                     if cache_configuration.served_cache {
