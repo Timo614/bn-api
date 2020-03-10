@@ -1,8 +1,9 @@
 use crate::controllers::*;
-use crate::middleware::{CacheResource, CacheUsersBy};
+use crate::middleware::*;
 use crate::server::AppState;
 use actix_web::middleware::cors::CorsBuilder;
 use actix_web::{http::Method, App, HttpResponse};
+use bigneon_db::models::Scopes;
 
 pub fn routes(app: &mut CorsBuilder<AppState>) -> App<AppState> {
     // Please try to keep in alphabetical order
@@ -291,6 +292,10 @@ pub fn routes(app: &mut CorsBuilder<AppState>) -> App<AppState> {
         r.method(Method::POST).with(organizations::add_fee_schedule);
     })
     .resource("/organizations/{id}/fans", |r| {
+        r.middleware(CacheResource::new(CacheUsersBy::OrganizationScopePresence(
+            OrganizationLoad::Path,
+            Scopes::OrgFans,
+        )));
         r.method(Method::GET).with(organizations::search_fans);
     })
     .resource("/organizations/{id}/invites/{invite_id}", |r| {
