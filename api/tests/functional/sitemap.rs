@@ -1,6 +1,6 @@
+use crate::support::database::TestDatabase;
 use bigneon_api::utils::gen_sitemap;
 use bigneon_db::prelude::*;
-use support::database::TestDatabase;
 
 #[test]
 fn index() {

@@ -1,8 +1,8 @@
+use crate::config::Config;
+use crate::errors::*;
+use crate::utils::deep_linker::DeepLinker;
 use bigneon_db::models::*;
-use config::Config;
 use diesel::pg::PgConnection;
-use errors::*;
-use utils::deep_linker::DeepLinker;
 
 pub fn transfer_cancelled(
     config: &Config,

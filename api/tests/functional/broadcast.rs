@@ -1,3 +1,6 @@
+use crate::support;
+use crate::support::database::TestDatabase;
+use crate::support::test_request::RequestBuilder;
 use actix_web::{http::StatusCode, HttpResponse, Path};
 use bigneon_api::controllers::broadcasts;
 use bigneon_api::models::PathParameters;
@@ -6,9 +9,6 @@ use bigneon_db::models::*;
 use bigneon_db::prelude::Broadcast;
 use serde_json::Value;
 use std::string::ToString;
-use support;
-use support::database::TestDatabase;
-use support::test_request::RequestBuilder;
 
 #[test]
 fn broadcast_counter() {

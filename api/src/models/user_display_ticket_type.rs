@@ -1,7 +1,7 @@
+use crate::models::DisplayTicketPricing;
 use bigneon_db::prelude::*;
 use chrono::{NaiveDateTime, Utc};
 use diesel::PgConnection;
-use models::DisplayTicketPricing;
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]

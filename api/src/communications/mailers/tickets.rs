@@ -1,9 +1,9 @@
+use crate::communications::mailers::insert_event_template_data;
+use crate::config::Config;
+use crate::errors::*;
 use bigneon_db::models::*;
 use chrono::prelude::*;
-use communications::mailers::insert_event_template_data;
-use config::Config;
 use diesel::pg::PgConnection;
-use errors::*;
 use itertools::Itertools;
 
 pub fn send_tickets(

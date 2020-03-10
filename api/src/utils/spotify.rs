@@ -1,6 +1,6 @@
-use errors::{ApplicationError, ApplicationErrorType, BigNeonError};
+use crate::errors::{ApplicationError, ApplicationErrorType, BigNeonError};
+use crate::models::CreateArtistRequest;
 use log::Level::*;
-use models::CreateArtistRequest;
 use reqwest::Client;
 use serde_json;
 use serde_json::Value;

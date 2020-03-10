@@ -1,6 +1,6 @@
+use crate::support::database::TestDatabase;
 use bigneon_api::models::{AdminDisplayTicketType, DisplayTicketPricing};
 use bigneon_db::prelude::*;
-use support::database::TestDatabase;
 
 #[test]
 fn from_ticket_type() {

@@ -1,11 +1,11 @@
+use crate::auth::user::User as AuthUser;
+use crate::db::Connection;
+use crate::errors::*;
+use crate::extractors::*;
+use crate::helpers::application;
+use crate::models::PathParameters;
 use actix_web::{HttpResponse, Path};
-use auth::user::User as AuthUser;
 use bigneon_db::models::*;
-use db::Connection;
-use errors::*;
-use extractors::*;
-use helpers::application;
-use models::PathParameters;
 
 pub fn index(
     (connection, path, user): (Connection, Path<PathParameters>, AuthUser),

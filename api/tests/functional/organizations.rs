@@ -1,5 +1,5 @@
+use crate::functional::base::organizations;
 use bigneon_db::models::Roles;
-use functional::base::organizations;
 
 #[cfg(test)]
 mod index_tests {

@@ -1,3 +1,6 @@
+use crate::support;
+use crate::support::database::TestDatabase;
+use crate::support::test_request::TestRequest;
 use actix_web::{http::StatusCode, FromRequest, HttpResponse, Path, Query};
 use bigneon_api::controllers::transfers::{self, *};
 use bigneon_api::errors::BigNeonError;
@@ -6,9 +9,6 @@ use bigneon_db::prelude::*;
 use chrono::prelude::*;
 use serde_json::Value;
 use std::collections::HashMap;
-use support;
-use support::database::TestDatabase;
-use support::test_request::TestRequest;
 use uuid::Uuid;
 
 pub fn index(role: Roles, owns_order: bool, should_succeed: bool) {

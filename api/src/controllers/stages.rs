@@ -1,12 +1,12 @@
+use crate::auth::user::User as AuthUser;
+use crate::db::Connection;
 use actix_web::{HttpResponse, Path, Query};
-use auth::user::User as AuthUser;
 use bigneon_db::models::*;
-use db::Connection;
 
+use crate::errors::*;
+use crate::extractors::*;
+use crate::models::PathParameters;
 use diesel::PgConnection;
-use errors::*;
-use extractors::*;
-use models::PathParameters;
 
 pub fn index(
     (connection, path_parameters, query_parameters): (Connection, Path<PathParameters>, Query<PagingParameters>),

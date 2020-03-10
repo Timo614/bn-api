@@ -1,9 +1,9 @@
 // Websocket based on actix example https://github.com/actix/examples/blob/0.7/websocket/src/main.rs
 
+use crate::models::*;
+use crate::server::AppState;
 use actix::prelude::*;
 use actix_web::ws;
-use models::*;
-use server::AppState;
 use std::time::{Duration, Instant};
 use uuid::Uuid;
 

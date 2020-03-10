@@ -1,12 +1,12 @@
+use crate::functional::base;
+use crate::support;
+use crate::support::database::TestDatabase;
+use crate::support::test_request::TestRequest;
 use actix_web::{http::StatusCode, FromRequest, HttpResponse, Path, Query};
 use bigneon_api::controllers::regions;
 use bigneon_api::models::PathParameters;
 use bigneon_db::models::*;
-use functional::base;
 use serde_json;
-use support;
-use support::database::TestDatabase;
-use support::test_request::TestRequest;
 use uuid::Uuid;
 
 #[test]

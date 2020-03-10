@@ -1,7 +1,7 @@
+use crate::config::Config;
+use crate::errors::*;
 use bigneon_db::models::*;
-use config::Config;
 use diesel::PgConnection;
-use errors::*;
 
 pub fn user_registered(
     user_first_name: String,

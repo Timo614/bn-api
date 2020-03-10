@@ -1,3 +1,4 @@
+use crate::server::AppState;
 use actix_web::http::header::{HeaderName, HeaderValue};
 use actix_web::http::HttpTryFrom;
 use actix_web::middleware::{Middleware, Response};
@@ -5,7 +6,6 @@ use actix_web::Body::Binary;
 use actix_web::{HttpRequest, HttpResponse, Result};
 use regex::{Captures, Regex};
 use serde_json;
-use server::AppState;
 use std::str;
 
 use serde_json::Value;

@@ -333,3 +333,70 @@ fn update() {
     assert_eq!(domain_event_publisher.webhook_url, new_webhook_url);
     assert_eq!(domain_event_publisher.import_historic_events, false);
 }
+
+#[test]
+fn acquire_lock() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+    let organization = project.create_organization().finish();
+    let mut domain_event_publisher = DomainEventPublisher::create(
+        Some(organization.id),
+        vec![DomainEventTypes::TransferTicketStarted],
+        "http://localhost:7644/webhook".to_string(),
+        true,
+    )
+    .commit(connection)
+    .unwrap();
+
+    assert!(domain_event_publisher.acquire_lock(60, connection).is_ok());
+
+    // pretend this is from another thread
+    let mut domain_event_publisher_alias = DomainEventPublisher::find(domain_event_publisher.id, connection).unwrap();
+
+    assert!(domain_event_publisher_alias.acquire_lock(60, connection).is_err());
+}
+
+#[test]
+fn release_lock() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+    let organization = project.create_organization().finish();
+    let mut domain_event_publisher = DomainEventPublisher::create(
+        Some(organization.id),
+        vec![DomainEventTypes::TransferTicketStarted],
+        "http://localhost:7644/webhook".to_string(),
+        true,
+    )
+    .commit(connection)
+    .unwrap();
+
+    // pretend this is from another thread
+    let mut domain_event_publisher_alias = DomainEventPublisher::find(domain_event_publisher.id, connection).unwrap();
+
+    assert!(domain_event_publisher.acquire_lock(60, connection).is_ok());
+
+    assert!(domain_event_publisher_alias.acquire_lock(60, connection).is_err());
+
+    assert!(domain_event_publisher.release_lock(connection).is_ok());
+
+    assert!(domain_event_publisher_alias.acquire_lock(60, connection).is_ok());
+}
+
+#[test]
+fn renew_lock() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+    let organization = project.create_organization().finish();
+    let mut domain_event_publisher = DomainEventPublisher::create(
+        Some(organization.id),
+        vec![DomainEventTypes::TransferTicketStarted],
+        "http://localhost:7644/webhook".to_string(),
+        true,
+    )
+    .commit(connection)
+    .unwrap();
+
+    assert!(domain_event_publisher.acquire_lock(60, connection).is_ok());
+
+    assert!(domain_event_publisher.renew_lock(60, connection).is_ok());
+}

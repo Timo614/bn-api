@@ -1,12 +1,12 @@
+use crate::support;
+use crate::support::database::TestDatabase;
+use crate::support::test_request::TestRequest;
 use actix_web::{http::StatusCode, FromRequest, HttpResponse, Path};
 use bigneon_api::controllers::event_report_subscribers::{self, NewEventReportSubscriberRequest};
 use bigneon_api::extractors::*;
 use bigneon_api::models::PathParameters;
 use bigneon_db::models::*;
 use std::collections::HashMap;
-use support;
-use support::database::TestDatabase;
-use support::test_request::TestRequest;
 
 pub fn index(role: Roles, should_test_succeed: bool) {
     let database = TestDatabase::new();

@@ -190,6 +190,55 @@ pub struct TicketSalesAndCounts {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Queryable, QueryableByName)]
+pub struct DomainTransactionReportRow {
+    #[serde(skip_serializing)]
+    #[sql_type = "BigInt"]
+    pub total: i64,
+    #[sql_type = "dUuid"]
+    pub order_id: Uuid,
+    #[sql_type = "Text"]
+    pub customer_name_first: String,
+    #[sql_type = "Text"]
+    pub customer_name_last: String,
+    #[sql_type = "Text"]
+    pub customer_email_address: String,
+    #[sql_type = "Text"]
+    pub event_name: String,
+    #[sql_type = "Timestamp"]
+    pub event_date: NaiveDateTime,
+    #[sql_type = "Text"]
+    pub ticket_type_name: String,
+    #[sql_type = "Timestamp"]
+    pub transaction_date: NaiveDateTime,
+    #[sql_type = "Nullable<Text>"]
+    pub point_of_sale: Option<String>,
+    #[sql_type = "Text"]
+    pub payment_method: String,
+    #[sql_type = "BigInt"]
+    pub qty_tickets_sold: i64,
+    #[sql_type = "BigInt"]
+    pub qty_tickets_refunded: i64,
+    #[sql_type = "BigInt"]
+    pub qty_tickets_sold_net: i64,
+    #[sql_type = "BigInt"]
+    pub face_price_in_cents: i64,
+    #[sql_type = "BigInt"]
+    pub total_face_value_in_cents: i64,
+    #[sql_type = "BigInt"]
+    pub client_per_ticket_revenue_in_cents: i64,
+    #[sql_type = "BigInt"]
+    pub client_per_order_revenue_in_cents: i64,
+    #[sql_type = "BigInt"]
+    pub company_per_ticket_revenue_in_cents: i64,
+    #[sql_type = "BigInt"]
+    pub company_per_order_revenue_in_cents: i64,
+    #[sql_type = "BigInt"]
+    pub credit_card_processing_fees_in_cents: i64,
+    #[sql_type = "BigInt"]
+    pub gross: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Queryable, QueryableByName)]
 pub struct TransactionReportRow {
     #[serde(skip_serializing)]
     #[sql_type = "BigInt"]
@@ -758,6 +807,36 @@ impl Report {
         })
     }
 
+    pub fn domain_transaction_detail_report(
+        transaction_date_start: Option<NaiveDateTime>,
+        transaction_date_end: Option<NaiveDateTime>,
+        event_date_start: Option<NaiveDateTime>,
+        event_date_end: Option<NaiveDateTime>,
+        page: u32,
+        limit: u32,
+        conn: &PgConnection,
+    ) -> Result<Payload<DomainTransactionReportRow>, DatabaseError> {
+        let query = include_str!("../queries/reports/reports_domain_transaction_details.sql");
+        let q = diesel::sql_query(query)
+            .bind::<Nullable<Timestamp>, _>(transaction_date_start)
+            .bind::<Nullable<Timestamp>, _>(transaction_date_end)
+            .bind::<Nullable<Timestamp>, _>(event_date_start)
+            .bind::<Nullable<Timestamp>, _>(event_date_end)
+            .bind::<BigInt, _>((page * limit) as i64)
+            .bind::<BigInt, _>(limit as i64);
+        let transaction_rows: Vec<DomainTransactionReportRow> = q
+            .get_results(conn)
+            .to_db_error(ErrorCode::QueryError, "Could not fetch report results")?;
+        let total = if transaction_rows.is_empty() {
+            0
+        } else {
+            transaction_rows[0].total
+        };
+        let mut paging = Paging::new(page, limit);
+        paging.total = total as u64;
+        Ok(Payload::new(transaction_rows, paging))
+    }
+
     pub fn transaction_detail_report(
         query_filter: Option<String>,
         event_id: Option<Uuid>,
@@ -776,7 +855,7 @@ impl Report {
             .bind::<Nullable<Timestamp>, _>(end)
             .bind::<Nullable<Text>, _>(query_filter)
             .bind::<BigInt, _>((page * limit) as i64)
-            .bind::<Nullable<BigInt>, _>(Some(limit as i64));
+            .bind::<BigInt, _>(limit as i64);
         let transaction_rows: Vec<TransactionReportRow> = q
             .get_results(conn)
             .to_db_error(ErrorCode::QueryError, "Could not fetch report results")?;

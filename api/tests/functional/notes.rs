@@ -1,12 +1,12 @@
+use crate::functional::base;
+use crate::support;
+use crate::support::database::TestDatabase;
+use crate::support::test_request::TestRequest;
 use actix_web::{http::StatusCode, FromRequest, HttpResponse, Path};
 use bigneon_api::controllers::notes::{self, *};
 use bigneon_api::extractors::*;
 use bigneon_api::models::*;
 use bigneon_db::prelude::*;
-use functional::base;
-use support;
-use support::database::TestDatabase;
-use support::test_request::TestRequest;
 
 #[cfg(test)]
 mod index_tests {

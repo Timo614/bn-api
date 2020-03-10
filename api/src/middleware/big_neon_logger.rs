@@ -1,3 +1,5 @@
+use crate::extractors::OptionalUser;
+use crate::server::AppState;
 use actix_web::error;
 use actix_web::http::header;
 use actix_web::http::StatusCode;
@@ -8,9 +10,7 @@ use actix_web::middleware::Started;
 use actix_web::FromRequest;
 use actix_web::HttpRequest;
 use actix_web::HttpResponse;
-use extractors::OptionalUser;
 use log::Level;
-use server::AppState;
 
 pub struct BigNeonLogger {
     logger: Logger,

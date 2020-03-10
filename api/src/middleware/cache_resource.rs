@@ -1,13 +1,13 @@
+use crate::extractors::*;
+use crate::helpers::*;
+use crate::server::AppState;
 use actix_web::http::header::*;
 use actix_web::http::{HttpTryFrom, Method, StatusCode};
 use actix_web::middleware::{Middleware, Response, Started};
 use actix_web::{Body, FromRequest, HttpRequest, HttpResponse, Result};
 use bigneon_http::caching::*;
-use extractors::*;
-use helpers::*;
 use itertools::Itertools;
 use serde_json::Value;
-use server::AppState;
 use std::collections::BTreeMap;
 
 const CACHED_RESPONSE_HEADER: &'static str = "X-Cached-Response";
@@ -59,16 +59,11 @@ impl Middleware<AppState> for CacheResource {
         let mut cache_configuration = CacheConfiguration::new();
         if request.method() == Method::GET {
             let mut query = BTreeMap::new();
-            let resource = request.resource().clone();
             let query_parameters = request.query().clone();
             for (key, value) in query_parameters.iter() {
                 query.insert(key, value.to_string());
             }
-            let resource_def = resource.rdef().clone();
-            if resource_def.is_none() {
-                return Ok(Started::Done);
-            }
-            let path = resource_def.unwrap().pattern().to_string();
+            let path = request.path().to_string();
             let path_text = "path".to_string();
             let method = request.method().to_string();
             let method_text = "method".to_string();
@@ -138,16 +133,11 @@ impl Middleware<AppState> for CacheResource {
                 if cache_configuration.cache_response {
                     let cache_database = state.database.cache_database.clone();
                     let mut query = BTreeMap::new();
-                    let resource = request.resource().clone();
                     let query_parameters = request.query();
                     for (key, value) in query_parameters.iter() {
                         query.insert(key, value.to_string());
                     }
-                    let resource_def = resource.rdef().clone();
-                    if resource_def.is_none() {
-                        return Ok(Response::Done(response));
-                    }
-                    let path = resource_def.unwrap().pattern().to_string();
+                    let path = request.path().to_string();
                     let path_text = "path".to_string();
                     let method = request.method().to_string();
                     let method_text = "method".to_string();

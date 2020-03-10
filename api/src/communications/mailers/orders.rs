@@ -1,8 +1,8 @@
+use crate::config::Config;
+use crate::errors::*;
 use bigneon_db::models::*;
 use bigneon_db::prelude::{DisplayOrder, OrderItem, Refund};
-use config::Config;
 use diesel::PgConnection;
-use errors::*;
 use itertools::Itertools;
 
 pub fn confirmation_email(

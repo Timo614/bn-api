@@ -1,14 +1,14 @@
+use crate::errors::*;
+use crate::jwt::errors::{Error as JwtError, ErrorKind as JwtErrorKind};
+use crate::payments::PaymentProcessorError;
 use actix_web::{http::StatusCode, HttpResponse};
 use bigneon_db::utils::errors::ErrorCode::ValidationError;
 use bigneon_db::utils::errors::*;
 use branch_rs::BranchError;
 use customer_io::CustomerIoError;
 use diesel::result::Error as DieselError;
-use errors::*;
 use facebook::prelude::FacebookError;
 use globee::GlobeeError;
-use jwt::errors::{Error as JwtError, ErrorKind as JwtErrorKind};
-use payments::PaymentProcessorError;
 use r2d2;
 use redis::RedisError;
 use reqwest::header::ToStrError as ReqwestToStrError;

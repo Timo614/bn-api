@@ -1,12 +1,12 @@
+use crate::config::Config;
+use crate::errors::*;
+use crate::helpers::*;
+use crate::utils::redis::*;
 use actix_web::HttpResponse;
 use cache::CacheConnection;
-use config::Config;
-use errors::*;
-use helpers::*;
 use serde::Serialize;
 use serde_json::{self, Value};
 use std::borrow::Borrow;
-use utils::redis::*;
 
 pub(crate) fn set_cached_value<T: Serialize>(
     mut cache_connection: impl CacheConnection,

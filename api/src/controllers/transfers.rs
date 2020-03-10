@@ -1,16 +1,16 @@
+use crate::auth::user::User;
+use crate::communications::{mailers, smsers};
+use crate::controllers::tickets::transfer_tickets_on_blockchain;
+use crate::db::Connection;
+use crate::errors::*;
+use crate::helpers::application;
+use crate::models::*;
+use crate::server::AppState;
 use actix_web::{http::StatusCode, HttpResponse, Path, Query, State};
-use auth::user::User;
 use bigneon_db::models::{User as DbUser, *};
 use chrono::prelude::*;
-use communications::{mailers, smsers};
-use controllers::tickets::transfer_tickets_on_blockchain;
-use db::Connection;
 use diesel::PgConnection;
-use errors::*;
-use helpers::application;
 use itertools::Itertools;
-use models::*;
-use server::AppState;
 
 #[derive(Deserialize, Clone)]
 pub struct TransferFilters {

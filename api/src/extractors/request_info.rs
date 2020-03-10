@@ -1,7 +1,7 @@
+use crate::models::*;
+use crate::server::AppState;
 use actix_web::error::*;
 use actix_web::{FromRequest, HttpRequest};
-use models::*;
-use server::AppState;
 
 impl FromRequest<AppState> for RequestInfo {
     type Config = ();

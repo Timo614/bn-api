@@ -1,12 +1,12 @@
 // Extractor based on Actix-Web's JSON extractor with a default error handler
 // https://github.com/actix/actix-web/blob/master/src/json.rs
 
+use crate::server::AppState;
 use actix_web::dev::JsonBody;
 use actix_web::error::{Error, InternalError, JsonPayloadError};
 use actix_web::{FromRequest, HttpRequest, HttpResponse};
 use futures::Future;
 use serde::de::DeserializeOwned;
-use server::AppState;
 use std::ops::Deref;
 
 const LIMIT_DEFAULT: usize = 262_144; // 256Kb

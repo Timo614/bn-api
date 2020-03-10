@@ -1,3 +1,6 @@
+use crate::support;
+use crate::support::database::TestDatabase;
+use crate::support::test_request::TestRequest;
 use actix_web::{http::StatusCode, FromRequest, HttpResponse, Path, Query};
 use bigneon_api::controllers::events;
 use bigneon_api::controllers::events::*;
@@ -14,9 +17,6 @@ use serde_json;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::env;
-use support;
-use support::database::TestDatabase;
-use support::test_request::TestRequest;
 use uuid::Uuid;
 
 pub fn clone(role: Roles, should_test_succeed: bool) {

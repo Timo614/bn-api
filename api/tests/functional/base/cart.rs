@@ -1,11 +1,11 @@
+use crate::support;
+use crate::support::database::TestDatabase;
 use actix_web::{http::StatusCode, HttpResponse};
 use bigneon_api::controllers::cart;
 use bigneon_api::extractors::*;
 use bigneon_api::models::*;
 use bigneon_db::models::*;
 use chrono::prelude::*;
-use support;
-use support::database::TestDatabase;
 
 pub fn update_box_office_pricing(role: Roles, should_test_succeed: bool) {
     let database = TestDatabase::new();

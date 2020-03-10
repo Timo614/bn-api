@@ -1,14 +1,14 @@
 use crate::db::Connection;
+use crate::errors::*;
+use crate::extractors::OptionalUser;
+use crate::helpers::application;
+use crate::server::AppState;
 use actix_web::HttpResponse;
 use actix_web::Path;
 use actix_web::Query;
 use actix_web::State;
 use bigneon_db::prelude::*;
-use errors::*;
-use extractors::OptionalUser;
-use helpers::application;
 use log::Level::Debug;
-use server::AppState;
 use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Debug)]

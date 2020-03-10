@@ -1,9 +1,9 @@
+use crate::support;
+use crate::support::database::TestDatabase;
 use actix_web::{http::StatusCode, HttpResponse};
 use bigneon_api::controllers::payment_methods;
 use bigneon_db::models::{DisplayPaymentMethod, PaymentProviders, Roles};
 use serde_json;
-use support;
-use support::database::TestDatabase;
 
 #[test]
 fn index() {

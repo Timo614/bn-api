@@ -9,13 +9,13 @@ use std::time::Duration;
 
 use log::Level::*;
 
+use crate::config::Config;
+use crate::db::*;
+use crate::errors::*;
+use crate::models::*;
+use crate::utils::redis::*;
 use actix::Addr;
-use config::Config;
-use db::*;
-use errors::*;
 use logging::*;
-use models::*;
-use utils::redis::*;
 use uuid::Uuid;
 
 pub struct RedisPubSubProcessor {

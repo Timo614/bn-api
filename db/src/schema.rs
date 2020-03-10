@@ -152,6 +152,7 @@ table! {
         deleted_at -> Nullable<Timestamp>,
         adapter -> Nullable<Varchar>,
         adapter_config -> Nullable<Jsonb>,
+        blocked_until -> Timestamp,
     }
 }
 
@@ -217,17 +218,6 @@ table! {
 }
 
 table! {
-    event_users (id) {
-        id -> Uuid,
-        user_id -> Uuid,
-        event_id -> Uuid,
-        role -> Text,
-        created_at -> Timestamp,
-        updated_at -> Timestamp,
-    }
-}
-
-table! {
     events (id) {
         id -> Uuid,
         name -> Text,
@@ -264,6 +254,17 @@ table! {
         facebook_event_id -> Nullable<Text>,
         settled_at -> Nullable<Timestamp>,
         cloned_from_event_id -> Nullable<Uuid>,
+    }
+}
+
+table! {
+    event_users (id) {
+        id -> Uuid,
+        user_id -> Uuid,
+        event_id -> Uuid,
+        role -> Text,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
     }
 }
 
@@ -371,16 +372,6 @@ table! {
 }
 
 table! {
-    order_transfers (id) {
-        id -> Uuid,
-        order_id -> Uuid,
-        transfer_id -> Uuid,
-        created_at -> Timestamp,
-        updated_at -> Timestamp,
-    }
-}
-
-table! {
     orders (id) {
         id -> Uuid,
         user_id -> Uuid,
@@ -408,6 +399,16 @@ table! {
         platform -> Nullable<Text>,
         settlement_id -> Nullable<Uuid>,
         referrer -> Nullable<Text>,
+    }
+}
+
+table! {
+    order_transfers (id) {
+        id -> Uuid,
+        order_id -> Uuid,
+        transfer_id -> Uuid,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
     }
 }
 
@@ -442,27 +443,6 @@ table! {
 }
 
 table! {
-    organization_users (id) {
-        id -> Uuid,
-        organization_id -> Uuid,
-        user_id -> Uuid,
-        created_at -> Timestamp,
-        updated_at -> Timestamp,
-        role -> Array<Text>,
-    }
-}
-
-table! {
-    organization_venues (id) {
-        id -> Uuid,
-        organization_id -> Uuid,
-        venue_id -> Uuid,
-        created_at -> Timestamp,
-        updated_at -> Timestamp,
-    }
-}
-
-table! {
     organizations (id) {
         id -> Uuid,
         name -> Text,
@@ -491,6 +471,27 @@ table! {
         slug_id -> Nullable<Uuid>,
         google_ads_conversion_id -> Nullable<Text>,
         google_ads_conversion_labels -> Array<Text>,
+    }
+}
+
+table! {
+    organization_users (id) {
+        id -> Uuid,
+        organization_id -> Uuid,
+        user_id -> Uuid,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+        role -> Array<Text>,
+    }
+}
+
+table! {
+    organization_venues (id) {
+        id -> Uuid,
+        organization_id -> Uuid,
+        venue_id -> Uuid,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
     }
 }
 
@@ -537,24 +538,24 @@ table! {
 }
 
 table! {
-    refund_items (id) {
-        id -> Uuid,
-        refund_id -> Uuid,
-        order_item_id -> Uuid,
-        quantity -> Int8,
-        amount -> Int8,
-        created_at -> Timestamp,
-        updated_at -> Timestamp,
-    }
-}
-
-table! {
     refunded_tickets (id) {
         id -> Uuid,
         order_item_id -> Uuid,
         ticket_instance_id -> Uuid,
         fee_refunded_at -> Nullable<Timestamp>,
         ticket_refunded_at -> Nullable<Timestamp>,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+table! {
+    refund_items (id) {
+        id -> Uuid,
+        refund_id -> Uuid,
+        order_item_id -> Uuid,
+        quantity -> Int8,
+        amount -> Int8,
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }
@@ -755,16 +756,6 @@ table! {
 }
 
 table! {
-    transfer_tickets (id) {
-        id -> Uuid,
-        ticket_instance_id -> Uuid,
-        transfer_id -> Uuid,
-        created_at -> Timestamp,
-        updated_at -> Timestamp,
-    }
-}
-
-table! {
     transfers (id) {
         id -> Uuid,
         source_user_id -> Uuid,
@@ -778,6 +769,16 @@ table! {
         cancelled_by_user_id -> Nullable<Uuid>,
         direct -> Bool,
         destination_temporary_user_id -> Nullable<Uuid>,
+    }
+}
+
+table! {
+    transfer_tickets (id) {
+        id -> Uuid,
+        ticket_instance_id -> Uuid,
+        transfer_id -> Uuid,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
     }
 }
 
@@ -951,8 +952,8 @@ allow_tables_to_appear_in_same_query!(
     event_genres,
     event_interest,
     event_report_subscribers,
-    event_users,
     events,
+    event_users,
     external_logins,
     fee_schedule_ranges,
     fee_schedules,
@@ -960,18 +961,18 @@ allow_tables_to_appear_in_same_query!(
     holds,
     notes,
     order_items,
-    order_transfers,
     orders,
+    order_transfers,
     organization_interactions,
     organization_invites,
+    organizations,
     organization_users,
     organization_venues,
-    organizations,
     payment_methods,
     payments,
     push_notification_tokens,
-    refund_items,
     refunded_tickets,
+    refund_items,
     refunds,
     regions,
     settlement_adjustments,
@@ -986,8 +987,8 @@ allow_tables_to_appear_in_same_query!(
     ticket_pricing,
     ticket_type_codes,
     ticket_types,
-    transfer_tickets,
     transfers,
+    transfer_tickets,
     user_genres,
     users,
     venues,

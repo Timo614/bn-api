@@ -1,12 +1,12 @@
+use crate::db::Connection;
+use crate::errors::BigNeonError;
+use crate::extractors::*;
+use crate::helpers::application;
+use crate::models::*;
 use actix_web::Path;
 use actix_web::{HttpResponse, Query};
 use bigneon_db::prelude::*;
 use chrono::NaiveDateTime;
-use db::Connection;
-use errors::BigNeonError;
-use extractors::*;
-use helpers::application;
-use models::*;
 use uuid::Uuid;
 
 #[derive(Deserialize)]

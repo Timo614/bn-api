@@ -1,13 +1,13 @@
+use crate::db::Connection;
+use crate::errors::*;
 use actix_web::HttpResponse;
 use bigneon_db::utils::migration;
-use db::Connection;
 use diesel::PgConnection;
-use errors::*;
 use log::Level::*;
 
 static mut IS_OK: bool = false;
 
-pub fn check(connection: (Connection)) -> Result<HttpResponse, BigNeonError> {
+pub fn check(connection: Connection) -> Result<HttpResponse, BigNeonError> {
     if unsafe { IS_OK } {
         return Ok(HttpResponse::Ok().finish());
     }

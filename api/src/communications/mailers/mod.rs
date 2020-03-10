@@ -1,6 +1,6 @@
+use crate::errors::BigNeonError;
 use bigneon_db::models::*;
 use diesel::PgConnection;
-use errors::BigNeonError;
 use url::form_urlencoded::byte_serialize;
 
 pub mod orders;

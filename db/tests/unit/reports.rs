@@ -1416,6 +1416,105 @@ fn transaction_detail_report() {
 }
 
 #[test]
+fn domain_transaction_detail_report() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+    let organization = project
+        .create_organization()
+        .with_event_fee()
+        .with_fees()
+        .with_cc_fee(1.1)
+        .finish();
+    let event = project
+        .create_event()
+        .with_organization(&organization)
+        .with_name("Event1".to_string())
+        .with_tickets()
+        .with_ticket_pricing()
+        .with_event_start(Utc::now().naive_utc() + Duration::days(20))
+        .finish();
+    let ticket_type = event.ticket_types(true, None, connection).unwrap().remove(0);
+
+    let user = project
+        .create_user()
+        .with_first_name("Bob".into())
+        .with_last_name("Bobber".into())
+        .with_email("bobber@tari.com".into())
+        .finish();
+    let user2 = project
+        .create_user()
+        .with_first_name("Bobby".into())
+        .with_last_name("Last".into())
+        .with_email("bobby.last@tari.com".into())
+        .finish();
+
+    let mut order = project
+        .create_order()
+        .quantity(2)
+        .for_event(&event)
+        .for_user(&user)
+        .is_paid()
+        .finish();
+    let order_paid_at = Utc::now().naive_utc() - Duration::days(6);
+    order = diesel::update(orders::table.filter(orders::id.eq(order.id)))
+        .set(orders::paid_at.eq(order_paid_at))
+        .get_result::<Order>(connection)
+        .unwrap();
+
+    let order2 = project
+        .create_order()
+        .quantity(1)
+        .for_event(&event)
+        .for_user(&user2)
+        .is_paid()
+        .finish();
+    let order2_paid_at = Utc::now().naive_utc() - Duration::days(4);
+    diesel::update(orders::table.filter(orders::id.eq(order2.id)))
+        .set(orders::paid_at.eq(order2_paid_at))
+        .get_result::<Order>(connection)
+        .unwrap();
+
+    // Gets order 1 only, utilizing all code paths
+    let result = Report::domain_transaction_detail_report(
+        Some(order.paid_at.unwrap() - Duration::hours(1)),
+        Some(order.paid_at.unwrap() + Duration::hours(1)),
+        Some(event.event_start.unwrap() - Duration::hours(1)),
+        Some(event.event_start.unwrap() + Duration::hours(1)),
+        0,
+        1,
+        connection,
+    )
+    .unwrap();
+    let expected_results = vec![DomainTransactionReportRow {
+        total: 1,
+        order_id: order.id,
+        customer_name_first: user.first_name.clone().unwrap(),
+        customer_name_last: user.last_name.clone().unwrap(),
+        customer_email_address: user.email.clone().unwrap(),
+        event_name: event.name.clone(),
+        event_date: event.event_start.unwrap(),
+        ticket_type_name: ticket_type.name.clone(),
+        transaction_date: order.paid_at.unwrap(),
+        point_of_sale: None,
+        payment_method: PaymentMethods::CreditCard.to_string(),
+        qty_tickets_sold: 2,
+        qty_tickets_refunded: 0,
+        qty_tickets_sold_net: 2,
+        face_price_in_cents: 150,
+        total_face_value_in_cents: 300,
+        client_per_ticket_revenue_in_cents: 162,
+        client_per_order_revenue_in_cents: 174,
+        company_per_ticket_revenue_in_cents: 108,
+        company_per_order_revenue_in_cents: 116,
+        credit_card_processing_fees_in_cents: 6,
+        gross: 596,
+    }];
+    assert_eq!(result.data, expected_results);
+    assert_eq!(result.paging.total, 1);
+    assert_eq!(result.paging.limit, 1);
+}
+
+#[test]
 fn box_office_sales_summary_report() {
     let project = TestProject::new();
     let connection = project.get_connection();

@@ -1,3 +1,7 @@
+use crate::functional::{base::events, events::event_venue_entry};
+use crate::support;
+use crate::support::database::TestDatabase;
+use crate::support::test_request::TestRequest;
 use actix_web::Query;
 use actix_web::{http::StatusCode, FromRequest, HttpResponse, Path};
 use bigneon_api::controllers::events::*;
@@ -6,12 +10,8 @@ use bigneon_api::controllers::slugs::*;
 use bigneon_api::extractors::*;
 use bigneon_api::models::*;
 use bigneon_db::models::*;
-use functional::{base::events, events::event_venue_entry};
 use serde_json;
 use std::env;
-use support;
-use support::database::TestDatabase;
-use support::test_request::TestRequest;
 
 #[test]
 fn show_event() {

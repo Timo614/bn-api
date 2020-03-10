@@ -1,20 +1,20 @@
+use crate::config::Config;
+use crate::db::*;
+use crate::domain_events::DomainActionMonitor;
+use crate::middleware::{AppVersionHeader, BigNeonLogger, DatabaseTransaction, Metatags};
+use crate::models::*;
+use crate::routing;
+use crate::utils::redis::*;
+use crate::utils::spotify;
+use crate::utils::ServiceLocator;
 use actix::Addr;
 use actix_web::http;
 use actix_web::middleware::cors::Cors;
 use actix_web::{fs::StaticFiles, server, App};
 use bigneon_db::utils::errors::DatabaseError;
-use config::Config;
-use db::*;
-use domain_events::DomainActionMonitor;
 use log::Level::Debug;
-use middleware::{AppVersionHeader, BigNeonLogger, DatabaseTransaction, Metatags};
-use models::*;
-use routing;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use utils::redis::*;
-use utils::spotify;
-use utils::ServiceLocator;
 use uuid::Uuid;
 
 // Must be valid JSON

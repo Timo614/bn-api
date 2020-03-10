@@ -1,3 +1,7 @@
+use crate::functional::base;
+use crate::support;
+use crate::support::database::TestDatabase;
+use crate::support::test_request::{RequestBuilder, TestRequest};
 use actix_web::Query;
 use actix_web::{http::StatusCode, FromRequest, HttpResponse, Path};
 use bigneon_api::controllers::events;
@@ -9,14 +13,10 @@ use bigneon_db::utils::dates;
 use chrono::prelude::*;
 use chrono::Duration;
 use diesel::PgConnection;
-use functional::base;
 use serde_json;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::env;
-use support;
-use support::database::TestDatabase;
-use support::test_request::{RequestBuilder, TestRequest};
 use uuid::Uuid;
 
 #[test]

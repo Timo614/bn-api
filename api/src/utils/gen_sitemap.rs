@@ -1,7 +1,7 @@
+use crate::errors::{ApplicationError, ApplicationErrorType, BigNeonError};
 use bigneon_db::prelude::*;
 use chrono::Utc;
 use diesel::PgConnection;
-use errors::{ApplicationError, ApplicationErrorType, BigNeonError};
 use itertools::Itertools;
 use sitemap::structs::UrlEntry;
 use sitemap::writer::SiteMapWriter;

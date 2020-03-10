@@ -1,7 +1,7 @@
+use crate::config::Config;
+use crate::errors::*;
 use bigneon_db::models::*;
-use config::Config;
 use diesel::pg::PgConnection;
-use errors::*;
 use phonenumber::{Mode, PhoneNumber};
 use uuid::Uuid;
 

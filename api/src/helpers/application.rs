@@ -1,6 +1,6 @@
+use crate::auth::user::User as AuthUser;
+use crate::errors::*;
 use actix_web::{http, http::StatusCode, Body::Binary, HttpResponse, Responder};
-use auth::user::User as AuthUser;
-use errors::*;
 use serde_json::{self, Value};
 use std::collections::HashMap;
 use std::str;

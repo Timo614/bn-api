@@ -1,6 +1,8 @@
 pub mod database;
 pub mod test_request;
 
+use crate::support::database::TestDatabase;
+use crate::support::test_request::TestRequest;
 use actix_web::{http::StatusCode, Body::Binary, HttpResponse};
 use bigneon_api::auth::user::User as AuthUser;
 use bigneon_db::models::{Organization, Roles, User};
@@ -8,8 +10,6 @@ use serde::Deserialize;
 use serde_json;
 use std::collections::HashMap;
 use std::str;
-use support::database::TestDatabase;
-use support::test_request::TestRequest;
 use uuid::Uuid;
 use validator::ValidationError;
 

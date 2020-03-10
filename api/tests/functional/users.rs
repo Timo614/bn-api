@@ -1,15 +1,15 @@
+use crate::functional::base;
+use crate::support;
+use crate::support::database::TestDatabase;
+use crate::support::test_request::TestRequest;
 use actix_web::{http::StatusCode, HttpResponse};
 use bigneon_api::auth::TokenResponse;
 use bigneon_api::controllers::users;
 use bigneon_api::extractors::*;
 use bigneon_api::models::{RegisterRequest, RequestInfo, UserProfileAttributes};
 use bigneon_db::prelude::*;
-use functional::base;
 use serde_json;
 use std::collections::HashMap;
-use support;
-use support::database::TestDatabase;
-use support::test_request::TestRequest;
 
 use bigneon_api::errors::BigNeonError;
 

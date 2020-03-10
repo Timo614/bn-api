@@ -1,3 +1,6 @@
+use crate::support;
+use crate::support::database::TestDatabase;
+use crate::support::test_request::TestRequest;
 use actix_web::{http::StatusCode, FromRequest, HttpResponse, Path, Query};
 use bigneon_api::controllers::users::{self, *};
 use bigneon_api::errors::*;
@@ -6,9 +9,6 @@ use bigneon_api::models::*;
 use bigneon_db::models::*;
 use serde_json;
 use std::collections::HashMap;
-use support;
-use support::database::TestDatabase;
-use support::test_request::TestRequest;
 use uuid::Uuid;
 
 pub fn profile(role: Roles, should_test_true: bool) {

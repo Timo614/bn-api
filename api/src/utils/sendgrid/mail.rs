@@ -1,7 +1,7 @@
+use crate::errors::*;
 use bigneon_db::models::*;
-use errors::*;
 use futures::future::Either;
-use reqwest::async::Client as AsyncClient;
+use reqwest::r#async::Client as AsyncClient;
 use reqwest::Client;
 use serde_json;
 use std::collections::HashMap;
@@ -304,6 +304,9 @@ mod tests {
         test_msg.unique_args = Some(map);
         test_msg.category = Some(vec!["cat1".to_string(), "cat2".to_string()]);
         let actual = json!(test_msg).to_string();
-        assert_eq!(r#"{"category":["cat1","cat2"],"content":[],"from":{"email":""},"personalizations":[],"unique_args":{"k_one":"v_one","k_two":"v_two"}}"#, actual);
+        assert_eq!(
+            r#"{"category":["cat1","cat2"],"content":[],"from":{"email":""},"personalizations":[],"unique_args":{"k_one":"v_one","k_two":"v_two"}}"#,
+            actual
+        );
     }
 }

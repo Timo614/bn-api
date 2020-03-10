@@ -1,14 +1,14 @@
+use crate::jwt::{decode, encode, Header, Validation};
+use crate::support;
+use crate::support::database::TestDatabase;
+use crate::support::test_request::TestRequest;
 use actix_web::{http::StatusCode, HttpResponse};
 use bigneon_api::auth::{claims::AccessToken, claims::RefreshToken, TokenResponse};
 use bigneon_api::controllers::auth;
 use bigneon_api::controllers::auth::{LoginRequest, RefreshRequest};
 use bigneon_api::extractors::*;
 use bigneon_api::models::*;
-use jwt::{decode, encode, Header, Validation};
 use serde_json;
-use support;
-use support::database::TestDatabase;
-use support::test_request::TestRequest;
 use uuid::Uuid;
 
 #[test]

@@ -1,12 +1,12 @@
+use crate::auth::claims;
+use crate::auth::user::User;
+use crate::errors::*;
+use crate::jwt::{decode, Validation};
+use crate::middleware::RequestConnection;
+use crate::server::AppState;
 use actix_web::error::*;
 use actix_web::{FromRequest, HttpRequest};
-use auth::claims;
-use auth::user::User;
 use bigneon_db::models::User as DbUser;
-use errors::*;
-use jwt::{decode, Validation};
-use middleware::RequestConnection;
-use server::AppState;
 
 impl FromRequest<AppState> for User {
     type Config = ();
