@@ -279,12 +279,24 @@ pub fn routes(app: &mut CorsBuilder<AppState>) -> App<AppState> {
         r.method(Method::GET).with(events::export_event_data);
     })
     .resource("/organizations/{id}/fans/{user_id}/activity", |r| {
+        r.middleware(CacheResource::new(CacheUsersBy::OrganizationScopePresence(
+            OrganizationLoad::Path,
+            Scopes::OrgFans,
+        )));
         r.method(Method::GET).with(users::activity);
     })
     .resource("/organizations/{id}/fans/{user_id}/history", |r| {
+        r.middleware(CacheResource::new(CacheUsersBy::OrganizationScopePresence(
+            OrganizationLoad::Path,
+            Scopes::OrgFans,
+        )));
         r.method(Method::GET).with(users::history);
     })
     .resource("/organizations/{id}/fans/{user_id}", |r| {
+        r.middleware(CacheResource::new(CacheUsersBy::OrganizationScopePresence(
+            OrganizationLoad::Path,
+            Scopes::OrgFans,
+        )));
         r.method(Method::GET).with(users::profile);
     })
     .resource("/organizations/{id}/fee_schedule", |r| {

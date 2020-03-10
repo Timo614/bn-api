@@ -155,8 +155,6 @@ impl Middleware<AppState> for CacheResource {
                         cache_configuration.cache_data.insert(user_text, user_key.to_string());
                     }
                 }
-            } else {
-                cache_configuration.cache_data.insert(user_text, "".to_string());
             }
 
             let cache_database = state.database.cache_database.clone();
