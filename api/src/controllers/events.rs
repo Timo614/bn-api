@@ -588,23 +588,34 @@ pub fn clone(
 }
 
 pub fn publish(
-    (connection, path, user): (Connection, Path<PathParameters>, AuthUser),
+    (connection, path, user, cache_database): (Connection, Path<PathParameters>, AuthUser, CacheDatabase),
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = connection.get();
     let event = Event::find(path.id, conn)?;
     user.requires_scope_for_organization_event(Scopes::EventWrite, &event.organization(conn)?, &event, conn)?;
     event.publish(Some(user.id()), conn)?;
 
+    cache_database
+        .inner
+        .clone()
+        .and_then(|conn| caching::delete_by_key_fragment(conn, event.id.to_string()).ok());
+
     Ok(HttpResponse::Ok().finish())
 }
 
 pub fn unpublish(
-    (connection, path, user): (Connection, Path<PathParameters>, AuthUser),
+    (connection, path, user, cache_database): (Connection, Path<PathParameters>, AuthUser, CacheDatabase),
 ) -> Result<HttpResponse, BigNeonError> {
     let conn = connection.get();
     let event = Event::find(path.id, conn)?;
     user.requires_scope_for_organization_event(Scopes::EventWrite, &event.organization(conn)?, &event, conn)?;
     event.unpublish(Some(user.id()), conn)?;
+
+    cache_database
+        .inner
+        .clone()
+        .and_then(|conn| caching::delete_by_key_fragment(conn, event.id.to_string()).ok());
+
     Ok(HttpResponse::Ok().finish())
 }
 
