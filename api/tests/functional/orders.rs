@@ -485,7 +485,12 @@ mod refund_tests {
 pub fn refund_for_non_refundable_tickets() {
     let database = TestDatabase::new();
     let connection = database.connection.get();
-    let organization = database.create_organization().with_event_fee().with_fees().finish();
+    let organization = database
+        .create_organization()
+        .is_allowed_to_refund()
+        .with_event_fee()
+        .with_fees()
+        .finish();
     let event = database
         .create_event()
         .with_organization(&organization)
@@ -589,10 +594,161 @@ pub fn refund_for_non_refundable_tickets() {
 }
 
 #[test]
-pub fn refund_hold_ticket() {
+pub fn refund_organization_set_to_not_allowed_admin() {
     let database = TestDatabase::new();
     let connection = database.connection.get();
     let organization = database.create_organization().finish();
+    let event = database
+        .create_event()
+        .with_organization(&organization)
+        .with_tickets()
+        .with_ticket_pricing()
+        .finish();
+    let user = database.create_user().finish();
+    let auth_user = support::create_auth_user_from_user(&user, Roles::Super, Some(&organization), &database);
+    let mut cart = Order::find_or_create_cart(&user, connection).unwrap();
+    let ticket_type = &event.ticket_types(true, None, connection).unwrap()[0];
+    cart.update_quantities(
+        user.id,
+        &[UpdateOrderItem {
+            ticket_type_id: ticket_type.id,
+            quantity: 1,
+            redemption_code: None,
+        }],
+        false,
+        false,
+        connection,
+    )
+    .unwrap();
+
+    let total = cart.calculate_total(connection).unwrap();
+    cart.add_external_payment(
+        Some("Test".to_string()),
+        ExternalPaymentType::CreditCard,
+        user.id,
+        total,
+        connection,
+    )
+    .unwrap();
+
+    let items = cart.items(&connection).unwrap();
+    let order_item = items.iter().find(|i| i.ticket_type_id == Some(ticket_type.id)).unwrap();
+    let fee_item = order_item.find_fee_item(connection).unwrap().unwrap();
+    let tickets = TicketInstance::find_for_order_item(order_item.id, connection).unwrap();
+    let ticket = &tickets[0];
+
+    // Refund first ticket and event fee (leaving one ticket + one fee item for that ticket)
+    let refund_items = vec![RefundItemRequest {
+        order_item_id: order_item.id,
+        ticket_instance_id: Some(ticket.id),
+    }];
+    let json = Json(RefundAttributes {
+        items: refund_items,
+        reason: Some("Purchased by mistake".to_string()),
+        manual_override: false,
+    });
+
+    let test_request = TestRequest::create();
+    let mut path = Path::<PathParameters>::extract(&test_request.request).unwrap();
+    path.id = cart.id;
+    let response: HttpResponse = orders::refund((
+        database.connection.clone(),
+        path,
+        json,
+        auth_user,
+        test_request.extract_state(),
+    ))
+    .into();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = support::unwrap_body_to_string(&response).unwrap();
+    let refund_response: RefundResponse = serde_json::from_str(&body).unwrap();
+    let expected_refund_amount = order_item.unit_price_in_cents + fee_item.unit_price_in_cents;
+    assert_eq!(refund_response.amount_refunded, expected_refund_amount);
+
+    let mut expected_refund_breakdown = HashMap::new();
+    expected_refund_breakdown.insert(PaymentMethods::External, expected_refund_amount);
+    assert_eq!(refund_response.refund_breakdown, expected_refund_breakdown);
+
+    // Reload ticket
+    let ticket = TicketInstance::find(ticket.id, connection).unwrap();
+    assert!(ticket.order_item_id.is_none());
+    assert_eq!(ticket.status, TicketInstanceStatus::Available);
+}
+
+#[test]
+pub fn refund_organization_set_to_not_allowed_organization_user() {
+    let database = TestDatabase::new();
+    let connection = database.connection.get();
+    let organization = database.create_organization().finish();
+    let event = database
+        .create_event()
+        .with_organization(&organization)
+        .with_tickets()
+        .with_ticket_pricing()
+        .finish();
+    let user = database.create_user().finish();
+    let auth_user = support::create_auth_user_from_user(&user, Roles::OrgOwner, Some(&organization), &database);
+    let mut cart = Order::find_or_create_cart(&user, connection).unwrap();
+    let ticket_type = &event.ticket_types(true, None, connection).unwrap()[0];
+    cart.update_quantities(
+        user.id,
+        &[UpdateOrderItem {
+            ticket_type_id: ticket_type.id,
+            quantity: 1,
+            redemption_code: None,
+        }],
+        false,
+        false,
+        connection,
+    )
+    .unwrap();
+
+    let total = cart.calculate_total(connection).unwrap();
+    cart.add_external_payment(
+        Some("Test".to_string()),
+        ExternalPaymentType::CreditCard,
+        user.id,
+        total,
+        connection,
+    )
+    .unwrap();
+
+    let items = cart.items(&connection).unwrap();
+    let order_item = items.iter().find(|i| i.ticket_type_id == Some(ticket_type.id)).unwrap();
+    let tickets = TicketInstance::find_for_order_item(order_item.id, connection).unwrap();
+    let ticket = &tickets[0];
+
+    // Refund first ticket and event fee (leaving one ticket + one fee item for that ticket)
+    let refund_items = vec![RefundItemRequest {
+        order_item_id: order_item.id,
+        ticket_instance_id: Some(ticket.id),
+    }];
+    let json = Json(RefundAttributes {
+        items: refund_items,
+        reason: Some("Purchased by mistake".to_string()),
+        manual_override: false,
+    });
+
+    let test_request = TestRequest::create();
+    let mut path = Path::<PathParameters>::extract(&test_request.request).unwrap();
+    path.id = cart.id;
+    let response: HttpResponse = orders::refund((
+        database.connection.clone(),
+        path,
+        json,
+        auth_user,
+        test_request.extract_state(),
+    ))
+    .into();
+    support::expects_unauthorized(&response);
+}
+
+#[test]
+pub fn refund_hold_ticket() {
+    let database = TestDatabase::new();
+    let connection = database.connection.get();
+    let organization = database.create_organization().is_allowed_to_refund().finish();
     let event = database
         .create_event()
         .with_organization(&organization)

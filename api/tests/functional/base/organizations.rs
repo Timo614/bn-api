@@ -177,6 +177,7 @@ pub fn create(role: Roles, should_test_succeed: bool) {
         globee_api_key: None,
         max_instances_per_ticket_type: Some(11000),
         settlement_type: None,
+        is_allowed_to_refund: None,
     });
 
     let test_request = TestRequest::create_with_uri("/organizations");

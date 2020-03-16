@@ -1084,7 +1084,8 @@ pub fn guest_list(
     //TODO refactor GuestListQueryParameters to PagingParameters
     let conn = connection.get();
     let event = Event::find(path.id, conn)?;
-    user.requires_scope_for_organization_event(Scopes::EventViewGuests, &event.organization(conn)?, &event, conn)?;
+    let organization = event.organization(conn)?;
+    user.requires_scope_for_organization_event(Scopes::EventViewGuests, &organization, &event, conn)?;
 
     let query_string = query.clone().query;
     let changes_since = query.clone().changes_since;
@@ -1104,7 +1105,7 @@ pub fn guest_list(
     let mut tickets_refund: Vec<TicketRefundable> = Vec::new();
 
     for t in tickets {
-        let mut refundable = t.providers.len() != 0;
+        let mut refundable = t.providers.len() != 0 && (user.user.is_admin() || organization.is_allowed_to_refund);
         for p in t.providers {
             if !ServiceLocator::is_refund_supported(p) {
                 refundable = false;

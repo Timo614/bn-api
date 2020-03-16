@@ -58,6 +58,7 @@ pub struct NewOrganizationRequest {
     pub cc_fee_percent: Option<f32>,
     pub max_instances_per_ticket_type: Option<i64>,
     pub settlement_type: Option<SettlementTypes>,
+    pub is_allowed_to_refund: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -151,6 +152,7 @@ pub fn create(
             None => state.config.max_instances_per_ticket_type,
         }),
         settlement_type: new_organization.settlement_type,
+        is_allowed_to_refund: new_organization.is_allowed_to_refund,
     };
 
     let mut organization = new_organization_with_fee_schedule.commit(

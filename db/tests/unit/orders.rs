@@ -3467,7 +3467,12 @@ fn partially_visible_order() {
 fn details() {
     let project = TestProject::new();
     let connection = project.get_connection();
-    let organization = project.create_organization().with_event_fee().with_fees().finish();
+    let organization = project
+        .create_organization()
+        .is_allowed_to_refund()
+        .with_event_fee()
+        .with_fees()
+        .finish();
     let event = project
         .create_event()
         .with_organization(&organization)
@@ -3596,11 +3601,11 @@ fn details() {
         discount_price_in_cents: None,
     });
 
-    let order_details = cart.details(&vec![organization.id], user2.id, connection).unwrap();
+    let order_details = cart.details(&vec![organization.id], &user2, connection).unwrap();
     assert_eq!(expected_order_details, order_details);
 
     // No details when this organization is not specified
-    assert!(cart.details(&vec![], user2.id, connection).unwrap().is_empty());
+    assert!(cart.details(&vec![], &user2, connection).unwrap().is_empty());
 
     // Refund already refunded ticket which doesn't change anything
     let refund_items = vec![RefundItemRequest {
@@ -3608,7 +3613,7 @@ fn details() {
         ticket_instance_id: Some(ticket.id),
     }];
     assert!(cart.refund(&refund_items, user.id, None, false, connection).is_err());
-    let order_details = cart.details(&vec![organization.id], user2.id, connection).unwrap();
+    let order_details = cart.details(&vec![organization.id], &user2, connection).unwrap();
     assert_eq!(expected_order_details, order_details);
 
     // Refund last item triggering event fee to refund as well
@@ -3685,21 +3690,21 @@ fn details() {
         discount_price_in_cents: None,
     });
 
-    let order_details = cart.details(&vec![organization.id], user2.id, connection).unwrap();
+    let order_details = cart.details(&vec![organization.id], &user2, connection).unwrap();
     assert_eq!(expected_order_details, order_details);
 
     // With events filter
     OrganizationUser::create(organization.id, user2.id, vec![Roles::Promoter])
         .commit(connection)
         .unwrap();
-    let order_details = cart.details(&vec![organization.id], user2.id, connection).unwrap();
+    let order_details = cart.details(&vec![organization.id], &user2, connection).unwrap();
     assert!(order_details.is_empty());
 
     // With access and event filter
     organization
         .add_user(user2.id, vec![Roles::Promoter], vec![event.id], connection)
         .unwrap();
-    let order_details = cart.details(&vec![organization.id], user2.id, connection).unwrap();
+    let order_details = cart.details(&vec![organization.id], &user2, connection).unwrap();
     assert_eq!(expected_order_details, order_details);
 
     // Order details for box office purchase
@@ -3746,7 +3751,7 @@ fn details() {
     }];
 
     let order_details = box_office_order
-        .details(&vec![organization.id], user2.id, connection)
+        .details(&vec![organization.id], &user2, connection)
         .unwrap();
     assert_eq!(expected_order_details, order_details);
 
@@ -3814,7 +3819,7 @@ fn details() {
             discount_price_in_cents: None,
         },
     ];
-    let order_details = new_order.details(&vec![organization.id], user.id, connection).unwrap();
+    let order_details = new_order.details(&vec![organization.id], &user, connection).unwrap();
     assert_eq!(expected_order_details, order_details);
 
     // Refund order and create a new order
@@ -3890,7 +3895,7 @@ fn details() {
             discount_price_in_cents: None,
         },
     ];
-    let order_details = new_order.details(&vec![organization.id], user.id, connection).unwrap();
+    let order_details = new_order.details(&vec![organization.id], &user, connection).unwrap();
     assert_eq!(expected_order_details, order_details);
 
     // New order's details show purchased
@@ -3936,9 +3941,7 @@ fn details() {
             discount_price_in_cents: None,
         },
     ];
-    let order_details = new_order2
-        .details(&vec![organization.id], user2.id, connection)
-        .unwrap();
+    let order_details = new_order2.details(&vec![organization.id], &user2, connection).unwrap();
     assert_eq!(expected_order_details2, order_details);
 
     // Transfer new_order2's ticket to user3
@@ -3953,7 +3956,7 @@ fn details() {
     .unwrap();
 
     // First order's details unchanged by transfer of second order's ticket
-    let order_details = new_order.details(&vec![organization.id], user.id, connection).unwrap();
+    let order_details = new_order.details(&vec![organization.id], &user, connection).unwrap();
     assert_eq!(expected_order_details, order_details);
 
     // Second order shows transferred for status as a result of ticket transfer
@@ -3999,9 +4002,7 @@ fn details() {
             discount_price_in_cents: None,
         },
     ];
-    let order_details = new_order2
-        .details(&vec![organization.id], user2.id, connection)
-        .unwrap();
+    let order_details = new_order2.details(&vec![organization.id], &user2, connection).unwrap();
     assert_eq!(expected_order_details2, order_details);
 
     // Mark event as settled tickets from event are refundable still
@@ -4048,9 +4049,115 @@ fn details() {
             discount_price_in_cents: None,
         },
     ];
-    let order_details = new_order2
-        .details(&vec![organization.id], user2.id, connection)
+    let order_details = new_order2.details(&vec![organization.id], &user2, connection).unwrap();
+    assert_eq!(expected_order_details2, order_details);
+
+    // Organization is set to not allow refunds so refundable is set to false across the board for this user
+    let organization = organization
+        .update(
+            OrganizationEditableAttributes {
+                is_allowed_to_refund: Some(false),
+                ..Default::default()
+            },
+            None,
+            &"encryption_key".to_string(),
+            connection,
+        )
         .unwrap();
+    let expected_order_details2 = vec![
+        OrderDetailsLineItem {
+            ticket_instance_id: Some(ticket2.id),
+            order_item_id: order_item2.id,
+            description: format!("{} - {}", event.name, ticket_type.name),
+            ticket_price_in_cents: 150,
+            fees_price_in_cents: 20,
+            total_price_in_cents: 170,
+            status: "Transferred".to_string(),
+            refundable: false,
+            attendee_email: user3.email.clone(),
+            attendee_id: Some(user3.id),
+            attendee_first_name: user3.first_name.clone(),
+            attendee_last_name: user3.last_name.clone(),
+            ticket_type_id: Some(ticket_type.id),
+            ticket_type_name: Some(ticket_type.name.clone()),
+            code: None,
+            code_type: None,
+            pending_transfer_id: None,
+            discount_price_in_cents: None,
+        },
+        OrderDetailsLineItem {
+            ticket_instance_id: None,
+            order_item_id: event_fee_item2.id,
+            description: format!("Event Fees - {}", event.name),
+            ticket_price_in_cents: 0,
+            fees_price_in_cents: 250,
+            total_price_in_cents: 250,
+            status: "Purchased".to_string(),
+            refundable: false,
+            attendee_email: None,
+            attendee_id: None,
+            attendee_first_name: None,
+            attendee_last_name: None,
+            ticket_type_id: None,
+            ticket_type_name: None,
+            code: None,
+            code_type: None,
+            pending_transfer_id: None,
+            discount_price_in_cents: None,
+        },
+    ];
+    let order_details = new_order2.details(&vec![organization.id], &user2, connection).unwrap();
+    assert_eq!(expected_order_details2, order_details);
+
+    // For an admin user this order does show the second line item as refundable, however
+    let admin = project
+        .create_user()
+        .finish()
+        .add_role(Roles::Admin, connection)
+        .unwrap();
+    let expected_order_details2 = vec![
+        OrderDetailsLineItem {
+            ticket_instance_id: Some(ticket2.id),
+            order_item_id: order_item2.id,
+            description: format!("{} - {}", event.name, ticket_type.name),
+            ticket_price_in_cents: 150,
+            fees_price_in_cents: 20,
+            total_price_in_cents: 170,
+            status: "Transferred".to_string(),
+            refundable: false,
+            attendee_email: user3.email.clone(),
+            attendee_id: Some(user3.id),
+            attendee_first_name: user3.first_name.clone(),
+            attendee_last_name: user3.last_name.clone(),
+            ticket_type_id: Some(ticket_type.id),
+            ticket_type_name: Some(ticket_type.name.clone()),
+            code: None,
+            code_type: None,
+            pending_transfer_id: None,
+            discount_price_in_cents: None,
+        },
+        OrderDetailsLineItem {
+            ticket_instance_id: None,
+            order_item_id: event_fee_item2.id,
+            description: format!("Event Fees - {}", event.name),
+            ticket_price_in_cents: 0,
+            fees_price_in_cents: 250,
+            total_price_in_cents: 250,
+            status: "Purchased".to_string(),
+            refundable: true,
+            attendee_email: None,
+            attendee_id: None,
+            attendee_first_name: None,
+            attendee_last_name: None,
+            ticket_type_id: None,
+            ticket_type_name: None,
+            code: None,
+            code_type: None,
+            pending_transfer_id: None,
+            discount_price_in_cents: None,
+        },
+    ];
+    let order_details = new_order2.details(&vec![organization.id], &admin, connection).unwrap();
     assert_eq!(expected_order_details2, order_details);
 }
 

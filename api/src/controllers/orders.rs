@@ -152,7 +152,7 @@ pub fn details((conn, path, user): (Connection, Path<PathParameters>, User)) -> 
     }
 
     Ok(HttpResponse::Ok().json(DetailsResponse {
-        items: order.details(&organization_ids, user.id(), connection)?,
+        items: order.details(&organization_ids, &user.user, connection)?,
         order_contains_other_tickets: order.partially_visible_order(&organization_ids, user.id(), connection)?,
     }))
 }
@@ -436,7 +436,10 @@ fn is_authorized_to_refund(
                 &organization,
                 event.id,
                 connection,
-            )? {
+            )? || (!user.user.is_admin() && !manual_override && !organization.is_allowed_to_refund)
+            {
+                // User does not have access to organization event being refunded
+                // or user is not admin, this is a normal refund, and the organization is not allowed to refund
                 authorized_to_refund_items = false;
                 break;
             }

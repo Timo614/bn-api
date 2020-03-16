@@ -5,7 +5,7 @@ SELECT ticket_instance_id,
        fees_price_in_cents,
        (ticket_price_in_cents + fees_price_in_cents) AS total_price_in_cents,
        status,
-       status IN ('Purchased', 'Redeemed') AS refundable,
+       status IN ('Purchased', 'Redeemed') AND (is_allowed_to_refund OR $4) AS refundable,
        CASE WHEN status <> 'Refunded' THEN attendee_email ELSE NULL END AS attendee_email,
        CASE WHEN status <> 'Refunded' THEN attendee_id ELSE NULL END AS attendee_id,
        CASE WHEN status <> 'Refunded' THEN attendee_first_name ELSE NULL END AS attendee_first_name,
@@ -52,7 +52,8 @@ FROM (
                 coalesce(h.redemption_code, c.redemption_code)           AS code,
                 coalesce(h.hold_type, c.code_type) AS code_type,
                 tfs.id                             AS pending_transfer_id,
-                dis.unit_price_in_cents            AS discount_price_in_cents
+                dis.unit_price_in_cents            AS discount_price_in_cents,
+                orgs.is_allowed_to_refund          AS is_allowed_to_refund
 
          FROM (
                   SELECT DISTINCT ticket_instance_id, order_item_id

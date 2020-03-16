@@ -54,6 +54,7 @@ pub struct Organization {
     pub slug_id: Option<Uuid>,
     pub google_ads_conversion_id: Option<String>,
     pub google_ads_conversion_labels: Vec<String>,
+    pub is_allowed_to_refund: bool,
 }
 
 #[derive(Serialize)]
@@ -90,6 +91,7 @@ pub struct NewOrganization {
     pub globee_api_key: Option<String>,
     pub max_instances_per_ticket_type: Option<i64>,
     pub settlement_type: Option<SettlementTypes>,
+    pub is_allowed_to_refund: Option<bool>,
 }
 
 #[derive(Default, Serialize, Clone, Deserialize, Debug, PartialEq)]
@@ -214,6 +216,7 @@ pub struct OrganizationEditableAttributes {
     pub google_ads_conversion_id: Option<Option<String>>,
     #[serde(default)]
     pub google_ads_conversion_labels: Option<Vec<String>>,
+    pub is_allowed_to_refund: Option<bool>,
 }
 
 impl Organization {

@@ -18,6 +18,7 @@ pub struct OrganizationBuilder<'a> {
     additional_fee: i64,
     timezone: Option<String>,
     settlement_type: Option<SettlementTypes>,
+    is_allowed_to_refund: bool,
 }
 
 impl<'a> OrganizationBuilder<'a> {
@@ -36,11 +37,17 @@ impl<'a> OrganizationBuilder<'a> {
             additional_fee: 0,
             timezone: None,
             settlement_type: None,
+            is_allowed_to_refund: false,
         }
     }
 
     pub fn with_member(mut self, user: &User, role: Roles) -> OrganizationBuilder<'a> {
         self.members.insert(user.id.clone(), role);
+        self
+    }
+
+    pub fn is_allowed_to_refund(mut self) -> OrganizationBuilder<'a> {
+        self.is_allowed_to_refund = true;
         self
     }
 
@@ -117,6 +124,7 @@ impl<'a> OrganizationBuilder<'a> {
             cc_fee_percent: self.cc_fee_percent,
             max_additional_fee_in_cents: Some(self.additional_fee),
             timezone: self.timezone,
+            is_allowed_to_refund: Some(self.is_allowed_to_refund),
             ..Default::default()
         };
 

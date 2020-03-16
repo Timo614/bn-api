@@ -218,7 +218,12 @@ pub fn details(role: Roles, should_succeed: bool) {
     let database = TestDatabase::new();
     let connection = database.connection.get();
     let user = database.create_user().finish();
-    let organization = database.create_organization().with_event_fee().with_fees().finish();
+    let organization = database
+        .create_organization()
+        .is_allowed_to_refund()
+        .with_event_fee()
+        .with_fees()
+        .finish();
     let event = database
         .create_event()
         .with_organization(&organization)
@@ -367,7 +372,12 @@ pub fn details(role: Roles, should_succeed: bool) {
 pub fn refund(role: Roles, manual_override: bool, should_succeed: bool) {
     let database = TestDatabase::new();
     let connection = database.connection.get();
-    let organization = database.create_organization().with_event_fee().with_fees().finish();
+    let organization = database
+        .create_organization()
+        .is_allowed_to_refund()
+        .with_event_fee()
+        .with_fees()
+        .finish();
     let event = database
         .create_event()
         .with_organization(&organization)

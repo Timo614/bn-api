@@ -707,14 +707,15 @@ impl Order {
     pub fn details(
         &self,
         organization_ids: &Vec<Uuid>,
-        user_id: Uuid,
+        user: &User,
         conn: &PgConnection,
     ) -> Result<Vec<OrderDetailsLineItem>, DatabaseError> {
         let query = include_str!("../queries/order_details.sql");
         diesel::sql_query(query)
             .bind::<dUuid, _>(self.id)
             .bind::<Array<dUuid>, _>(organization_ids)
-            .bind::<dUuid, _>(user_id)
+            .bind::<dUuid, _>(user.id)
+            .bind::<Bool, _>(user.is_admin())
             .load(conn)
             .to_db_error(ErrorCode::QueryError, "Could not load order details")
     }
