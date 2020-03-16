@@ -1469,6 +1469,7 @@ pub fn get_additional_scopes_for_user() {
             "org:users",
             "org:write",
             "redeem:ticket",
+            "scan-report:read",
             "settlement:read",
             "ticket:admin",
             "ticket:read",
