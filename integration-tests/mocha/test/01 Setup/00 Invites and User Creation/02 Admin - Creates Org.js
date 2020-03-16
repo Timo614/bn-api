@@ -37,7 +37,8 @@ const get = async function (request_body) {
 let requestBody = `{
 "name": "Jazzy_{{$timestamp}}",
 "owner_user_id": "{{admin_id}}",
-"timezone": "America/Los_Angeles"
+"timezone": "America/Los_Angeles",
+"is_allowed_to_refund": true
 }`;
 
 
@@ -66,5 +67,3 @@ describe('02 Admin - Creates Org', function () {
 
 
 });
-
-            
