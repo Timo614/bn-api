@@ -1,6 +1,6 @@
 use chrono::NaiveDateTime;
 use diesel;
-use diesel::dsl;
+use diesel::dsl::{self, exists, select};
 use diesel::prelude::*;
 use models::enums::Roles;
 use models::{EventUser, Organization, Scopes, User};
@@ -176,6 +176,17 @@ impl OrganizationUser {
             .filter(organization_users::organization_id.eq(organization_id))
             .load(conn)
             .to_db_error(ErrorCode::QueryError, "Could not load organization users")
+    }
+
+    pub fn user_has_organization_user_records(user_id: Uuid, conn: &PgConnection) -> Result<bool, DatabaseError> {
+        select(exists(
+            organization_users::table.filter(organization_users::user_id.eq(user_id)),
+        ))
+        .get_result(conn)
+        .to_db_error(
+            ErrorCode::QueryError,
+            "Could not check if user had organization user records",
+        )
     }
 
     pub fn find_by_user_id(

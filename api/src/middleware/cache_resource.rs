@@ -16,6 +16,7 @@ use std::collections::BTreeMap;
 use uuid::Uuid;
 
 const CACHED_RESPONSE_HEADER: &'static str = "X-Cached-Response";
+const CACHE_BYPASS_HEADER: &'static str = "CacheBypass";
 
 #[derive(PartialEq, Clone)]
 pub enum OrganizationLoad {
@@ -35,6 +36,8 @@ pub enum CacheUsersBy {
     GlobalRoles,
     // Users are cached by their ID
     UserId,
+    // Only public users (logged out or lacking organization_users) are cached
+    PublicUsersOnly,
     // Users are cached by their associated organization roles (cannot be used for event specific role endpoints)
     OrganizationScopePresence(OrganizationLoad, Scopes),
 }
@@ -68,6 +71,12 @@ impl CacheConfiguration {
             cache_data: BTreeMap::new(),
         }
     }
+
+    fn start_error(mut self, error: &str) -> Cache {
+        self.error = true;
+        error!("CacheResource Middleware start: {:?}", error);
+        return Cache::Miss(self);
+    }
 }
 
 impl CacheResource {
@@ -80,6 +89,13 @@ impl CacheResource {
     async fn start(&self, request: &HttpRequest) -> Cache {
         let mut cache_configuration = CacheConfiguration::new();
         if request.method() == Method::GET {
+            if request
+                .headers()
+                .contains_key(HeaderName::try_from(CACHE_BYPASS_HEADER).unwrap())
+            {
+                return Cache::Miss(cache_configuration);
+            }
+
             if let Ok(url) = url::Url::parse(&request.uri().to_string()) {
                 for (key, value) in url.query_pairs() {
                     cache_configuration
@@ -101,9 +117,7 @@ impl CacheResource {
                 let user = match OptionalUser::from_request(request, &mut dev::Payload::None).await {
                     Ok(user) => user,
                     Err(error) => {
-                        cache_configuration.error = true;
-                        error!("CacheResource Middleware start: {:?}", error);
-                        return Cache::Miss(cache_configuration);
+                        return cache_configuration.start_error(&format!("{:?", error));
                     }
                 };
                 if let Some(user) = user.0 {
@@ -115,6 +129,31 @@ impl CacheResource {
                         }
                         CacheUsersBy::UserId => {
                             cache_configuration.user_key = Some(user.id().to_string());
+                        }
+                        CacheUsersBy::PublicUsersOnly => {
+                            if let Some(connection) = request.extensions().get::<Connection>() {
+                                let connection = connection.get();
+                                let is_public_user = match user.user.is_public_user(connection) {
+                                    Ok(is_public_user) => is_public_user,
+                                    Err(error) => {
+                                        return CacheConfiguration::start_error(
+                                            &format!("CacheResource Middleware start: {:?}", error),
+                                            &request,
+                                            cache_configuration,
+                                        );
+                                    }
+                                };
+
+                                if !is_public_user {
+                                    return Cache::Miss(cache_configuration);
+                                }
+                            } else {
+                                return CacheConfiguration::start_error(
+                                    "CacheResource Middleware start: unable to load connection",
+                                    &request,
+                                    cache_configuration,
+                                );
+                            }
                         }
                         CacheUsersBy::GlobalRoles => {
                             cache_configuration.user_key = Some(user.user.role.iter().map(|r| r.to_string()).join(","));
@@ -130,9 +169,7 @@ impl CacheResource {
                                         let organization = match Organization::find(organization_id, connection) {
                                             Ok(organization) => organization,
                                             Err(error) => {
-                                                cache_configuration.error = true;
-                                                error!("CacheResource Middleware start: {:?}", error);
-                                                return Cache::Miss(cache_configuration);
+                                                return cache_configuration.start_error(&format!("{:?", error));
                                             }
                                         };
 
@@ -140,9 +177,7 @@ impl CacheResource {
                                             match user.has_scope_for_organization(*scope, &organization, connection) {
                                                 Ok(organization_scopes) => organization_scopes,
                                                 Err(error) => {
-                                                    cache_configuration.error = true;
-                                                    error!("CacheResource Middleware start: {:?}", error);
-                                                    return Cache::Miss(cache_configuration);
+                                                    return cache_configuration.start_error(&format!("{:?", error));
                                                 }
                                             };
 
@@ -151,9 +186,7 @@ impl CacheResource {
                                     }
                                 }
                             } else {
-                                cache_configuration.error = true;
-                                error!("CacheResource Middleware start: unable to load connection");
-                                return Cache::Miss(cache_configuration);
+                                return cache_configuration.start_error("unable to load connection");
                             }
                         }
                     }

@@ -2,6 +2,20 @@ use bigneon_db::dev::TestProject;
 use bigneon_db::models::{OrganizationUser, Roles};
 
 #[test]
+fn user_has_organization_user_records() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+    let user = project.create_user().finish();
+    assert!(!OrganizationUser::user_has_organization_user_records(user.id, connection).unwrap());
+
+    project
+        .create_organization()
+        .with_member(&user, Roles::OrgOwner)
+        .finish();
+    assert!(OrganizationUser::user_has_organization_user_records(user.id, connection).unwrap());
+}
+
+#[test]
 fn is_event_user() {
     let project = TestProject::new();
     let connection = project.get_connection();

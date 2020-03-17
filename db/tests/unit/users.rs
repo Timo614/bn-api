@@ -17,6 +17,28 @@ use bigneon_db::utils::errors::ErrorCode;
 use bigneon_db::utils::errors::ErrorCode::ValidationError;
 
 #[test]
+fn is_public_user() {
+    let project = TestProject::new();
+    let connection = project.get_connection();
+    let user = project.create_user().finish();
+    // User just exists in the system not as an organization member so is a public user
+    assert!(user.is_public_user(connection).unwrap());
+
+    // User belongs to organization so is no longer a public user
+    project
+        .create_organization()
+        .with_member(&user, Roles::OrgOwner)
+        .finish();
+    assert!(OrganizationUser::user_has_organization_user_records(user.id, connection).unwrap());
+    assert!(!user.is_public_user(connection).unwrap());
+
+    // User is admin so is never a public user
+    let mut admin = project.create_user().finish();
+    admin = admin.add_role(Roles::Admin, connection).unwrap();
+    assert!(!admin.is_public_user(connection).unwrap());
+}
+
+#[test]
 fn is_attending_event() {
     let project = TestProject::new();
     let connection = project.get_connection();

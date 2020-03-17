@@ -147,6 +147,10 @@ impl NewUser {
 }
 
 impl User {
+    pub fn is_public_user(&self, conn: &PgConnection) -> Result<bool, DatabaseError> {
+        Ok(!self.is_admin() && !OrganizationUser::user_has_organization_user_records(self.id, conn)?)
+    }
+
     pub fn is_attending_event(user_id: Uuid, event_id: Uuid, conn: &PgConnection) -> Result<bool, DatabaseError> {
         use schema::*;
         select(exists(
