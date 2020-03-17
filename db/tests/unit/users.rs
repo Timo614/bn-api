@@ -2193,10 +2193,10 @@ fn get_global_scopes() {
             .map(|scope| scope.to_string())
             .collect::<Vec<String>>(),
         vec![
-            "announcement::delete",
-            "announcement::read",
-            "announcement::write",
-            "announcement-engagement::write",
+            "announcement:delete",
+            "announcement:read",
+            "announcement:write",
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -2277,10 +2277,10 @@ fn get_global_scopes() {
             .map(|scope| scope.to_string())
             .collect::<Vec<String>>(),
         vec![
-            "announcement::delete",
-            "announcement::read",
-            "announcement::write",
-            "announcement-engagement::write",
+            "announcement:delete",
+            "announcement:read",
+            "announcement:write",
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",

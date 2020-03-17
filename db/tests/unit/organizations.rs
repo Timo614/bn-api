@@ -1113,7 +1113,7 @@ pub fn get_additional_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
-            "announcement-engagement::write",
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -1192,7 +1192,7 @@ pub fn get_additional_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
-            "announcement-engagement::write",
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -1271,7 +1271,7 @@ pub fn get_additional_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
-            "announcement-engagement::write",
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -1351,7 +1351,7 @@ pub fn get_additional_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
-            "announcement-engagement::write",
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -1429,7 +1429,7 @@ pub fn get_additional_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
-            "announcement-engagement::write",
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -1508,7 +1508,7 @@ pub fn get_additional_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
-            "announcement-engagement::write",
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -1586,7 +1586,7 @@ pub fn get_additional_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
-            "announcement-engagement::write",
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -1665,7 +1665,7 @@ pub fn get_additional_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
-            "announcement-engagement::write",
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -1763,7 +1763,7 @@ pub fn get_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
-            "announcement-engagement::write",
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -1831,7 +1831,7 @@ pub fn get_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
-            "announcement-engagement::write",
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -1898,7 +1898,7 @@ pub fn get_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
-            "announcement-engagement::write",
+            "announcement-engagement:write",
             "box-office-ticket:read",
             "code:read",
             "event:scan",
@@ -1959,7 +1959,7 @@ pub fn get_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
-            "announcement-engagement::write",
+            "announcement-engagement:write",
             "code:read",
             "code:write",
             "comp:read",
@@ -1993,7 +1993,7 @@ pub fn get_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
-            "announcement-engagement::write",
+            "announcement-engagement:write",
             "code:read",
             "comp:read",
             "dashboard:read",
@@ -2019,7 +2019,7 @@ pub fn get_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
-            "announcement-engagement::write",
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -2075,7 +2075,7 @@ pub fn get_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
-            "announcement-engagement::write",
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -2143,7 +2143,7 @@ pub fn get_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
-            "announcement-engagement::write",
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",

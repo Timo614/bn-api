@@ -98,10 +98,10 @@ impl Serialize for Scopes {
 impl fmt::Display for Scopes {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let s = match self {
-            Scopes::AnnouncementDelete => "announcement::delete",
-            Scopes::AnnouncementRead => "announcement::read",
-            Scopes::AnnouncementWrite => "announcement::write",
-            Scopes::AnnouncementEngagementWrite => "announcement-engagement::write",
+            Scopes::AnnouncementDelete => "announcement:delete",
+            Scopes::AnnouncementRead => "announcement:read",
+            Scopes::AnnouncementWrite => "announcement:write",
+            Scopes::AnnouncementEngagementWrite => "announcement-engagement:write",
             Scopes::ArtistWrite => "artist:write",
             Scopes::BoxOfficeTicketRead => "box-office-ticket:read",
             Scopes::BoxOfficeTicketWrite => "box-office-ticket:write",
@@ -185,10 +185,10 @@ impl FromStr for Scopes {
 
     fn from_str(s: &str) -> Result<Self, <Self as FromStr>::Err> {
         let s = match s {
-            "announcement::delete" => Scopes::AnnouncementDelete,
-            "announcement::read" => Scopes::AnnouncementRead,
-            "announcement::write" => Scopes::AnnouncementWrite,
-            "announcement-engagement::write" => Scopes::AnnouncementEngagementWrite,
+            "announcement:delete" => Scopes::AnnouncementDelete,
+            "announcement:read" => Scopes::AnnouncementRead,
+            "announcement:write" => Scopes::AnnouncementWrite,
+            "announcement-engagement:write" => Scopes::AnnouncementEngagementWrite,
             "artist:write" => Scopes::ArtistWrite,
             "box-office-ticket:read" => Scopes::BoxOfficeTicketRead,
             "box-office-ticket:write" => Scopes::BoxOfficeTicketWrite,
@@ -557,7 +557,7 @@ fn get_scopes_test() {
     res.sort();
     assert_equiv!(
         vec![
-            "announcement-engagement::write",
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -624,10 +624,10 @@ fn get_scopes_test() {
     res.sort();
     assert_equiv!(
         vec![
-            "announcement::delete",
-            "announcement::read",
-            "announcement::write",
-            "announcement-engagement::write",
+            "announcement:delete",
+            "announcement:read",
+            "announcement:write",
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -710,10 +710,10 @@ fn get_scopes_test() {
     res.sort();
     assert_equiv!(
         vec![
-            "announcement::delete",
-            "announcement::read",
-            "announcement::write",
-            "announcement-engagement::write",
+            "announcement:delete",
+            "announcement:read",
+            "announcement:write",
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -795,10 +795,10 @@ fn get_scopes_test() {
         .collect::<Vec<String>>();
     assert_equiv!(
         vec![
-            "announcement::delete",
-            "announcement::read",
-            "announcement::write",
-            "announcement-engagement::write",
+            "announcement:delete",
+            "announcement:read",
+            "announcement:write",
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -886,7 +886,7 @@ fn get_scopes_test() {
     .collect::<Vec<String>>();
     assert_equiv!(
         vec![
-            "announcement-engagement::write",
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
