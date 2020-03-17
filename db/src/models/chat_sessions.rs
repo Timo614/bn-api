@@ -1,3 +1,4 @@
+use chrono::Duration;
 use chrono::NaiveDateTime;
 use chrono::Utc;
 use diesel::expression::dsl;
@@ -7,7 +8,6 @@ use schema::{chat_sessions, chat_workflows};
 use serde_json::Value;
 use std::collections::HashMap;
 use test::times;
-use time::Duration;
 use utils::errors::*;
 use uuid::Uuid;
 
