@@ -886,6 +886,7 @@ fn get_scopes_test() {
     .collect::<Vec<String>>();
     assert_equiv!(
         vec![
+            "announcement-engagement::write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
