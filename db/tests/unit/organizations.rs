@@ -1113,6 +1113,7 @@ pub fn get_additional_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -1191,6 +1192,7 @@ pub fn get_additional_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -1269,6 +1271,7 @@ pub fn get_additional_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -1348,6 +1351,7 @@ pub fn get_additional_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -1425,6 +1429,7 @@ pub fn get_additional_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -1503,6 +1508,7 @@ pub fn get_additional_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -1580,6 +1586,7 @@ pub fn get_additional_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -1658,6 +1665,7 @@ pub fn get_additional_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -1744,6 +1752,8 @@ pub fn get_scopes_for_user() {
         .finish();
     let mut admin = project.create_user().finish();
     admin = admin.add_role(Roles::Admin, connection).unwrap();
+    let mut super_user = project.create_user().finish();
+    super_user = super_user.add_role(Roles::Super, connection).unwrap();
 
     assert_equiv!(
         organization
@@ -1753,6 +1763,7 @@ pub fn get_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -1820,6 +1831,7 @@ pub fn get_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -1886,6 +1898,7 @@ pub fn get_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
+            "announcement-engagement:write",
             "box-office-ticket:read",
             "code:read",
             "event:scan",
@@ -1946,6 +1959,7 @@ pub fn get_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
+            "announcement-engagement:write",
             "code:read",
             "code:write",
             "comp:read",
@@ -1979,6 +1993,7 @@ pub fn get_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
+            "announcement-engagement:write",
             "code:read",
             "comp:read",
             "dashboard:read",
@@ -2004,6 +2019,7 @@ pub fn get_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -2059,6 +2075,75 @@ pub fn get_scopes_for_user() {
             .map(|i| i.to_string())
             .collect::<Vec<String>>(),
         vec![
+            "announcement-engagement:write",
+            "artist:write",
+            "box-office-ticket:read",
+            "box-office-ticket:write",
+            "code:read",
+            "code:write",
+            "comp:read",
+            "comp:write",
+            "dashboard:read",
+            "event:broadcast",
+            "event:cancel",
+            "event:clone",
+            "event:data-read",
+            "event:delete",
+            "event:financial-reports",
+            "event:interest",
+            "event:reports",
+            "event:scan",
+            "event:view-guests",
+            "event:write",
+            "event-report-subscriber:delete",
+            "event-report-subscriber:read",
+            "event-report-subscriber:write",
+            "hold:read",
+            "hold:write",
+            "note:delete",
+            "note:read",
+            "note:write",
+            "order:make-external-payment",
+            "order:read",
+            "order:read-own",
+            "order:refund",
+            "order:resend-confirmation",
+            "org:admin-users",
+            "org:fans",
+            "org:read",
+            "org:read-events",
+            "org:reports",
+            "org:users",
+            "org:write",
+            "redeem:ticket",
+            "scan-report:read",
+            "settlement:read",
+            "ticket:admin",
+            "ticket:read",
+            "ticket:transfer",
+            "ticket:write",
+            "ticket:write-own",
+            "ticket-type:read",
+            "ticket-type:write",
+            "transfer:cancel",
+            "transfer:cancel-own",
+            "transfer:read",
+            "transfer:read-own",
+            "user:read",
+            "venue:write",
+            "websocket:initiate"
+        ]
+    );
+
+    assert_equiv!(
+        organization
+            .get_scopes_for_user(&super_user, connection)
+            .unwrap()
+            .iter()
+            .map(|i| i.to_string())
+            .collect::<Vec<String>>(),
+        vec![
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",

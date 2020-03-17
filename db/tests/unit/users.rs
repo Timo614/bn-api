@@ -2028,6 +2028,7 @@ fn get_scopes_by_organization() {
     expected_results.insert(
         organization.id,
         vec![
+            Scopes::AnnouncementEngagementWrite,
             Scopes::ArtistWrite,
             Scopes::BoxOfficeTicketRead,
             Scopes::BoxOfficeTicketWrite,
@@ -2089,6 +2090,7 @@ fn get_scopes_by_organization() {
     expected_results.insert(
         organization2.id,
         vec![
+            Scopes::AnnouncementEngagementWrite,
             Scopes::ArtistWrite,
             Scopes::BoxOfficeTicketRead,
             Scopes::BoxOfficeTicketWrite,
@@ -2191,6 +2193,10 @@ fn get_global_scopes() {
             .map(|scope| scope.to_string())
             .collect::<Vec<String>>(),
         vec![
+            "announcement:delete",
+            "announcement:read",
+            "announcement:write",
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -2271,6 +2277,10 @@ fn get_global_scopes() {
             .map(|scope| scope.to_string())
             .collect::<Vec<String>>(),
         vec![
+            "announcement:delete",
+            "announcement:read",
+            "announcement:write",
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",

@@ -7,6 +7,10 @@ use utils::errors::EnumParseError;
 
 #[derive(PartialEq, Debug, Copy, Clone, Eq, Ord, PartialOrd)]
 pub enum Scopes {
+    AnnouncementDelete,
+    AnnouncementRead,
+    AnnouncementWrite,
+    AnnouncementEngagementWrite,
     ArtistWrite,
     BoxOfficeTicketRead,
     BoxOfficeTicketWrite,
@@ -94,6 +98,10 @@ impl Serialize for Scopes {
 impl fmt::Display for Scopes {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let s = match self {
+            Scopes::AnnouncementDelete => "announcement:delete",
+            Scopes::AnnouncementRead => "announcement:read",
+            Scopes::AnnouncementWrite => "announcement:write",
+            Scopes::AnnouncementEngagementWrite => "announcement-engagement:write",
             Scopes::ArtistWrite => "artist:write",
             Scopes::BoxOfficeTicketRead => "box-office-ticket:read",
             Scopes::BoxOfficeTicketWrite => "box-office-ticket:write",
@@ -177,6 +185,10 @@ impl FromStr for Scopes {
 
     fn from_str(s: &str) -> Result<Self, <Self as FromStr>::Err> {
         let s = match s {
+            "announcement:delete" => Scopes::AnnouncementDelete,
+            "announcement:read" => Scopes::AnnouncementRead,
+            "announcement:write" => Scopes::AnnouncementWrite,
+            "announcement-engagement:write" => Scopes::AnnouncementEngagementWrite,
             "artist:write" => Scopes::ArtistWrite,
             "box-office-ticket:read" => Scopes::BoxOfficeTicketRead,
             "box-office-ticket:write" => Scopes::BoxOfficeTicketWrite,
@@ -310,17 +322,20 @@ fn get_scopes_for_role(role: Roles) -> Vec<Scopes> {
         }
         OrgBoxOffice => {
             let mut roles = vec![
+                Scopes::AnnouncementEngagementWrite,
+                Scopes::BoxOfficeTicketRead,
                 Scopes::EventViewGuests,
                 Scopes::OrderMakeExternalPayment,
                 Scopes::OrderResendConfirmation,
                 Scopes::OrgFans,
-                Scopes::BoxOfficeTicketRead,
             ];
+
             roles.extend(get_scopes_for_role(Roles::DoorPerson));
             roles
         }
         PromoterReadOnly => {
             let roles = vec![
+                Scopes::AnnouncementEngagementWrite,
                 Scopes::CodeRead,
                 Scopes::CompRead,
                 Scopes::DashboardRead,
@@ -360,6 +375,7 @@ fn get_scopes_for_role(role: Roles) -> Vec<Scopes> {
         }
         OrgMember => {
             let mut roles = vec![
+                Scopes::AnnouncementEngagementWrite,
                 Scopes::ArtistWrite,
                 Scopes::BoxOfficeTicketRead,
                 Scopes::BoxOfficeTicketWrite,
@@ -426,6 +442,9 @@ fn get_scopes_for_role(role: Roles) -> Vec<Scopes> {
         }
         Admin => {
             let mut roles = vec![
+                Scopes::AnnouncementDelete,
+                Scopes::AnnouncementRead,
+                Scopes::AnnouncementWrite,
                 Scopes::OrderRefundOverride,
                 Scopes::OrgAdmin,
                 Scopes::OrgFinancialReports,
@@ -462,6 +481,7 @@ fn get_scopes_for_role_test() {
     let res = get_scopes_for_role(Roles::OrgOwner);
     assert_equiv!(
         vec![
+            Scopes::AnnouncementEngagementWrite,
             Scopes::ArtistWrite,
             Scopes::BoxOfficeTicketRead,
             Scopes::BoxOfficeTicketWrite,
@@ -537,6 +557,7 @@ fn get_scopes_test() {
     res.sort();
     assert_equiv!(
         vec![
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -603,6 +624,10 @@ fn get_scopes_test() {
     res.sort();
     assert_equiv!(
         vec![
+            "announcement:delete",
+            "announcement:read",
+            "announcement:write",
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -685,6 +710,10 @@ fn get_scopes_test() {
     res.sort();
     assert_equiv!(
         vec![
+            "announcement:delete",
+            "announcement:read",
+            "announcement:write",
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -766,6 +795,10 @@ fn get_scopes_test() {
         .collect::<Vec<String>>();
     assert_equiv!(
         vec![
+            "announcement:delete",
+            "announcement:read",
+            "announcement:write",
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
@@ -853,6 +886,7 @@ fn get_scopes_test() {
     .collect::<Vec<String>>();
     assert_equiv!(
         vec![
+            "announcement-engagement:write",
             "artist:write",
             "box-office-ticket:read",
             "box-office-ticket:write",
