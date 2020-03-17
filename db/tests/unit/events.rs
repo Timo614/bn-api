@@ -1637,7 +1637,7 @@ fn guest_list() {
     let user6 = project.create_user().finish();
 
     // 1 normal order, 2 orders made on behalf of users by box office user 2
-    let normal_order = project
+    project
         .create_order()
         .for_event(&event)
         .for_user(&user)
