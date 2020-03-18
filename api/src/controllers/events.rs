@@ -88,6 +88,13 @@ impl From<SearchParameters> for Paging {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct EventAvailability {
+    pub limited_tickets_remaining: Vec<TicketsRemaining>,
+    pub ticket_types: Vec<UserDisplayTicketType>,
+    pub sales_start_date: Option<NaiveDateTime>,
+}
+
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct EventExportData {
     pub id: Uuid,
@@ -308,19 +315,68 @@ pub struct EventParameters {
     pub private_access_code: Option<String>,
 }
 
-pub async fn show(
-    (state, connection, parameters, query, user, request): (
-        Data<AppState>,
+fn confirm_can_view_event_details(
+    user: &Option<AuthUser>,
+    private_access_code: Option<String>,
+    event: &Event,
+    organization: &Organization,
+    box_office_pricing: bool,
+    connection: &PgConnection,
+) -> Result<bool, BigNeonError> {
+    if event.private_access_code.is_some()
+        && !(private_access_code.is_some()
+            && event.private_access_code.clone().unwrap() == private_access_code.clone().unwrap().to_lowercase())
+    {
+        match user {
+            Some(ref user) => user.requires_scope_for_organization(Scopes::OrgReadEvents, &organization, connection)?,
+            None => {
+                return Err(application::unauthorized_with_message::<HttpResponse>(
+                    "Unauthorized access of private event",
+                    None,
+                    None,
+                )
+                .unwrap_err());
+            }
+        }
+    };
+
+    let user_has_privileges = match user {
+        Some(ref user) => {
+            user.has_scope_for_organization_event(Scopes::EventWrite, &organization, event.id, connection)?
+        }
+        None => false,
+    };
+
+    if box_office_pricing {
+        match user {
+            Some(ref user) => {
+                user.requires_scope_for_organization(Scopes::BoxOfficeTicketRead, &organization, connection)?
+            }
+            None => {
+                return Err(application::unauthorized_with_message::<HttpResponse>(
+                    "Cannot access box office pricing",
+                    None,
+                    None,
+                )
+                .unwrap_err());
+            }
+        }
+    }
+
+    Ok(user_has_privileges)
+}
+
+pub async fn availability(
+    (connection, parameters, query, user, request): (
         ReadonlyConnection,
         Path<StringPathParameters>,
         Query<EventParameters>,
         OptionalUser,
         RequestInfo,
     ),
-) -> Result<HttpResponse, ApiError> {
+) -> Result<HttpResponse, BigNeonError> {
     let connection = connection.get();
     let user = user.into_inner();
-
     let event_id = match parameters.id.parse() {
         Ok(i) => i,
         Err(_) => {
@@ -333,61 +389,13 @@ pub async fn show(
             slugs[0].main_table_id
         }
     };
-
-    let (event, organization, venue, fee_schedule) = Event::find_incl_org_venue_fees(event_id, connection)?;
-
-    if event.private_access_code.is_some()
-        && !(query.private_access_code.is_some()
-            && event.private_access_code.clone().unwrap() == query.private_access_code.clone().unwrap().to_lowercase())
-    {
-        match user {
-            Some(ref user) => user.requires_scope_for_organization(Scopes::OrgReadEvents, &organization, connection)?,
-            None => {
-                return application::unauthorized_with_message("Unauthorized access of private event", None, None);
-            }
-        }
-    };
-
-    let user_has_privileges = match user {
-        Some(ref user) => {
-            user.has_scope_for_organization_event(Scopes::EventWrite, &organization, event.id, connection)?
-        }
-        None => false,
-    };
-
-    let event_ended = event.event_end.unwrap_or(times::infinity()) < dates::now().finish();
-    if !user_has_privileges
-        && (event.publish_date.unwrap_or(times::infinity()) > dates::now().finish() || event.deleted_at.is_some())
-    {
-        return application::not_found();
-    }
-
-    let localized_times = event.get_all_localized_time_strings(venue.as_ref());
-    let event_artists = EventArtist::find_all_from_event(event.id, connection)?;
-    let total_interest = EventInterest::total_interest(event.id, connection)?;
-    let user_interest = match user {
-        Some(ref u) => EventInterest::user_interest(event.id, u.id(), connection)?,
-        None => false,
-    };
-
-    let box_office_pricing = query.box_office_pricing.unwrap_or(false);
-    if box_office_pricing {
-        match user {
-            Some(ref user) => {
-                user.requires_scope_for_organization(Scopes::BoxOfficeTicketRead, &organization, connection)?
-            }
-            None => {
-                return application::unauthorized_with_message("Cannot access box office pricing", None, None);
-            }
-        }
-    }
-
+    let (event, _, _, fee_schedule) = Event::find_incl_org_venue_fees(event_id, connection)?;
     let ticket_types = TicketType::find_by_event_id(event.id, true, query.redemption_code.clone(), connection)?;
     let mut display_ticket_types = Vec::new();
     let mut sales_start_date = Some(times::infinity());
     let mut limited_tickets_remaining: Vec<TicketsRemaining> = Vec::new();
 
-    let platform = if box_office_pricing {
+    let platform = if query.box_office_pricing.unwrap_or(false) {
         Platforms::BoxOffice
     } else {
         // If we can't determine the platform, then serve it as web
@@ -397,7 +405,6 @@ pub async fn show(
             Platforms::Web
         }
     };
-
     for ticket_type in ticket_types {
         match platform {
             Platforms::App => {
@@ -421,7 +428,7 @@ pub async fn show(
             let display_ticket_type = UserDisplayTicketType::from_ticket_type(
                 &ticket_type,
                 &fee_schedule,
-                box_office_pricing,
+                query.box_office_pricing.unwrap_or(false),
                 query.redemption_code.clone(),
                 connection,
             )?;
@@ -458,6 +465,62 @@ pub async fn show(
             }
         }
     }
+
+    let availability = EventAvailability {
+        ticket_types: display_ticket_types,
+        limited_tickets_remaining,
+        sales_start_date,
+    };
+    Ok(HttpResponse::Ok().json(&availability))
+}
+
+pub async fn show(
+    (state, connection, parameters, query, user): (
+        Data<AppState>,
+        ReadonlyConnection,
+        Path<StringPathParameters>,
+        Query<EventParameters>,
+        OptionalUser,
+    ),
+) -> Result<HttpResponse, BigNeonError> {
+    let connection = connection.get();
+    let user = user.into_inner();
+    let event_id = match parameters.id.parse() {
+        Ok(i) => i,
+        Err(_) => {
+            // Backwards compatibility for existing links
+            let slugs = Slug::find_by_slug(&parameters.id, connection)?;
+            if slugs.is_empty() || (slugs[0].main_table != Tables::Events || slugs[0].slug_type != SlugTypes::Event) {
+                return application::not_found();
+            }
+
+            slugs[0].main_table_id
+        }
+    };
+    let (event, organization, venue, _) = Event::find_incl_org_venue_fees(event_id, connection)?;
+    let box_office_pricing = query.box_office_pricing.unwrap_or(false);
+    let user_has_privileges = confirm_can_view_event_details(
+        &user,
+        query.private_access_code.clone(),
+        &event,
+        &organization,
+        box_office_pricing,
+        connection,
+    )?;
+    let event_ended = event.event_end.unwrap_or(times::infinity()) < dates::now().finish();
+    if !user_has_privileges
+        && (event.publish_date.unwrap_or(times::infinity()) > dates::now().finish() || event.deleted_at.is_some())
+    {
+        return application::not_found();
+    }
+
+    let localized_times = event.get_all_localized_time_strings(venue.as_ref());
+    let event_artists = EventArtist::find_all_from_event(event.id, connection)?;
+    let total_interest = EventInterest::total_interest(event.id, connection)?;
+    let user_interest = match user {
+        Some(ref u) => EventInterest::user_interest(event.id, u.id(), connection)?,
+        None => false,
+    };
 
     let mut tracking_keys =
         Organization::tracking_keys_for_ids(vec![organization.id], &state.config.api_keys_encryption_key, connection)?
@@ -532,7 +595,6 @@ pub async fn show(
             None => None,
         },
         artists: event_artists,
-        ticket_types: display_ticket_types,
         total_interest,
         user_is_interested: user_interest,
         min_ticket_price,
@@ -540,11 +602,9 @@ pub async fn show(
         is_external: event.is_external,
         external_url: event.external_url,
         override_status: event.override_status,
-        limited_tickets_remaining,
         localized_times,
         tracking_keys,
         event_type: event.event_type,
-        sales_start_date,
         url: format!("{}/tickets/{}", &state.config.front_end_url, &slug),
         slug,
         facebook_pixel_key: event.facebook_pixel_key,

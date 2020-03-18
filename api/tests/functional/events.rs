@@ -422,18 +422,8 @@ async fn show() {
     let mut path = Path::<StringPathParameters>::extract(&test_request.request)
         .await
         .unwrap();
-    let event_expected_json = base::events::expected_show_json(
-        Roles::User,
-        event,
-        organization,
-        venue,
-        false,
-        None,
-        None,
-        conn,
-        1,
-        None,
-    );
+    let event_expected_json =
+        base::events::expected_show_json(Roles::User, event, organization, venue, false, conn, 1, None);
     path.id = event_id.to_string();
     let query_parameters = Query::<EventParameters>::extract(&test_request.request).await.unwrap();
 
@@ -443,9 +433,6 @@ async fn show() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user)),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
     ))
     .await
     .into();
@@ -491,8 +478,6 @@ async fn show_ended_event() {
         organization,
         venue,
         false,
-        None,
-        None,
         conn,
         1,
         Some(EventStatus::Closed),
@@ -506,9 +491,6 @@ async fn show_ended_event() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user)),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
     ))
     .await
     .into();
@@ -546,9 +528,6 @@ async fn show_future_published_no_preview() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user.clone())),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
     ))
     .await
     .into();
@@ -581,8 +560,6 @@ async fn show_from_slug() {
         organization.clone(),
         venue.clone(),
         false,
-        None,
-        None,
         conn,
         1,
         None,
@@ -596,9 +573,6 @@ async fn show_from_slug() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user.clone())),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
     ))
     .await
     .into();
@@ -622,9 +596,6 @@ async fn show_from_slug() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user.clone())),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
     ))
     .await
     .into();
@@ -649,8 +620,6 @@ async fn show_from_slug() {
         organization.clone(),
         venue.clone(),
         false,
-        None,
-        None,
         conn,
         1,
         None,
@@ -664,9 +633,6 @@ async fn show_from_slug() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user.clone())),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
     ))
     .await
     .into();
@@ -698,8 +664,6 @@ async fn show_future_published_with_preview() {
         organization.clone(),
         venue.clone(),
         false,
-        None,
-        None,
         connection,
         1,
         None,
@@ -718,9 +682,6 @@ async fn show_future_published_with_preview() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user.clone())),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
     ))
     .await
     .into();
@@ -759,9 +720,6 @@ async fn show_deleted_event() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user.clone())),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
     ))
     .await
     .into();
@@ -817,8 +775,6 @@ async fn show_private() {
         organization.clone(),
         venue.clone(),
         false,
-        None,
-        None,
         conn,
         1,
         None,
@@ -832,9 +788,6 @@ async fn show_private() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user.clone())),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
     ))
     .await
     .into();
@@ -854,8 +807,6 @@ async fn show_private() {
         organization.clone(),
         venue.clone(),
         false,
-        None,
-        None,
         conn,
         2,
         None,
@@ -869,9 +820,6 @@ async fn show_private() {
         path,
         query_parameters,
         OptionalUser(Some(auth_org_user)),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
     ))
     .await
     .into();
@@ -891,9 +839,6 @@ async fn show_private() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user.clone())),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
     ))
     .await
     .into();
@@ -915,406 +860,15 @@ async fn show_private() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user)),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
     ))
     .await
     .into();
 
     let body = support::unwrap_body_to_string(&response).unwrap();
     assert_eq!(response.status(), StatusCode::OK);
-    let event_expected_json = base::events::expected_show_json(
-        Roles::User,
-        private_event,
-        organization,
-        venue,
-        false,
-        None,
-        None,
-        conn,
-        2,
-        None,
-    );
+    let event_expected_json =
+        base::events::expected_show_json(Roles::User, private_event, organization, venue, false, conn, 2, None);
     assert_eq!(body, event_expected_json);
-}
-
-#[actix_rt::test]
-async fn show_with_cancelled_ticket_type() {
-    let database = TestDatabase::new();
-    let user = database.create_user().finish();
-    let auth_user = support::create_auth_user_from_user(&user, Roles::User, None, &database);
-
-    let organization = database.create_organization().finish();
-    let venue = database.create_venue().finish();
-    let event = database
-        .create_event()
-        .with_name("NewEvent".to_string())
-        .with_organization(&organization)
-        .with_venue(&venue)
-        .with_ticket_pricing()
-        .with_ticket_type_count(2)
-        .finish();
-    let event_id = event.id;
-
-    let artist1 = database.create_artist().finish();
-    let artist2 = database.create_artist().finish();
-    let conn = database.connection.get();
-
-    event.add_artist(None, artist1.id, conn).unwrap();
-    event.add_artist(None, artist2.id, conn).unwrap();
-
-    let ticket_type = event.ticket_types(true, None, conn).unwrap().remove(0);
-    ticket_type.cancel(conn).unwrap();
-
-    EventInterest::create(event.id, user.id).commit(conn).unwrap();
-    let test_request = TestRequest::create_with_uri(&format!("/events/{}", event.id));
-    let mut path = Path::<StringPathParameters>::extract(&test_request.request)
-        .await
-        .unwrap();
-    let event_expected_json = base::events::expected_show_json(
-        Roles::User,
-        event,
-        organization,
-        venue,
-        false,
-        None,
-        None,
-        conn,
-        1,
-        None,
-    );
-    path.id = event_id.to_string();
-    let query_parameters = Query::<EventParameters>::extract(&test_request.request).await.unwrap();
-
-    let response: HttpResponse = events::show((
-        test_request.extract_state().await,
-        database.connection.clone().into(),
-        path,
-        query_parameters,
-        OptionalUser(Some(auth_user)),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
-    ))
-    .await
-    .into();
-    let body = support::unwrap_body_to_string(&response).unwrap();
-    assert_eq!(response.status(), StatusCode::OK);
-    assert_eq!(body, event_expected_json);
-}
-
-#[actix_rt::test]
-async fn show_with_access_restricted_ticket_type_and_no_code() {
-    let database = TestDatabase::new();
-    let user = database.create_user().finish();
-    let auth_user = support::create_auth_user_from_user(&user, Roles::User, None, &database);
-
-    let organization = database.create_organization().finish();
-    let venue = database.create_venue().finish();
-    let event = database
-        .create_event()
-        .with_name("NewEvent".to_string())
-        .with_organization(&organization)
-        .with_venue(&venue)
-        .with_ticket_pricing()
-        .with_ticket_type_count(2)
-        .finish();
-    let event_id = event.id;
-
-    let artist1 = database.create_artist().finish();
-    let artist2 = database.create_artist().finish();
-    let conn = database.connection.get();
-
-    event.add_artist(None, artist1.id, conn).unwrap();
-    event.add_artist(None, artist2.id, conn).unwrap();
-
-    let ticket_types = &event.ticket_types(true, None, conn).unwrap();
-    let ticket_type = &ticket_types[0];
-    let ticket_type2 = &ticket_types[1];
-    let _code = database
-        .create_code()
-        .with_code_type(CodeTypes::Access)
-        .with_event(&event)
-        .for_ticket_type(&ticket_type2)
-        .finish();
-
-    let _event_interest = EventInterest::create(event.id, user.id).commit(conn);
-    let test_request = TestRequest::create_with_uri(&format!("/events/{}", event.id));
-    let mut path = Path::<StringPathParameters>::extract(&test_request.request)
-        .await
-        .unwrap();
-    let event_expected_json = base::events::expected_show_json(
-        Roles::User,
-        event,
-        organization,
-        venue,
-        false,
-        None,
-        Some(vec![ticket_type.id]),
-        conn,
-        1,
-        None,
-    );
-    path.id = event_id.to_string();
-    let query_parameters = Query::<EventParameters>::extract(&test_request.request).await.unwrap();
-    assert_eq!(query_parameters.redemption_code, None);
-
-    let response: HttpResponse = events::show((
-        test_request.extract_state().await,
-        database.connection.clone().into(),
-        path,
-        query_parameters,
-        OptionalUser(Some(auth_user)),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
-    ))
-    .await
-    .into();
-    let body = support::unwrap_body_to_string(&response).unwrap();
-    assert_eq!(response.status(), StatusCode::OK);
-    assert_eq!(body, event_expected_json);
-}
-
-#[actix_rt::test]
-async fn show_with_access_restricted_ticket_type_and_access_code() {
-    let database = TestDatabase::new();
-    let user = database.create_user().finish();
-    let auth_user = support::create_auth_user_from_user(&user, Roles::User, None, &database);
-
-    let organization = database.create_organization().finish();
-    let venue = database.create_venue().finish();
-    let event = database
-        .create_event()
-        .with_name("NewEvent".to_string())
-        .with_organization(&organization)
-        .with_venue(&venue)
-        .with_ticket_pricing()
-        .with_ticket_type_count(2)
-        .finish();
-    let event_id = event.id;
-
-    let artist1 = database.create_artist().finish();
-    let artist2 = database.create_artist().finish();
-    let conn = database.connection.get();
-
-    event.add_artist(None, artist1.id, conn).unwrap();
-    event.add_artist(None, artist2.id, conn).unwrap();
-
-    let ticket_types = &event.ticket_types(true, None, conn).unwrap();
-    let ticket_type = &ticket_types[0];
-    let ticket_type2 = &ticket_types[1];
-    let code = database
-        .create_code()
-        .with_code_type(CodeTypes::Access)
-        .with_event(&event)
-        .for_ticket_type(&ticket_type2)
-        .finish();
-
-    let _event_interest = EventInterest::create(event.id, user.id).commit(conn);
-    let test_request = TestRequest::create_with_uri(&format!(
-        "/events/{}?redemption_code={}",
-        event.id, code.redemption_code
-    ));
-    let mut path = Path::<StringPathParameters>::extract(&test_request.request)
-        .await
-        .unwrap();
-    let event_expected_json = base::events::expected_show_json(
-        Roles::User,
-        event,
-        organization,
-        venue,
-        false,
-        Some(code.redemption_code.clone()),
-        Some(vec![ticket_type.id, ticket_type2.id]),
-        conn,
-        1,
-        None,
-    );
-    path.id = event_id.to_string();
-    let query_parameters = Query::<EventParameters>::extract(&test_request.request).await.unwrap();
-    assert_eq!(query_parameters.redemption_code, Some(code.redemption_code));
-
-    let response: HttpResponse = events::show((
-        test_request.extract_state().await,
-        database.connection.clone().into(),
-        path,
-        query_parameters,
-        OptionalUser(Some(auth_user)),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
-    ))
-    .await
-    .into();
-    let body = support::unwrap_body_to_string(&response).unwrap();
-    assert_eq!(response.status(), StatusCode::OK);
-    assert_eq!(body, event_expected_json);
-}
-
-#[actix_rt::test]
-async fn show_with_visibility_always_before_sale() {
-    let database = TestDatabase::new();
-    let user = database.create_user().finish();
-    let auth_user = support::create_auth_user_from_user(&user, Roles::User, None, &database);
-
-    let event = database
-        .create_event()
-        .with_name("NewEvent".to_string())
-        .with_ticket_type()
-        .visibility(TicketTypeVisibility::Always)
-        .starting(dates::now().add_hours(10).finish())
-        .finish();
-    let conn = database.connection;
-    let _time = dates::now().add_days(-10).finish();
-
-    let request = RequestBuilder::new(&format!("/events/{}", event.id));
-
-    let mut path: Path<StringPathParameters> = request.path().await;
-    path.id = event.id.to_string();
-
-    let response: HttpResponse = events::show((
-        request.state().await,
-        conn.clone().into(),
-        path,
-        request.query().await,
-        auth_user.into_optional(),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
-    ))
-    .await
-    .into();
-
-    assert_eq!(response.status(), StatusCode::OK);
-    let result: EventShowResult = support::unwrap_body_to_object(&response).unwrap();
-    println!("{:?}", result);
-    assert_eq!(result.ticket_types[0].status, TicketTypeStatus::OnSaleSoon);
-}
-
-#[actix_rt::test]
-async fn show_with_visibility_always_before_sale_pricing() {
-    let database = TestDatabase::new();
-    let user = database.create_user().finish();
-    let auth_user = support::create_auth_user_from_user(&user, Roles::User, None, &database);
-
-    let event = database
-        .create_event()
-        .with_name("NewEvent".to_string())
-        .with_ticket_type()
-        .visibility(TicketTypeVisibility::Always)
-        .starting(dates::now().add_hours(-1).finish())
-        .with_pricing()
-        .starting(dates::now().add_hours(1).finish())
-        .finish();
-    let conn = database.connection;
-    let _time = dates::now().add_days(-10).finish();
-
-    let request = RequestBuilder::new(&format!("/events/{}", event.id));
-
-    let mut path: Path<StringPathParameters> = request.path().await;
-    path.id = event.id.to_string();
-
-    let response: HttpResponse = events::show((
-        request.state().await,
-        conn.clone().into(),
-        path,
-        request.query().await,
-        auth_user.into_optional(),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
-    ))
-    .await
-    .into();
-
-    assert_eq!(response.status(), StatusCode::OK);
-    let result: EventShowResult = support::unwrap_body_to_object(&response).unwrap();
-    println!("{:?}", result);
-    assert_eq!(result.ticket_types[0].status, TicketTypeStatus::Published);
-}
-
-#[actix_rt::test]
-async fn show_with_visibility_always_after_sale() {
-    let database = TestDatabase::new();
-    let user = database.create_user().finish();
-    let auth_user = support::create_auth_user_from_user(&user, Roles::User, None, &database);
-
-    let _start = dates::now().add_hours(-1).finish();
-    let event = database
-        .create_event()
-        .with_name("NewEvent".to_string())
-        .with_ticket_type()
-        .visibility(TicketTypeVisibility::Always)
-        .ending(dates::now().add_hours(-1).finish())
-        .finish();
-    let conn = database.connection;
-    let _time = dates::now().add_days(-10).finish();
-
-    println!("{:?}", event.id);
-
-    let request = RequestBuilder::new(&format!("/events/{}", event.id));
-
-    let mut path: Path<StringPathParameters> = request.path().await;
-    path.id = event.id.to_string();
-
-    let response: HttpResponse = events::show((
-        request.state().await,
-        conn.clone().into(),
-        path,
-        request.query().await,
-        auth_user.into_optional(),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
-    ))
-    .await
-    .into();
-
-    assert_eq!(response.status(), StatusCode::OK);
-    let result: EventShowResult = support::unwrap_body_to_object(&response).unwrap();
-    assert_eq!(result.ticket_types[0].status, TicketTypeStatus::SaleEnded);
-}
-
-#[actix_rt::test]
-async fn show_with_hidden_ticket_type() {
-    let database = TestDatabase::new();
-    let user = database.create_user().finish();
-    let auth_user = support::create_auth_user_from_user(&user, Roles::User, None, &database);
-
-    let event = database
-        .create_event()
-        .with_name("NewEvent".to_string())
-        .with_ticket_type()
-        .visibility(TicketTypeVisibility::Hidden)
-        .finish();
-    let conn = database.connection;
-    let _time = dates::now().add_days(-10).finish();
-
-    println!("{:?}", event.id);
-
-    let request = RequestBuilder::new(&format!("/events/{}", event.id));
-
-    let mut path: Path<StringPathParameters> = request.path().await;
-    path.id = event.id.to_string();
-
-    let response: HttpResponse = events::show((
-        request.state().await,
-        conn.clone().into(),
-        path,
-        request.query().await,
-        auth_user.into_optional(),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
-    ))
-    .await
-    .into();
-
-    assert_eq!(response.status(), StatusCode::OK);
-    let result: EventShowResult = support::unwrap_body_to_object(&response).unwrap();
-    assert_eq!(result.ticket_types.len(), 0);
 }
 
 #[cfg(test)]
@@ -2449,4 +2003,340 @@ pub fn event_venue_entry(
         slug,
         event_end: event.event_end,
     }
+}
+
+#[actix_rt::test]
+async fn availability_with_visibility_always_before_sale() {
+    let database = TestDatabase::new();
+    let user = database.create_user().finish();
+    let auth_user = support::create_auth_user_from_user(&user, Roles::User, None, &database);
+
+    let event = database
+        .create_event()
+        .with_name("NewEvent".to_string())
+        .with_ticket_type()
+        .visibility(TicketTypeVisibility::Always)
+        .starting(dates::now().add_hours(10).finish())
+        .finish();
+    let conn = database.connection;
+
+    let request = RequestBuilder::new(&format!("/events/{}", event.id));
+    let mut path: Path<StringPathParameters> = request.path().await;
+    path.id = event.id.to_string();
+
+    let response: HttpResponse = events::availability((
+        conn.clone().into(),
+        path,
+        request.query().await,
+        auth_user.into_optional(),
+        RequestInfo {
+            user_agent: Some("test".to_string()),
+        },
+    ))
+    .await
+    .into();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let result: EventAvailability = support::unwrap_body_to_object(&response).unwrap();
+    assert_eq!(result.ticket_types[0].status, TicketTypeStatus::OnSaleSoon);
+}
+
+#[actix_rt::test]
+async fn availability_with_visibility_always_before_sale_pricing() {
+    let database = TestDatabase::new();
+    let user = database.create_user().finish();
+    let auth_user = support::create_auth_user_from_user(&user, Roles::User, None, &database);
+
+    let event = database
+        .create_event()
+        .with_name("NewEvent".to_string())
+        .with_ticket_type()
+        .visibility(TicketTypeVisibility::Always)
+        .starting(dates::now().add_hours(-1).finish())
+        .with_pricing()
+        .starting(dates::now().add_hours(1).finish())
+        .finish();
+    let conn = database.connection;
+
+    let request = RequestBuilder::new(&format!("/events/{}", event.id));
+
+    let mut path: Path<StringPathParameters> = request.path().await;
+    path.id = event.id.to_string();
+
+    let response: HttpResponse = events::availability((
+        conn.clone().into(),
+        path,
+        request.query().await,
+        auth_user.into_optional(),
+        RequestInfo {
+            user_agent: Some("test".to_string()),
+        },
+    ))
+    .await
+    .into();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let result: EventAvailability = support::unwrap_body_to_object(&response).unwrap();
+    assert_eq!(result.ticket_types[0].status, TicketTypeStatus::Published);
+}
+
+#[actix_rt::test]
+async fn availability_with_visibility_always_after_sale() {
+    let database = TestDatabase::new();
+    let user = database.create_user().finish();
+    let auth_user = support::create_auth_user_from_user(&user, Roles::User, None, &database);
+
+    let _start = dates::now().add_hours(-1).finish();
+    let event = database
+        .create_event()
+        .with_name("NewEvent".to_string())
+        .with_ticket_type()
+        .visibility(TicketTypeVisibility::Always)
+        .ending(dates::now().add_hours(-1).finish())
+        .finish();
+    let conn = database.connection;
+
+    let request = RequestBuilder::new(&format!("/events/{}", event.id));
+
+    let mut path: Path<StringPathParameters> = request.path().await;
+    path.id = event.id.to_string();
+
+    let response: HttpResponse = events::availability((
+        conn.clone().into(),
+        path,
+        request.query().await,
+        auth_user.into_optional(),
+        RequestInfo {
+            user_agent: Some("test".to_string()),
+        },
+    ))
+    .await
+    .into();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let result: EventAvailability = support::unwrap_body_to_object(&response).unwrap();
+    assert_eq!(result.ticket_types[0].status, TicketTypeStatus::SaleEnded);
+}
+
+#[actix_rt::test]
+async fn availability_with_hidden_ticket_type() {
+    let database = TestDatabase::new();
+    let user = database.create_user().finish();
+    let auth_user = support::create_auth_user_from_user(&user, Roles::User, None, &database);
+
+    let event = database
+        .create_event()
+        .with_name("NewEvent".to_string())
+        .with_ticket_type()
+        .visibility(TicketTypeVisibility::Hidden)
+        .finish();
+    let conn = database.connection;
+
+    let request = RequestBuilder::new(&format!("/events/{}", event.id));
+
+    let mut path: Path<StringPathParameters> = request.path().await;
+    path.id = event.id.to_string();
+
+    let response: HttpResponse = events::availability((
+        conn.clone().into(),
+        path,
+        request.query().await,
+        auth_user.into_optional(),
+        RequestInfo {
+            user_agent: Some("test".to_string()),
+        },
+    ))
+    .await
+    .into();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let result: EventAvailability = support::unwrap_body_to_object(&response).unwrap();
+    assert_eq!(result.ticket_types.len(), 0);
+}
+
+#[actix_rt::test]
+async fn availability_with_cancelled_ticket_type() {
+    let database = TestDatabase::new();
+    let user = database.create_user().finish();
+    let auth_user = support::create_auth_user_from_user(&user, Roles::User, None, &database);
+
+    let organization = database.create_organization().finish();
+    let venue = database.create_venue().finish();
+    let event = database
+        .create_event()
+        .with_name("NewEvent".to_string())
+        .with_organization(&organization)
+        .with_venue(&venue)
+        .with_ticket_pricing()
+        .with_ticket_type_count(2)
+        .finish();
+    let event_id = event.id;
+
+    let artist1 = database.create_artist().finish();
+    let artist2 = database.create_artist().finish();
+    let conn = database.connection.get();
+
+    event.add_artist(None, artist1.id, conn).unwrap();
+    event.add_artist(None, artist2.id, conn).unwrap();
+
+    let mut ticket_types = event.ticket_types(true, None, conn).unwrap();
+    let ticket_type = ticket_types.remove(0);
+    let ticket_type2 = ticket_types.remove(0);
+    ticket_type.cancel(conn).unwrap();
+
+    EventInterest::create(event.id, user.id).commit(conn).unwrap();
+    let test_request = TestRequest::create_with_uri(&format!("/events/{}", event.id));
+    let mut path = Path::<StringPathParameters>::extract(&test_request.request)
+        .await
+        .unwrap();
+    path.id = event_id.to_string();
+    let query_parameters = Query::<EventParameters>::extract(&test_request.request).await.unwrap();
+
+    let response: HttpResponse = events::availability((
+        database.connection.clone().into(),
+        path,
+        query_parameters,
+        OptionalUser(Some(auth_user)),
+        RequestInfo {
+            user_agent: Some("test".to_string()),
+        },
+    ))
+    .await
+    .into();
+    assert_eq!(response.status(), StatusCode::OK);
+    let result: EventAvailability = support::unwrap_body_to_object(&response).unwrap();
+    assert_eq!(result.ticket_types.len(), 1);
+    assert_eq!(result.ticket_types[0].id, ticket_type2.id);
+    assert_eq!(result.sales_start_date, ticket_type2.start_date);
+    assert_eq!(result.limited_tickets_remaining, Vec::new());
+}
+
+#[actix_rt::test]
+async fn availability_with_access_restricted_ticket_type_and_no_code() {
+    let database = TestDatabase::new();
+    let user = database.create_user().finish();
+    let auth_user = support::create_auth_user_from_user(&user, Roles::User, None, &database);
+
+    let organization = database.create_organization().finish();
+    let venue = database.create_venue().finish();
+    let event = database
+        .create_event()
+        .with_name("NewEvent".to_string())
+        .with_organization(&organization)
+        .with_venue(&venue)
+        .with_ticket_pricing()
+        .with_ticket_type_count(2)
+        .finish();
+    let event_id = event.id;
+
+    let artist1 = database.create_artist().finish();
+    let artist2 = database.create_artist().finish();
+    let conn = database.connection.get();
+
+    event.add_artist(None, artist1.id, conn).unwrap();
+    event.add_artist(None, artist2.id, conn).unwrap();
+
+    let ticket_types = &event.ticket_types(true, None, conn).unwrap();
+    let ticket_type = &ticket_types[0];
+    let ticket_type2 = &ticket_types[1];
+    let _code = database
+        .create_code()
+        .with_code_type(CodeTypes::Access)
+        .with_event(&event)
+        .for_ticket_type(&ticket_type2)
+        .finish();
+
+    let _event_interest = EventInterest::create(event.id, user.id).commit(conn);
+    let test_request = TestRequest::create_with_uri(&format!("/events/{}", event.id));
+    let mut path = Path::<StringPathParameters>::extract(&test_request.request)
+        .await
+        .unwrap();
+    path.id = event_id.to_string();
+    let query_parameters = Query::<EventParameters>::extract(&test_request.request).await.unwrap();
+    assert_eq!(query_parameters.redemption_code, None);
+
+    let response: HttpResponse = events::availability((
+        database.connection.clone().into(),
+        path,
+        query_parameters,
+        OptionalUser(Some(auth_user)),
+        RequestInfo {
+            user_agent: Some("test".to_string()),
+        },
+    ))
+    .await
+    .into();
+    assert_eq!(response.status(), StatusCode::OK);
+    let result: EventAvailability = support::unwrap_body_to_object(&response).unwrap();
+    assert_eq!(result.ticket_types.len(), 1);
+    assert_eq!(result.ticket_types[0].id, ticket_type.id);
+    assert_eq!(result.sales_start_date, ticket_type.start_date);
+    assert_eq!(result.limited_tickets_remaining, Vec::new());
+}
+
+#[actix_rt::test]
+async fn availability_with_access_restricted_ticket_type_and_access_code() {
+    let database = TestDatabase::new();
+    let user = database.create_user().finish();
+    let auth_user = support::create_auth_user_from_user(&user, Roles::User, None, &database);
+
+    let organization = database.create_organization().finish();
+    let venue = database.create_venue().finish();
+    let event = database
+        .create_event()
+        .with_name("NewEvent".to_string())
+        .with_organization(&organization)
+        .with_venue(&venue)
+        .with_ticket_pricing()
+        .with_ticket_type_count(2)
+        .finish();
+    let event_id = event.id;
+
+    let artist1 = database.create_artist().finish();
+    let artist2 = database.create_artist().finish();
+    let conn = database.connection.get();
+
+    event.add_artist(None, artist1.id, conn).unwrap();
+    event.add_artist(None, artist2.id, conn).unwrap();
+
+    let ticket_types = &event.ticket_types(true, None, conn).unwrap();
+    let ticket_type = &ticket_types[0];
+    let ticket_type2 = &ticket_types[1];
+    let code = database
+        .create_code()
+        .with_code_type(CodeTypes::Access)
+        .with_event(&event)
+        .for_ticket_type(&ticket_type2)
+        .finish();
+
+    let _event_interest = EventInterest::create(event.id, user.id).commit(conn);
+    let test_request = TestRequest::create_with_uri(&format!(
+        "/events/{}?redemption_code={}",
+        event.id, code.redemption_code
+    ));
+    let mut path = Path::<StringPathParameters>::extract(&test_request.request)
+        .await
+        .unwrap();
+    path.id = event_id.to_string();
+    let query_parameters = Query::<EventParameters>::extract(&test_request.request).await.unwrap();
+    assert_eq!(query_parameters.redemption_code, Some(code.redemption_code));
+
+    let response: HttpResponse = events::availability((
+        database.connection.clone().into(),
+        path,
+        query_parameters,
+        OptionalUser(Some(auth_user)),
+        RequestInfo {
+            user_agent: Some("test".to_string()),
+        },
+    ))
+    .await
+    .into();
+    assert_eq!(response.status(), StatusCode::OK);
+    let result: EventAvailability = support::unwrap_body_to_object(&response).unwrap();
+    assert_eq!(result.ticket_types.len(), 2);
+    assert_eq!(result.ticket_types[0].id, ticket_type.id);
+    assert_eq!(result.ticket_types[1].id, ticket_type2.id);
+    assert_eq!(result.sales_start_date, ticket_type.start_date);
+    assert_eq!(result.limited_tickets_remaining, Vec::new());
 }

@@ -42,8 +42,6 @@ async fn show_event() {
         organization.clone(),
         venue.clone(),
         false,
-        None,
-        None,
         conn,
         1,
         None,
@@ -57,9 +55,6 @@ async fn show_event() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user.clone())),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
     ))
     .await
     .into();
@@ -120,9 +115,6 @@ async fn show_redirect_to_primary_slug() {
             path,
             query_parameters,
             OptionalUser(Some(auth_user.clone())),
-            RequestInfo {
-                user_agent: Some("test".to_string()),
-            },
         ))
         .await
         .into();
@@ -185,9 +177,6 @@ async fn show_venue() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user.clone())),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
     ))
     .await
     .into();
@@ -221,9 +210,6 @@ async fn show_venue() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user.clone())),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
     ))
     .await
     .into();
@@ -290,9 +276,6 @@ async fn show_organization() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user.clone())),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
     ))
     .await
     .into();
@@ -326,9 +309,6 @@ async fn show_organization() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user.clone())),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
     ))
     .await
     .into();
@@ -404,9 +384,6 @@ async fn show_city() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user.clone())),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
     ))
     .await
     .into();
@@ -448,9 +425,6 @@ async fn show_city() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user.clone())),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
     ))
     .await
     .into();
@@ -540,9 +514,6 @@ async fn show_genre() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user.clone())),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
     ))
     .await
     .into();

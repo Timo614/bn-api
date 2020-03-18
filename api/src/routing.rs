@@ -93,6 +93,7 @@ pub fn routes(app: &mut web::ServiceConfig) {
         .route(web::delete().to(events::cancel)),
     )
     .service(web::resource("/events/{id}/delete").route(web::delete().to(events::delete)))
+    .service(web::resource("/events/{id}/availability").route(web::get().to(events::availability)))
     .service(
         web::resource("/events/{id}/artists")
             .route(web::post().to(events::add_artist))

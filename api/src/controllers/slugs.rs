@@ -87,13 +87,12 @@ pub async fn update(
 }
 
 pub async fn show(
-    (state, conn, mut parameters, query, auth_user, request): (
+    (state, conn, mut parameters, query, auth_user): (
         Data<AppState>,
         ReadonlyConnection,
         Path<StringPathParameters>,
         Query<EventParameters>,
         OptionalUser,
-        RequestInfo,
     ),
 ) -> Result<HttpResponse, ApiError> {
     let user = auth_user
@@ -127,7 +126,7 @@ pub async fn show(
     let response = match slug.slug_type {
         SlugTypes::Event => {
             parameters.id = slug.main_table_id.to_string();
-            return events::show((state, conn, parameters, query, auth_user, request)).await;
+            return events::show((state, conn, parameters, query, auth_user)).await;
         }
         SlugTypes::Organization => {
             let organization = Organization::find(slug.main_table_id, connection)?;

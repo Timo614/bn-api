@@ -277,15 +277,12 @@ pub async fn show_box_office_pricing(role: Roles, should_test_succeed: bool) {
         path,
         query_parameters,
         OptionalUser(Some(auth_user)),
-        RequestInfo {
-            user_agent: Some("test".to_string()),
-        },
     ))
     .await
     .into();
 
     if should_test_succeed {
-        let event_expected_json = expected_show_json(role, event, organization, venue, true, None, None, conn, 1, None);
+        let event_expected_json = expected_show_json(role, event, organization, venue, true, conn, 1, None);
         let body = support::unwrap_body_to_string(&response).unwrap();
         assert_eq!(response.status(), StatusCode::OK);
         assert_eq!(body, event_expected_json);
@@ -926,8 +923,6 @@ pub fn expected_show_json(
     organization: Organization,
     venue: Venue,
     box_office_pricing: bool,
-    redemption_code: Option<String>,
-    filter_ticket_type_ids: Option<Vec<Uuid>>,
     connection: &PgConnection,
     interested_users: u32,
     status: Option<EventStatus>,
@@ -938,14 +933,6 @@ pub fn expected_show_json(
         name: String,
         slug: Option<String>,
     }
-
-    #[derive(Serialize)]
-    pub struct TicketsRemaining {
-        pub ticket_type_id: Uuid,
-        pub tickets_remaining: i32,
-    }
-
-    let no_tickets_remaining: Vec<TicketsRemaining> = Vec::new();
 
     #[derive(Serialize)]
     struct R {
@@ -975,7 +962,6 @@ pub fn expected_show_json(
         organization: ShortOrganization,
         venue: DisplayVenue,
         artists: Vec<DisplayEventArtist>,
-        ticket_types: Vec<UserDisplayTicketType>,
         total_interest: u32,
         user_is_interested: bool,
         min_ticket_price: Option<i64>,
@@ -983,11 +969,9 @@ pub fn expected_show_json(
         is_external: bool,
         external_url: Option<String>,
         override_status: Option<EventOverrideStatus>,
-        limited_tickets_remaining: Vec<TicketsRemaining>,
         localized_times: EventLocalizedTimeStrings,
         tracking_keys: TrackingKeys,
         event_type: EventTypes,
-        pub sales_start_date: Option<NaiveDateTime>,
         url: String,
         slug: String,
         facebook_pixel_key: Option<String>,
@@ -996,37 +980,8 @@ pub fn expected_show_json(
         updated_at: NaiveDateTime,
     }
 
-    let fee_schedule = FeeSchedule::find(organization.fee_schedule_id, connection).unwrap();
     let event_artists = EventArtist::find_all_from_event(event.id, connection).unwrap();
 
-    let mut ticket_types = event.ticket_types(false, None, connection).unwrap();
-    if let Some(ticket_type_ids) = filter_ticket_type_ids {
-        ticket_types = ticket_types
-            .into_iter()
-            .filter(|tt| ticket_type_ids.contains(&tt.id))
-            .collect::<Vec<TicketType>>();
-        ticket_types.sort_by_key(|tt| tt.name.to_owned());
-    }
-
-    let mut display_ticket_types: Vec<UserDisplayTicketType> = Vec::new();
-    let mut sales_start_date = Some(times::infinity());
-    for tt in ticket_types {
-        if tt.status != TicketTypeStatus::Cancelled {
-            if sales_start_date.unwrap() > tt.start_date.clone().unwrap_or(times::infinity()) {
-                sales_start_date = tt.start_date.clone();
-            }
-            display_ticket_types.push(
-                UserDisplayTicketType::from_ticket_type(
-                    &tt,
-                    &fee_schedule,
-                    box_office_pricing,
-                    redemption_code.clone(),
-                    connection,
-                )
-                .unwrap(),
-            );
-        }
-    }
     let localized_times: EventLocalizedTimeStrings = event.get_all_localized_time_strings(Some(&venue));
     let (min_ticket_price, max_ticket_price) = event
         .current_ticket_pricing_range(box_office_pricing, connection)
@@ -1080,7 +1035,6 @@ pub fn expected_show_json(
         },
         venue: venue.for_display(connection).unwrap(),
         artists: event_artists,
-        ticket_types: display_ticket_types,
         total_interest: interested_users,
         user_is_interested: true,
         min_ticket_price,
@@ -1088,11 +1042,9 @@ pub fn expected_show_json(
         is_external: event.is_external,
         external_url: event.external_url,
         override_status: event.override_status,
-        limited_tickets_remaining: no_tickets_remaining,
         localized_times,
         tracking_keys: TrackingKeys { ..Default::default() },
         event_type: event.event_type,
-        sales_start_date,
         url: format!("{}/tickets/{}", env::var("FRONT_END_URL").unwrap(), &slug),
         slug,
         facebook_pixel_key: None,
