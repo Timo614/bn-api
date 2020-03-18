@@ -100,7 +100,7 @@ mod tests {
         if let Some(mut conn) = RedisCacheConnection::create_connection_pool("redis://127.0.0.1/", 10, 10, 10).ok() {
             // store key for 10 milliseconds
             conn.add("key", "value", Some(10)).unwrap();
-            assert_eq!(Some("value"), conn.get("key").unwrap());
+            assert_eq!(Some("value".to_string()), conn.get("key").unwrap());
 
             sleep(11);
             // key should now be expired
