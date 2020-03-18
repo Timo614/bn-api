@@ -13,6 +13,7 @@ use futures::future::{ok, Ready};
 use itertools::Itertools;
 use serde_json::Value;
 use std::collections::BTreeMap;
+use url::form_urlencoded;
 use uuid::Uuid;
 
 const CACHED_RESPONSE_HEADER: &'static str = "X-Cached-Response";
@@ -91,18 +92,16 @@ impl CacheResource {
         if request.method() == Method::GET {
             if request
                 .headers()
-                .contains_key(HeaderName::try_from(CACHE_BYPASS_HEADER).unwrap())
+                .contains_key(CACHE_BYPASS_HEADER.parse::<HeaderName>().unwrap())
             {
                 return Cache::Miss(cache_configuration);
             }
-
-            if let Ok(url) = url::Url::parse(&request.uri().to_string()) {
-                for (key, value) in url.query_pairs() {
-                    cache_configuration
-                        .cache_data
-                        .insert(key.to_string(), value.to_string());
-                }
+            for (key, value) in form_urlencoded::parse(request.uri().query().unwrap_or("").as_bytes()) {
+                cache_configuration
+                    .cache_data
+                    .insert(key.to_string(), value.to_string());
             }
+
             let user_text = "x-user-role".to_string();
             cache_configuration
                 .cache_data
@@ -117,7 +116,7 @@ impl CacheResource {
                 let user = match OptionalUser::from_request(request, &mut dev::Payload::None).await {
                     Ok(user) => user,
                     Err(error) => {
-                        return cache_configuration.start_error(&format!("{:?", error));
+                        return cache_configuration.start_error(&format!("{:?}", error));
                     }
                 };
                 if let Some(user) = user.0 {
@@ -136,11 +135,7 @@ impl CacheResource {
                                 let is_public_user = match user.user.is_public_user(connection) {
                                     Ok(is_public_user) => is_public_user,
                                     Err(error) => {
-                                        return CacheConfiguration::start_error(
-                                            &format!("CacheResource Middleware start: {:?}", error),
-                                            &request,
-                                            cache_configuration,
-                                        );
+                                        return cache_configuration.start_error(&format!("{:?}", error));
                                     }
                                 };
 
@@ -148,11 +143,7 @@ impl CacheResource {
                                     return Cache::Miss(cache_configuration);
                                 }
                             } else {
-                                return CacheConfiguration::start_error(
-                                    "CacheResource Middleware start: unable to load connection",
-                                    &request,
-                                    cache_configuration,
-                                );
+                                return cache_configuration.start_error("unable to load connection");
                             }
                         }
                         CacheUsersBy::GlobalRoles => {
@@ -169,7 +160,7 @@ impl CacheResource {
                                         let organization = match Organization::find(organization_id, connection) {
                                             Ok(organization) => organization,
                                             Err(error) => {
-                                                return cache_configuration.start_error(&format!("{:?", error));
+                                                return cache_configuration.start_error(&format!("{:?}", error));
                                             }
                                         };
 
@@ -177,7 +168,7 @@ impl CacheResource {
                                             match user.has_scope_for_organization(*scope, &organization, connection) {
                                                 Ok(organization_scopes) => organization_scopes,
                                                 Err(error) => {
-                                                    return cache_configuration.start_error(&format!("{:?", error));
+                                                    return cache_configuration.start_error(&format!("{:?}", error));
                                                 }
                                             };
 
