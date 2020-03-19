@@ -922,23 +922,6 @@ fn get_profile_for_organization() {
         })
     );
 
-    // Add event interest giving access without orders
-    project
-        .create_event_interest()
-        .with_event(&event)
-        .with_user(&user)
-        .finish();
-
-    assert_eq!(
-        user.get_profile_for_organization(&organization, connection),
-        Err(DatabaseError {
-            code: 2000,
-            message: "No results".into(),
-            cause: Some("Could not load profile for organization fan, NotFound".into()),
-            error_code: ErrorCode::NoResults,
-        })
-    );
-
     // Add facebook login
     user.add_external_login(
         None,
@@ -981,6 +964,32 @@ fn get_profile_for_organization() {
             cause: Some("Could not load profile for organization fan, NotFound".into()),
             error_code: ErrorCode::NoResults,
         })
+    );
+
+    // Add event interest giving access without orders
+    project
+        .create_event_interest()
+        .with_event(&event)
+        .with_user(&user)
+        .finish();
+
+    assert_eq!(
+        user.get_profile_for_organization(&organization, connection).unwrap(),
+        FanProfile {
+            first_name: user.first_name.clone(),
+            last_name: user.last_name.clone(),
+            email: user.email.clone(),
+            facebook_linked: true,
+            revenue_in_cents: 0,
+            ticket_sales: 0,
+            tickets_owned: 0,
+            profile_pic_url: user.profile_pic_url.clone(),
+            thumb_profile_pic_url: user.thumb_profile_pic_url.clone(),
+            cover_photo_url: user.cover_photo_url.clone(),
+            created_at: user.created_at,
+            attendance_information: Vec::new(),
+            deleted_at: None
+        }
     );
 
     // Checkout which changes sales data
@@ -1329,13 +1338,22 @@ fn get_profile_for_organization() {
     )
     .unwrap();
     assert_eq!(
-        user4.get_profile_for_organization(&organization, connection),
-        Err(DatabaseError {
-            code: 2000,
-            message: "No results".into(),
-            cause: Some("Could not load profile for organization fan, NotFound".into()),
-            error_code: ErrorCode::NoResults,
-        })
+        user4.get_profile_for_organization(&organization, connection).unwrap(),
+        FanProfile {
+            first_name: user4.first_name.clone(),
+            last_name: user4.last_name.clone(),
+            email: user4.email.clone(),
+            facebook_linked: false,
+            revenue_in_cents: 0,
+            ticket_sales: 0,
+            tickets_owned: 0,
+            profile_pic_url: user4.profile_pic_url.clone(),
+            thumb_profile_pic_url: user4.thumb_profile_pic_url.clone(),
+            cover_photo_url: user4.cover_photo_url.clone(),
+            created_at: user4.created_at,
+            attendance_information: vec![],
+            deleted_at: None
+        }
     );
     assert_eq!(
         user5.get_profile_for_organization(&organization, connection).unwrap(),
