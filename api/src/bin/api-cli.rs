@@ -1,11 +1,11 @@
 #![deny(unused_extern_crates)]
-use bigneon_api::config::Config;
-use bigneon_api::db::Database;
-use bigneon_api::utils::spotify;
-use bigneon_api::utils::ServiceLocator;
-use bigneon_db::prelude::*;
-use bigneon_db::schema::transfers;
+use api::config::Config;
+use api::database::Database;
+use api::utils::spotify;
+use api::utils::ServiceLocator;
 use clap::*;
+use db::prelude::*;
+use db::schema::transfers;
 use diesel::prelude::*;
 use dotenv::dotenv;
 use log::{error, info, Level::*};
@@ -228,7 +228,7 @@ fn update_customer_io_webhooks(site_id: Option<&str>, api_key: Option<&str>, dat
     let connection = database.get_connection().expect("Could not connect to database");
     let conn = connection.get();
     let publishers = DomainEventPublisher::find_all(conn).unwrap();
-    use bigneon_db::models::DomainEventTypes::*;
+    use db::models::DomainEventTypes::*;
     let event_types: Vec<DomainEventTypes> = vec![
         OrderCompleted,
         OrderRefund,
@@ -293,6 +293,7 @@ fn schedule_missing_domain_actions(sync_holds: bool, config: Config, database: D
 
 fn sync_spotify_genres(config: Config, database: Database) {
     info!("Syncing spotify genres data");
+    let mut rt = tokio::runtime::Runtime::new().expect("Failed to start async Runtime");
     let connection = database.get_connection().expect("Expected connection to establish");
     let connection = connection.get();
     let artists =
@@ -312,7 +313,7 @@ fn sync_spotify_genres(config: Config, database: Database) {
     for artist in artists {
         i += 1;
         if let Some(spotify_id) = artist.spotify_id.clone() {
-            let result = spotify_client.read_artist(&spotify_id);
+            let result = rt.block_on(spotify_client.read_artist(&spotify_id));
             match result {
                 Ok(spotify_artist_result) => match spotify_artist_result {
                     Some(spotify_artist) => {
@@ -381,6 +382,8 @@ fn sync_purchase_metadata(database: Database, service_locator: ServiceLocator) {
             break;
         }
 
+        let mut rt = tokio::runtime::Runtime::new().expect("Failed to start async Runtime");
+
         for (payment, order) in payments {
             let organizations = order.organizations(connection.get()).unwrap();
 
@@ -392,7 +395,7 @@ fn sync_purchase_metadata(database: Database, service_locator: ServiceLocator) {
                 let purchase_metadata = order
                     .purchase_metadata(connection.get())
                     .expect("Expected purchase metadata for order");
-                let result = stripe.update_metadata(&external_reference, purchase_metadata);
+                let result = rt.block_on(stripe.update_metadata(&external_reference, purchase_metadata));
 
                 match result {
                     // Sleep to avoid hammering Stripe API

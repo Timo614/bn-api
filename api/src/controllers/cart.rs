@@ -1,6 +1,6 @@
 use crate::auth::user::User;
 use crate::config::Config;
-use crate::db::Connection;
+use crate::database::Connection;
 use crate::errors::*;
 use crate::extractors::*;
 use crate::helpers::application;
@@ -11,15 +11,16 @@ use crate::payments::PaymentProcessorBehavior;
 use crate::payments::RedirectToPaymentPageBehavior;
 use crate::server::AppState;
 use crate::utils::ServiceLocator;
+use crate::SITE_NAME;
 use actix_web::{
     web::{Data, Path},
     HttpResponse,
 };
-use bigneon_db::models::TicketType as Dbticket_types;
-use bigneon_db::models::User as DbUser;
-use bigneon_db::models::*;
-use bigneon_db::utils::errors::Optional;
-use bigneon_db::utils::rand::random_alpha_string;
+use db::models::TicketType as Dbticket_types;
+use db::models::User as DbUser;
+use db::models::*;
+use db::utils::errors::Optional;
+use db::utils::rand::random_alpha_string;
 use diesel::pg::PgConnection;
 use itertools::Itertools;
 use log::Level::Debug;
@@ -46,7 +47,7 @@ pub struct UpdateCartRequest {
 
 pub async fn update_cart(
     (connection, json, user, request_info): (Connection, Json<UpdateCartRequest>, User, RequestInfo),
-) -> Result<HttpResponse, BigNeonError> {
+) -> Result<HttpResponse, ApiError> {
     let json = json.into_inner();
     jlog!(Debug, "Update Cart", {"cart": json, "user_id": user.id()});
     let connection = connection.get();
@@ -91,7 +92,7 @@ pub async fn update_cart(
 
 pub async fn duplicate(
     (connection, path, user): (Connection, Path<PathParameters>, User),
-) -> Result<HttpResponse, BigNeonError> {
+) -> Result<HttpResponse, ApiError> {
     let connection = connection.get();
     let order = Order::find(path.id, connection)?;
     let user_id = order.on_behalf_of_user_id.unwrap_or(order.user_id);
@@ -104,7 +105,7 @@ pub async fn duplicate(
     Ok(HttpResponse::Ok().json(duplicate_order.for_display(None, user.id(), connection)?))
 }
 
-pub async fn destroy((connection, user): (Connection, User)) -> Result<HttpResponse, BigNeonError> {
+pub async fn destroy((connection, user): (Connection, User)) -> Result<HttpResponse, ApiError> {
     let connection = connection.get();
 
     // Find the current cart of the user, if it exists.
@@ -116,7 +117,7 @@ pub async fn destroy((connection, user): (Connection, User)) -> Result<HttpRespo
 
 pub async fn replace_cart(
     (connection, json, user, request_info): (Connection, Json<UpdateCartRequest>, User, RequestInfo),
-) -> Result<HttpResponse, BigNeonError> {
+) -> Result<HttpResponse, ApiError> {
     let json = json.into_inner();
     jlog!(Debug, "Replace Cart", {"cart": json, "user_id": user.id() });
 
@@ -159,7 +160,7 @@ pub async fn replace_cart(
     Ok(HttpResponse::Ok().json(Order::find(cart.id, connection)?.for_display(None, user.id(), connection)?))
 }
 
-pub async fn show((connection, user): (Connection, User)) -> Result<HttpResponse, BigNeonError> {
+pub async fn show((connection, user): (Connection, User)) -> Result<HttpResponse, ApiError> {
     let connection = connection.get();
     let order = match Order::find_cart_for_user(user.id(), connection)? {
         Some(o) => o,
@@ -207,7 +208,7 @@ pub enum PaymentRequest {
     Free,
 }
 
-pub async fn clear_invalid_items((connection, user): (Connection, User)) -> Result<HttpResponse, BigNeonError> {
+pub async fn clear_invalid_items((connection, user): (Connection, User)) -> Result<HttpResponse, ApiError> {
     let connection = connection.get();
     let mut order = match Order::find_cart_for_user(user.id(), connection)? {
         Some(o) => o,
@@ -231,7 +232,7 @@ pub async fn checkout(
         Data<AppState>,
         RequestInfo,
     ),
-) -> Result<HttpResponse, BigNeonError> {
+) -> Result<HttpResponse, ApiError> {
     // TODO: Change application::unprocesable's in this method to validation errors.
     let req = json.into_inner();
 
@@ -330,41 +331,48 @@ pub async fn checkout(
                 &state.service_locator,
                 &state.config,
                 &request_info,
-            )?
+            )
+            .await?
         }
-        PaymentRequest::Provider { provider } => checkout_payment_processor(
-            &connection,
-            &mut order,
-            None,
-            &user,
-            &state.config.primary_currency,
-            *provider,
-            false,
-            false,
-            false,
-            &state.service_locator,
-            &state.config,
-            &request_info,
-        )?,
+        PaymentRequest::Provider { provider } => {
+            checkout_payment_processor(
+                &connection,
+                &mut order,
+                None,
+                &user,
+                &state.config.primary_currency,
+                *provider,
+                false,
+                false,
+                false,
+                &state.service_locator,
+                &state.config,
+                &request_info,
+            )
+            .await?
+        }
         PaymentRequest::Card {
             token,
             provider,
             save_payment_method,
             set_default,
-        } => checkout_payment_processor(
-            &connection,
-            &mut order,
-            Some(&token),
-            &user,
-            &state.config.primary_currency,
-            *provider,
-            false,
-            *save_payment_method,
-            *set_default,
-            &state.service_locator,
-            &state.config,
-            &request_info,
-        )?,
+        } => {
+            checkout_payment_processor(
+                &connection,
+                &mut order,
+                Some(&token),
+                &user,
+                &state.config.primary_currency,
+                *provider,
+                false,
+                *save_payment_method,
+                *set_default,
+                &state.service_locator,
+                &state.config,
+                &request_info,
+            )
+            .await?
+        }
     };
     Ok(payment_response)
 }
@@ -374,7 +382,7 @@ fn checkout_free(
     order: Order,
     user: &User,
     request_info: &RequestInfo,
-) -> Result<HttpResponse, BigNeonError> {
+) -> Result<HttpResponse, ApiError> {
     let conn = conn.get();
     if order.status != OrderStatus::Draft {
         return application::unprocessable("Could not complete this cart because it is not in the correct status");
@@ -406,7 +414,7 @@ fn checkout_external(
     note: Option<String>,
     user: &User,
     request_info: &RequestInfo,
-) -> Result<HttpResponse, BigNeonError> {
+) -> Result<HttpResponse, ApiError> {
     let conn = conn.get();
 
     // User must have external checkout permissions for all events in the cart.
@@ -461,7 +469,7 @@ fn checkout_external(
     Ok(HttpResponse::Ok().json(json!(order.for_display(None, user.id(), conn)?)))
 }
 
-fn checkout_payment_processor(
+async fn checkout_payment_processor(
     conn: &Connection,
     order: &mut Order,
     token: Option<&str>,
@@ -474,7 +482,7 @@ fn checkout_payment_processor(
     service_locator: &ServiceLocator,
     config: &Config,
     request_info: &RequestInfo,
-) -> Result<HttpResponse, BigNeonError> {
+) -> Result<HttpResponse, ApiError> {
     info!("CART: Executing provider payment");
     let connection = conn.get();
 
@@ -498,7 +506,7 @@ fn checkout_payment_processor(
     let client = service_locator.create_payment_processor(provider, &event.organization(connection)?)?;
     match client.behavior() {
         PaymentProcessorBehavior::RedirectToPaymentPage(behavior) => {
-            return redirect_to_payment_page(&*behavior, &auth_user.user, order, conn.get(), config);
+            return redirect_to_payment_page(&*behavior, &auth_user.user, order, conn.get(), config).await;
         }
         PaymentProcessorBehavior::AuthThenComplete(behavior) => {
             let token = if use_stored_payment {
@@ -530,8 +538,9 @@ fn checkout_payment_processor(
                                         "Could not complete this cart using saved payment methods is not supported for this payment processor",
                                     )
                                 };
-                            let client_response =
-                                behavior.update_repeat_token(&payment_method.provider, token, "Big Neon something")?;
+                            let client_response = behavior
+                                .update_repeat_token(&payment_method.provider, token, SITE_NAME)
+                                .await?;
                             let payment_method_parameters = PaymentMethodEditableAttributes {
                                 provider_data: Some(client_response.to_json()?),
                             };
@@ -546,7 +555,7 @@ fn checkout_payment_processor(
                                         "Could not complete this cart using saved payment methods is not supported for this payment processor",
                                     )
                                 };
-                            let repeat_token = behavior.create_token_for_repeat_charges(token, "Big Neon")?;
+                            let repeat_token = behavior.create_token_for_repeat_charges(token, SITE_NAME).await?;
                             let _payment_method = PaymentMethod::create(
                                 auth_user.id(),
                                 provider,
@@ -572,12 +581,13 @@ fn checkout_payment_processor(
                 conn,
                 &*client,
                 request_info,
-            );
+            )
+            .await;
         }
     };
 }
 
-fn auth_then_complete(
+async fn auth_then_complete(
     client: &dyn AuthThenCompletePaymentBehavior,
     token: String,
     currency: &str,
@@ -586,17 +596,19 @@ fn auth_then_complete(
     conn: &Connection,
     payment_processor: &dyn PaymentProcessor,
     request_info: &RequestInfo,
-) -> Result<HttpResponse, BigNeonError> {
+) -> Result<HttpResponse, ApiError> {
     let connection = conn.get();
     info!("CART: Auth'ing to payment provider");
     let amount = order.calculate_total(connection)?;
-    let auth_result = client.auth(
-        &token,
-        amount,
-        currency,
-        "Big Neon Tickets",
-        order.purchase_metadata(connection)?,
-    )?;
+    let auth_result = client
+        .auth(
+            &token,
+            amount,
+            currency,
+            SITE_NAME,
+            order.purchase_metadata(connection)?,
+        )
+        .await?;
 
     info!("CART: Saving payment to order");
     let payment = match order.add_credit_card_payment(
@@ -610,7 +622,7 @@ fn auth_then_complete(
     ) {
         Ok(p) => p,
         Err(e) => {
-            payment_processor.refund(&auth_result.id)?;
+            payment_processor.refund(&auth_result.id).await?;
             return Err(e.into());
         }
     };
@@ -619,7 +631,7 @@ fn auth_then_complete(
     conn.begin_transaction()?;
 
     info!("CART: Completing auth with payment provider");
-    let charge_result = client.complete_authed_charge(&auth_result.id)?;
+    let charge_result = client.complete_authed_charge(&auth_result.id).await?;
     info!("CART: Completing payment on order");
     info!("charge_result:{:?}", charge_result);
     match payment.mark_complete(charge_result.to_json()?, Some(auth_user.id()), connection) {
@@ -629,19 +641,19 @@ fn auth_then_complete(
             Ok(HttpResponse::Ok().json(json!(order.for_display(None, auth_user.id(), connection)?)))
         }
         Err(e) => {
-            payment_processor.refund(&auth_result.id)?;
+            payment_processor.refund(&auth_result.id).await?;
             Err(e.into())
         }
     }
 }
 
-fn redirect_to_payment_page(
+async fn redirect_to_payment_page(
     client: &dyn RedirectToPaymentPageBehavior,
     user: &DbUser,
     order: &mut Order,
     conn: &PgConnection,
     config: &Config,
-) -> Result<HttpResponse, BigNeonError> {
+) -> Result<HttpResponse, ApiError> {
     if user.email.is_none() {
         return application::unprocessable("User must have an email to check out");
     }
@@ -653,20 +665,22 @@ fn redirect_to_payment_page(
     let ipn = Some(format!("{}/ipns/globee", config.api_base_url));
 
     let nonce = random_alpha_string(12);
-    let response = client.create_payment_request(
-        amount as f64 / 100_f64,
-        email,
-        order.id,
-        ipn,
-        Some(format!(
-            "{}/payments/callback/{}/{}?success=true",
-            &config.api_base_url, nonce, order.id,
-        )),
-        Some(format!(
-            "{}/payments/callback/{}/{}?success=false",
-            &config.api_base_url, nonce, order.id,
-        )),
-    )?;
+    let response = client
+        .create_payment_request(
+            amount as f64 / 100_f64,
+            email,
+            order.id,
+            ipn,
+            Some(format!(
+                "{}/payments/callback/{}/{}?success=true",
+                &config.api_base_url, nonce, order.id,
+            )),
+            Some(format!(
+                "{}/payments/callback/{}/{}?success=false",
+                &config.api_base_url, nonce, order.id,
+            )),
+        )
+        .await?;
 
     jlog!(Info, &format!("{} payment created", client.payment_provider()), {"order_id": order.id, "payment_provider_id": response.id});
 
