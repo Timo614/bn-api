@@ -31,7 +31,6 @@ fn find_for_authentication() {
         .create_organization()
         .with_member(&user, Roles::OrgOwner)
         .finish();
-    assert!(OrganizationUser::user_has_organization_user_records(user.id, connection).unwrap());
     let (found_user, is_public_user) = User::find_for_authentication(user.id, connection).unwrap();
     assert_eq!(found_user, user);
     assert!(!is_public_user);
