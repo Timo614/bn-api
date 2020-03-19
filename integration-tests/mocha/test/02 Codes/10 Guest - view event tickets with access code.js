@@ -67,10 +67,6 @@ describe('Guest - view event tickets with access code', function () {
         expect(r.ticket_types[0].ticket_pricing.discount_in_cents).to.equal(0);
     });
 
-    it("should return event fee_in_cents", function () {
-        expect(r.fee_in_cents).to.equal(100);
-    });
-
     it("should have correct ticket_types ticket_pricing fee_in_cents", function () {
         expect(r.ticket_types[0].ticket_pricing.fee_in_cents).to.equal(10);
     });
