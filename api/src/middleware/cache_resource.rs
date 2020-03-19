@@ -17,7 +17,7 @@ use url::form_urlencoded;
 use uuid::Uuid;
 
 const CACHED_RESPONSE_HEADER: &'static str = "X-Cached-Response";
-const CACHE_BYPASS_HEADER: &'static str = "CacheBypass";
+const CACHE_BYPASS_HEADER: &'static str = "Cache-Bypass";
 
 #[derive(PartialEq, Clone)]
 pub enum OrganizationLoad {
@@ -130,20 +130,8 @@ impl CacheResource {
                             cache_configuration.user_key = Some(user.id().to_string());
                         }
                         CacheUsersBy::PublicUsersOnly => {
-                            if let Some(connection) = request.extensions().get::<Connection>() {
-                                let connection = connection.get();
-                                let is_public_user = match user.user.is_public_user(connection) {
-                                    Ok(is_public_user) => is_public_user,
-                                    Err(error) => {
-                                        return cache_configuration.start_error(&format!("{:?}", error));
-                                    }
-                                };
-
-                                if !is_public_user {
-                                    return Cache::Miss(cache_configuration);
-                                }
-                            } else {
-                                return cache_configuration.start_error("unable to load connection");
+                            if !user.is_public_user {
+                                return Cache::Miss(cache_configuration);
                             }
                         }
                         CacheUsersBy::GlobalRoles => {

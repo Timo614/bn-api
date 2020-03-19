@@ -17,12 +17,14 @@ use bigneon_db::utils::errors::ErrorCode;
 use bigneon_db::utils::errors::ErrorCode::ValidationError;
 
 #[test]
-fn is_public_user() {
+fn find_for_authentication() {
     let project = TestProject::new();
     let connection = project.get_connection();
     let user = project.create_user().finish();
+    let (found_user, is_public_user) = User::find_for_authentication(user.id, connection).unwrap();
     // User just exists in the system not as an organization member so is a public user
-    assert!(user.is_public_user(connection).unwrap());
+    assert_eq!(found_user, user);
+    assert!(is_public_user);
 
     // User belongs to organization so is no longer a public user
     project
@@ -30,12 +32,16 @@ fn is_public_user() {
         .with_member(&user, Roles::OrgOwner)
         .finish();
     assert!(OrganizationUser::user_has_organization_user_records(user.id, connection).unwrap());
-    assert!(!user.is_public_user(connection).unwrap());
+    let (found_user, is_public_user) = User::find_for_authentication(user.id, connection).unwrap();
+    assert_eq!(found_user, user);
+    assert!(!is_public_user);
 
     // User is admin so is never a public user
     let mut admin = project.create_user().finish();
     admin = admin.add_role(Roles::Admin, connection).unwrap();
-    assert!(!admin.is_public_user(connection).unwrap());
+    let (found_user, is_public_user) = User::find_for_authentication(admin.id, connection).unwrap();
+    assert_eq!(found_user, admin);
+    assert!(!is_public_user);
 }
 
 #[test]

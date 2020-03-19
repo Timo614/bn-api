@@ -147,10 +147,6 @@ impl NewUser {
 }
 
 impl User {
-    pub fn is_public_user(&self, conn: &PgConnection) -> Result<bool, DatabaseError> {
-        Ok(!self.is_admin() && !OrganizationUser::user_has_organization_user_records(self.id, conn)?)
-    }
-
     pub fn is_attending_event(user_id: Uuid, event_id: Uuid, conn: &PgConnection) -> Result<bool, DatabaseError> {
         use schema::*;
         select(exists(
@@ -822,12 +818,24 @@ impl User {
             )
     }
 
+    pub fn find_for_authentication(id: Uuid, conn: &PgConnection) -> Result<(User, bool), DatabaseError> {
+        users::table
+            .left_join(organization_users::table.on(organization_users::user_id.eq(users::id)))
+            .filter(users::id.eq(id))
+            .select((
+                users::all_columns,
+                sql("not(users.role && '{Admin, Super}') AND organization_users.id IS NULL"),
+            ))
+            .distinct()
+            .get_result(conn)
+            .to_db_error(ErrorCode::QueryError, "Error loading user")
+    }
+
     pub fn find(id: Uuid, conn: &PgConnection) -> Result<User, DatabaseError> {
-        DatabaseError::wrap(
-            ErrorCode::QueryError,
-            "Error loading user",
-            users::table.find(id).first::<User>(conn),
-        )
+        users::table
+            .find(id)
+            .first::<User>(conn)
+            .to_db_error(ErrorCode::QueryError, "Error loading user")
     }
 
     pub fn find_by_ids(user_ids: &Vec<Uuid>, conn: &PgConnection) -> Result<Vec<User>, DatabaseError> {
