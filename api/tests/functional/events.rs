@@ -354,7 +354,6 @@ pub async fn index_search_with_filter() {
         max_ticket_price: None,
         is_external: false,
         external_url: None,
-        user_is_interested: false,
         localized_times,
         tracking_keys: TrackingKeys { ..Default::default() },
         event_type: EventTypes::Music,
@@ -1993,9 +1992,6 @@ pub fn event_venue_entry(
         max_ticket_price,
         is_external: event.is_external.clone(),
         external_url: event.external_url.clone(),
-        user_is_interested: user
-            .map(|u| EventInterest::user_interest(event.id, u.id, connection).unwrap())
-            .unwrap_or(false),
         localized_times,
         tracking_keys: TrackingKeys { ..Default::default() },
         event_type: event.event_type,

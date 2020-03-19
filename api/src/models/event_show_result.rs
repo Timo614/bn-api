@@ -32,7 +32,6 @@ pub struct EventShowResult {
     pub venue: Option<DisplayVenue>,
     pub artists: Vec<DisplayEventArtist>,
     pub total_interest: u32,
-    pub user_is_interested: bool,
     pub min_ticket_price: Option<i64>,
     pub max_ticket_price: Option<i64>,
     pub is_external: bool,

@@ -93,6 +93,7 @@ pub struct EventAvailability {
     pub limited_tickets_remaining: Vec<TicketsRemaining>,
     pub ticket_types: Vec<UserDisplayTicketType>,
     pub sales_start_date: Option<NaiveDateTime>,
+    pub user_is_interested: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -466,10 +467,16 @@ pub async fn availability(
         }
     }
 
+    let user_is_interested = match user {
+        Some(ref u) => EventInterest::user_interest(event.id, u.id(), connection)?,
+        None => false,
+    };
+
     let availability = EventAvailability {
         ticket_types: display_ticket_types,
         limited_tickets_remaining,
         sales_start_date,
+        user_is_interested,
     };
     Ok(HttpResponse::Ok().json(&availability))
 }
@@ -517,10 +524,6 @@ pub async fn show(
     let localized_times = event.get_all_localized_time_strings(venue.as_ref());
     let event_artists = EventArtist::find_all_from_event(event.id, connection)?;
     let total_interest = EventInterest::total_interest(event.id, connection)?;
-    let user_interest = match user {
-        Some(ref u) => EventInterest::user_interest(event.id, u.id(), connection)?,
-        None => false,
-    };
 
     let mut tracking_keys =
         Organization::tracking_keys_for_ids(vec![organization.id], &state.config.api_keys_encryption_key, connection)?
@@ -596,7 +599,6 @@ pub async fn show(
         },
         artists: event_artists,
         total_interest,
-        user_is_interested: user_interest,
         min_ticket_price,
         max_ticket_price,
         is_external: event.is_external,

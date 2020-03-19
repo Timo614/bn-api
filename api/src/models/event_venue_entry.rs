@@ -30,7 +30,6 @@ pub struct EventVenueEntry {
     pub max_ticket_price: Option<i64>,
     pub is_external: bool,
     pub external_url: Option<String>,
-    pub user_is_interested: bool,
     pub localized_times: EventLocalizedTimeStrings,
     pub tracking_keys: TrackingKeys,
     pub event_type: EventTypes,
@@ -80,11 +79,6 @@ impl EventVenueEntry {
         let tracking_keys_for_orgs =
             Organization::tracking_keys_for_ids(organization_ids, &state.config.api_keys_encryption_key, connection)?;
 
-        let event_interest = match user {
-            Some(ref u) => EventInterest::find_interest_by_event_ids_for_user(&event_ids, u.id, connection)?,
-            None => HashMap::new(),
-        };
-
         let mut results: Vec<EventVenueEntry> = Vec::new();
 
         for event in events.into_iter() {
@@ -129,7 +123,6 @@ impl EventVenueEntry {
                 max_ticket_price,
                 is_external: event.is_external,
                 external_url: event.external_url,
-                user_is_interested: event_interest.get(&event.id).map(|i| i.to_owned()).unwrap_or(false),
                 localized_times,
                 tracking_keys,
                 event_type: event.event_type,
