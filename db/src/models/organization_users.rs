@@ -1,6 +1,6 @@
 use chrono::NaiveDateTime;
 use diesel;
-use diesel::dsl::{self, exists, select};
+use diesel::dsl;
 use diesel::prelude::*;
 use models::enums::Roles;
 use models::{EventUser, Organization, Scopes, User};
