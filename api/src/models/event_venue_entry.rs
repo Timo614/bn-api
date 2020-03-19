@@ -42,7 +42,6 @@ pub struct EventVenueEntry {
 impl EventVenueEntry {
     pub fn event_venues_from_events(
         events: Vec<Event>,
-        user: Option<User>,
         state: &Data<AppState>,
         connection: &PgConnection,
     ) -> Result<Vec<EventVenueEntry>, DatabaseError> {

@@ -183,8 +183,8 @@ async fn show_venue() {
     let body = support::unwrap_body_to_string(&response).unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let expected_events = vec![
-        event_venue_entry(&event, &venue, &vec![], None, &*connection),
-        event_venue_entry(&event2, &venue, &vec![], None, &*connection),
+        event_venue_entry(&event, &venue, &vec![], &*connection),
+        event_venue_entry(&event2, &venue, &vec![], &*connection),
     ];
     let expected_json = serde_json::to_string(&SlugResponse::Venue {
         venue: venue.for_display(connection).unwrap(),
@@ -215,7 +215,7 @@ async fn show_venue() {
     .into();
     let body = support::unwrap_body_to_string(&response).unwrap();
     assert_eq!(response.status(), StatusCode::OK);
-    let expected_events = vec![event_venue_entry(&event3, &venue2, &vec![], None, &*connection)];
+    let expected_events = vec![event_venue_entry(&event3, &venue2, &vec![], &*connection)];
     let expected_json = serde_json::to_string(&SlugResponse::Venue {
         venue: venue2.for_display(connection).unwrap(),
         events: expected_events,
@@ -282,8 +282,8 @@ async fn show_organization() {
     let body = support::unwrap_body_to_string(&response).unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let expected_events = vec![
-        event_venue_entry(&event, &venue, &vec![], None, &*connection),
-        event_venue_entry(&event3, &venue2, &vec![], None, &*connection),
+        event_venue_entry(&event, &venue, &vec![], &*connection),
+        event_venue_entry(&event3, &venue2, &vec![], &*connection),
     ];
     let expected_json = serde_json::to_string(&SlugResponse::Organization {
         organization: organization.for_display(connection).unwrap(),
@@ -314,7 +314,7 @@ async fn show_organization() {
     .into();
     let body = support::unwrap_body_to_string(&response).unwrap();
     assert_eq!(response.status(), StatusCode::OK);
-    let expected_events = vec![event_venue_entry(&event2, &venue, &vec![], None, &*connection)];
+    let expected_events = vec![event_venue_entry(&event2, &venue, &vec![], &*connection)];
     let expected_json = serde_json::to_string(&SlugResponse::Organization {
         organization: organization2.for_display(connection).unwrap(),
         events: expected_events,
@@ -390,8 +390,8 @@ async fn show_city() {
     let body = support::unwrap_body_to_string(&response).unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let expected_events = vec![
-        event_venue_entry(&event, &venue, &vec![], None, &*connection),
-        event_venue_entry(&event2, &venue2, &vec![], None, &*connection),
+        event_venue_entry(&event, &venue, &vec![], &*connection),
+        event_venue_entry(&event2, &venue2, &vec![], &*connection),
     ];
     let expected_json = serde_json::to_string(&SlugResponse::City {
         city: CityData {
@@ -430,7 +430,7 @@ async fn show_city() {
     .into();
     let body = support::unwrap_body_to_string(&response).unwrap();
     assert_eq!(response.status(), StatusCode::OK);
-    let expected_events = vec![event_venue_entry(&event3, &venue3, &vec![], None, &*connection)];
+    let expected_events = vec![event_venue_entry(&event3, &venue3, &vec![], &*connection)];
     let expected_json = serde_json::to_string(&SlugResponse::City {
         city: CityData {
             city: "Oakland".to_string(),
@@ -531,7 +531,6 @@ async fn show_genre() {
         &event,
         &venue,
         &vec![display_event_artist],
-        None,
         &*connection,
     )];
     let expected_json = serde_json::to_string(&SlugResponse::Genre {

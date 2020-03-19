@@ -150,7 +150,7 @@ pub async fn show(
                 connection,
             )?;
 
-            let events = EventVenueEntry::event_venues_from_events(events, user, &state, connection)?;
+            let events = EventVenueEntry::event_venues_from_events(events, &state, connection)?;
             SlugResponse::Organization {
                 organization: organization.for_display(connection)?,
                 events,
@@ -179,7 +179,7 @@ pub async fn show(
                 connection,
             )?;
 
-            let events = EventVenueEntry::event_venues_from_events(events, user, &state, connection)?;
+            let events = EventVenueEntry::event_venues_from_events(events, &state, connection)?;
             SlugResponse::Venue {
                 venue: venue.for_display(connection)?,
                 events,
@@ -217,7 +217,7 @@ pub async fn show(
                 connection,
             )?;
 
-            let events = EventVenueEntry::event_venues_from_events(events, user, &state, connection)?;
+            let events = EventVenueEntry::event_venues_from_events(events, &state, connection)?;
             SlugResponse::City { city, events, meta }
         }
         SlugTypes::Genre => {
@@ -242,7 +242,7 @@ pub async fn show(
                 connection,
             )?;
 
-            let events = EventVenueEntry::event_venues_from_events(events, user, &state, connection)?;
+            let events = EventVenueEntry::event_venues_from_events(events, &state, connection)?;
             SlugResponse::Genre {
                 genre: genre.name,
                 events,

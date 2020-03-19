@@ -13,7 +13,6 @@ use api::extractors::*;
 use api::models::*;
 use chrono::prelude::*;
 use chrono::Duration;
-use db::dev::times;
 use db::models::*;
 use db::utils::dates;
 use diesel::PgConnection;

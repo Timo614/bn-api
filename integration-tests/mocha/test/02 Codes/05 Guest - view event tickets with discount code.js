@@ -7,7 +7,7 @@ const pm = require('../pm');const debug = require("debug");var log=debug('bn-api
 
 const baseUrl = supertest(pm.environment.get('server'));
 
-const apiEndPoint = '/events/{{last_event_id}}?redemption_code={{discount_redemption_code}}';
+const apiEndPoint = '/events/{{last_event_id}}/availability?redemption_code={{discount_redemption_code}}';
 
 
 var response;
@@ -53,12 +53,6 @@ describe('Guest - view event tickets with discount code', function () {
         access_code = pm.environment.get("discount_redemption_code");
     });
 
-    after(async function () {
-        // add after methods
-
-
-    });
-
     it("should be 200", function () {
         expect(response.status).to.equal(200);
     });
@@ -73,15 +67,7 @@ describe('Guest - view event tickets with discount code', function () {
         expect(r.ticket_types[0].ticket_pricing.discount_in_cents).to.equal(0);
     });
 
-    it("should return event fee_in_cents", function () {
-        expect(r.fee_in_cents).to.equal(100);
-    });
-
     it("should have correct ticket_types ticket_pricing fee_in_cents", function () {
         expect(r.ticket_types[0].ticket_pricing.fee_in_cents).to.equal(10);
     });
-
-
 });
-
-            

@@ -234,7 +234,7 @@ pub async fn checkins(
 ) -> Result<HttpResponse, ApiError> {
     let events = auth_user.user.find_events_with_access_to_scan(conn.get())?;
     let mut payload = Payload::new(
-        EventVenueEntry::event_venues_from_events(events, Some(auth_user.user), &state, conn.get())?,
+        EventVenueEntry::event_venues_from_events(events, &state, conn.get())?,
         query.into_inner().into(),
     );
     payload.paging.total = payload.data.len() as u64;
@@ -300,7 +300,7 @@ pub async fn index(
     let (events, count) = events_count;
 
     let mut payload = Payload::new(
-        EventVenueEntry::event_venues_from_events(events, user, &state, connection)?,
+        EventVenueEntry::event_venues_from_events(events, &state, connection)?,
         query.into(),
     );
     payload.paging.total = count as u64;
@@ -323,7 +323,7 @@ fn confirm_can_view_event_details(
     organization: &Organization,
     box_office_pricing: bool,
     connection: &PgConnection,
-) -> Result<bool, BigNeonError> {
+) -> Result<bool, ApiError> {
     if event.private_access_code.is_some()
         && !(private_access_code.is_some()
             && event.private_access_code.clone().unwrap() == private_access_code.clone().unwrap().to_lowercase())
@@ -375,7 +375,7 @@ pub async fn availability(
         OptionalUser,
         RequestInfo,
     ),
-) -> Result<HttpResponse, BigNeonError> {
+) -> Result<HttpResponse, ApiError> {
     let connection = connection.get();
     let user = user.into_inner();
     let event_id = match parameters.id.parse() {
@@ -406,7 +406,7 @@ pub async fn availability(
             Platforms::Web
         }
     };
-    for ticket_type in ticket_types {
+    for ticket_type in &ticket_types {
         match platform {
             Platforms::App => {
                 if !ticket_type.app_sales_enabled {
@@ -457,12 +457,14 @@ pub async fn availability(
     if let Some(ref u) = user {
         let tickets_bought = Order::quantity_for_user_for_event(u.id(), event.id, connection)?;
         for (tt_id, num) in tickets_bought {
-            let limit = TicketType::find(tt_id, connection)?.limit_per_person;
-            if limit > 0 {
-                limited_tickets_remaining.push(TicketsRemaining {
-                    ticket_type_id: tt_id,
-                    tickets_remaining: limit - num,
-                });
+            if let Some(ticket_type) = ticket_types.iter().find(|tt| tt.id == tt_id) {
+                let limit = ticket_type.limit_per_person;
+                if limit > 0 {
+                    limited_tickets_remaining.push(TicketsRemaining {
+                        ticket_type_id: tt_id,
+                        tickets_remaining: limit - num,
+                    });
+                }
             }
         }
     }
@@ -489,7 +491,7 @@ pub async fn show(
         Query<EventParameters>,
         OptionalUser,
     ),
-) -> Result<HttpResponse, BigNeonError> {
+) -> Result<HttpResponse, ApiError> {
     let connection = connection.get();
     let user = user.into_inner();
     let event_id = match parameters.id.parse() {

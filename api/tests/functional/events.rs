@@ -66,8 +66,8 @@ pub async fn index() {
     event4.delete(user.id, connection).unwrap();
 
     let expected_results = vec![
-        event_venue_entry(&event, &venue, &vec![], None, &*connection),
-        event_venue_entry(&event2, &venue, &vec![], None, &*connection),
+        event_venue_entry(&event, &venue, &vec![], &*connection),
+        event_venue_entry(&event2, &venue, &vec![], &*connection),
     ];
 
     let test_request = TestRequest::create_with_uri("/events?query=New");
@@ -153,8 +153,8 @@ pub async fn index_for_user() {
         .finish();
 
     let expected_results = vec![
-        event_venue_entry(&event, &venue, &vec![], Some(user.clone()), &*connection),
-        event_venue_entry(&event2, &venue, &vec![], Some(user), &*connection),
+        event_venue_entry(&event, &venue, &vec![], &*connection),
+        event_venue_entry(&event2, &venue, &vec![], &*connection),
     ];
 
     let test_request = TestRequest::create_with_uri("/events?query=New");
@@ -215,8 +215,8 @@ pub async fn index_with_draft_for_organization_user() {
         .finish();
 
     let expected_results = vec![
-        event_venue_entry(&event, &venue, &vec![], None, &*connection),
-        event_venue_entry(&event2, &venue, &vec![], None, &*connection),
+        event_venue_entry(&event, &venue, &vec![], &*connection),
+        event_venue_entry(&event2, &venue, &vec![], &*connection),
     ];
 
     let test_request = TestRequest::create_with_uri("/events?query=New");
@@ -277,7 +277,7 @@ pub async fn index_with_draft_for_user_ignores_drafts() {
         .with_event_end(NaiveDate::from_ymd(2022, 7, 9).and_hms(9, 10, 11))
         .finish();
 
-    let expected_results = vec![event_venue_entry(&event, &venue, &vec![], None, &*connection)];
+    let expected_results = vec![event_venue_entry(&event, &venue, &vec![], &*connection)];
 
     let test_request = TestRequest::create_with_uri("/events?query=New");
     let parameters = Query::<SearchParameters>::extract(&test_request.request).await.unwrap();
@@ -1963,7 +1963,6 @@ pub fn event_venue_entry(
     event: &Event,
     venue: &Venue,
     artists: &Vec<DisplayEventArtist>,
-    user: Option<User>,
     connection: &PgConnection,
 ) -> EventVenueEntry {
     let localized_times = event.get_all_localized_time_strings(Some(venue));
