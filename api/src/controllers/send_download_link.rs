@@ -3,6 +3,7 @@ use crate::database::Connection;
 use crate::errors::ApiError;
 use crate::extractors::Json;
 use crate::server::AppState;
+use crate::SITE_NAME;
 use actix_web::{web::Data, HttpResponse};
 use chrono::Duration;
 use db::prelude::*;
@@ -44,8 +45,9 @@ pub async fn create(
     Communication::new(
         CommunicationType::Sms,
         format!(
-            "Hey {}, here's your link to download Big Neon and view your tickets: {}",
+            "Hey {}, here's your link to download {} and view your tickets: {}",
             &user.full_name(),
+            SITE_NAME,
             &link
         ),
         None,

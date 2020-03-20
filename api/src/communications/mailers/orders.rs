@@ -1,5 +1,6 @@
 use crate::config::Config;
 use crate::errors::*;
+use crate::SITE_NAME;
 use db::models::*;
 use db::prelude::{DisplayOrder, OrderItem, Refund};
 use diesel::PgConnection;
@@ -14,7 +15,7 @@ pub fn confirmation_email(
 ) -> Result<Communication, ApiError> {
     let source = CommAddress::from(config.communication_default_source_email.clone());
     let destinations = CommAddress::from(user_email);
-    let title = "BigNeon Purchase Completed".to_string();
+    let title = format!("{} Purchase Completed", SITE_NAME);
     let template_id = config.sendgrid_template_bn_purchase_completed.clone();
     let mut template_data = TemplateData::new();
     template_data.insert(String::from("name"), user_first_name.clone());
@@ -168,7 +169,7 @@ pub fn refund_email(
 ) -> Result<(), ApiError> {
     let source = CommAddress::from(config.communication_default_source_email.clone());
     let destinations = CommAddress::from(user_email);
-    let title = "BigNeon Refund".to_string();
+    let title = format!("{} Refund", SITE_NAME);
     let template_id = config.sendgrid_template_bn_refund.clone();
     let mut template_data = TemplateData::new();
     template_data.insert(String::from("name"), user_first_name.clone());

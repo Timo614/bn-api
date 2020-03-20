@@ -1,6 +1,7 @@
 use crate::config::Config;
 use crate::errors::*;
 use crate::models::*;
+use crate::SITE_NAME;
 use chrono::prelude::*;
 use db::models::*;
 use diesel::PgConnection;
@@ -16,7 +17,7 @@ pub fn ticket_counts(
 ) -> Result<(), ApiError> {
     let source = CommAddress::from(config.communication_default_source_email.clone());
     let destinations = CommAddress::from(email);
-    let title = "BigNeon Ticket Counts".to_string();
+    let title = format!("{} Ticket Counts", SITE_NAME);
     let template_id = config.email_templates.ticket_count_report.to_string();
     let mut extra_data: HashMap<String, serde_json::Value> = HashMap::new();
     Event::event_payload_data(&event, &config.front_end_url, &mut extra_data, conn)?;

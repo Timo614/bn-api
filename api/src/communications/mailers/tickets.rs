@@ -1,6 +1,7 @@
 use crate::communications::mailers::insert_event_template_data;
 use crate::config::Config;
 use crate::errors::*;
+use crate::SITE_NAME;
 use chrono::prelude::*;
 use db::models::*;
 use diesel::pg::PgConnection;
@@ -62,7 +63,7 @@ pub fn transfer_drip_reminder(
     let receive_tickets_link = transfer.receive_url(&config.front_end_url, conn)?;
     let source = CommAddress::from(config.communication_default_source_email.clone());
     let destinations = CommAddress::from(email.clone());
-    let title = "BigNeon: Ticket transfer reminder".to_string();
+    let title = format!("{}: Ticket transfer reminder", SITE_NAME);
     let user = User::find(transfer.source_user_id, conn)?;
     let template_id = if source_or_destination == SourceOrDestination::Source {
         config.sendgrid_template_bn_transfer_tickets_drip_source.clone()
@@ -112,7 +113,7 @@ pub fn transfer_sent_receipt(
     let source = CommAddress::from(config.communication_default_source_email.clone());
     if let Some(email) = user.email.clone() {
         let destinations = CommAddress::from(email);
-        let title = "BigNeon: Ticket transfer sent".to_string();
+        let title = format!("{}: Ticket transfer sent", SITE_NAME);
         let template_id = config.sendgrid_template_bn_transfer_tickets_receipt.clone();
         let transfer_cancel_url = format!("{}/my-events?event_id={}", config.front_end_url.clone(), event.id,);
         let mut template_data = TemplateData::new();
@@ -150,7 +151,7 @@ pub fn transfer_cancelled_receipt(
 ) -> Result<(), ApiError> {
     let source = CommAddress::from(config.communication_default_source_email.clone());
     let destinations = CommAddress::from(email);
-    let title = "BigNeon: Cancelled ticket transfer".to_string();
+    let title = format!("{}: Cancelled ticket transfer", SITE_NAME);
     let template_id = config.sendgrid_template_bn_cancel_transfer_tickets_receipt.clone();
     let mut template_data = TemplateData::new();
     template_data.insert("sender_name".to_string(), Transfer::sender_name(&from_user));

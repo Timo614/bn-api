@@ -1,5 +1,6 @@
 use crate::config::Config;
 use crate::errors::*;
+use crate::SITE_NAME;
 use db::models::*;
 use diesel::PgConnection;
 
@@ -11,7 +12,7 @@ pub fn user_registered(
 ) -> Result<(), ApiError> {
     let source = CommAddress::from(config.communication_default_source_email.clone());
     let destinations = CommAddress::from(user_email);
-    let title = "BigNeon Registration".to_string();
+    let title = format!("{} Registration", SITE_NAME);
     let template_id = config.sendgrid_template_bn_user_registered.clone();
     let mut template_data = TemplateData::new();
     template_data.insert("name".to_string(), user_first_name.clone());
@@ -40,7 +41,7 @@ pub fn password_reset_email(config: &Config, user: &User) -> Communication {
     let email: &str = user.email.as_ref().expect("Email is not set");
     let source = CommAddress::from(config.communication_default_source_email.clone());
     let destinations = CommAddress::from(email.to_string());
-    let title = "BigNeon Password reset request".to_string();
+    let title = format!("{} Password reset request", SITE_NAME);
     let template_id = config.email_templates.password_reset.to_string();
     let mut template_data = TemplateData::new();
     template_data.insert("name".to_string(), user.full_name());
@@ -68,7 +69,7 @@ pub fn invite_user_email(config: &Config, user: &User, conn: &PgConnection) -> R
     let email: &str = user.email.as_ref().expect("Email is not set");
     let source = CommAddress::from(config.communication_default_source_email.clone());
     let destinations = CommAddress::from(email.to_string());
-    let title = "BigNeon Invite".to_string();
+    let title = format!("{} Invite", SITE_NAME);
     let template_id = config.sendgrid_template_bn_user_invite.clone();
     let mut template_data = TemplateData::new();
     template_data.insert("name".to_string(), user.full_name());

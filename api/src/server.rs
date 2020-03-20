@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::database::*;
 use crate::domain_events::DomainActionMonitor;
-use crate::middleware::{AppVersionHeader, BigNeonLogger, DatabaseTransaction, Metatags};
+use crate::middleware::{ApiLogger, AppVersionHeader, DatabaseTransaction, Metatags};
 use crate::models::*;
 use crate::routing;
 use crate::utils::redis::*;
@@ -142,7 +142,7 @@ impl Server {
                                 .finish()
                         })
                         .wrap(Logger::new(LOGGER_FORMAT).exclude("/status"))
-                        .wrap(BigNeonLogger::new())
+                        .wrap(ApiLogger::new())
                         .wrap(DatabaseTransaction::new())
                         .wrap(AppVersionHeader::new())
                         .wrap(Metatags::new(&conf))

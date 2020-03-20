@@ -5,7 +5,7 @@ use crate::support::test_request::TestRequest;
 use actix_web::{http::StatusCode, HttpResponse};
 use api::auth::TokenResponse;
 use api::controllers::password_resets::{self, CreatePasswordResetParameters, UpdatePasswordResetParameters};
-use api::database::Connection as BigNeonConnection;
+use api::database::Connection as ApiConnection;
 use api::extractors::*;
 use chrono::{Duration, Utc};
 use db::models::concerns::users::password_resetable::*;
@@ -66,7 +66,7 @@ async fn create_fake_email() {
 #[actix_rt::test]
 async fn update() {
     let database = TestDatabase::new();
-    let connection_object: BigNeonConnection = database.connection.clone().into();
+    let connection_object: ApiConnection = database.connection.clone().into();
 
     let user = database.create_user().finish();
     let user = user.create_password_reset_token(database.connection.get()).unwrap();
@@ -106,7 +106,7 @@ async fn update() {
 async fn update_expired_token() {
     use db::schema::users::dsl::*;
     let database = TestDatabase::new();
-    let connection_object: BigNeonConnection = database.connection.clone().into();
+    let connection_object: ApiConnection = database.connection.clone().into();
     let user = database.create_user().finish();
 
     let token = Uuid::new_v4();
@@ -139,7 +139,7 @@ async fn update_expired_token() {
 #[actix_rt::test]
 async fn update_incorrect_token() {
     let database = TestDatabase::new();
-    let connection_object: BigNeonConnection = database.connection.clone().into();
+    let connection_object: ApiConnection = database.connection.clone().into();
     let user = database.create_user().finish();
     let user = user.create_password_reset_token(database.connection.get()).unwrap();
     let new_password = "newPassword";

@@ -5,9 +5,9 @@ use actix_web::{dev, error};
 use futures::future::{ok, Ready};
 use log::Level;
 
-pub struct BigNeonLogger;
+pub struct ApiLogger;
 
-impl BigNeonLogger {
+impl ApiLogger {
     pub fn new() -> Self {
         Self {}
     }
@@ -97,7 +97,7 @@ impl RequestLogData {
     }
 }
 
-impl<S, B> dev::Transform<S> for BigNeonLogger
+impl<S, B> dev::Transform<S> for ApiLogger
 where
     S: Service<Request = dev::ServiceRequest, Response = dev::ServiceResponse<B>, Error = error::Error> + 'static,
     B: dev::MessageBody,
@@ -149,10 +149,10 @@ where
     fn call(&mut self, request: Self::Request) -> Self::Future {
         let service = self.service.clone();
         Box::pin(async move {
-            let data = BigNeonLogger::start(&request);
+            let data = ApiLogger::start(&request);
             let fut = service.borrow_mut().call(request);
             let response = fut.await;
-            BigNeonLogger::finish(&data, response)
+            ApiLogger::finish(&data, response)
         })
     }
 }

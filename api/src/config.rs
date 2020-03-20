@@ -1,5 +1,6 @@
 use crate::auth::default_token_issuer::DefaultTokenIssuer;
 use crate::errors::{ApiError, ApplicationError};
+use crate::SITE_NAME;
 use chrono::Duration;
 use db::models::{EmailProvider, Environment};
 use db::utils::errors::EnumParseError;
@@ -239,7 +240,7 @@ impl Config {
     pub fn new(environment: Environment) -> Self {
         dotenv().ok();
 
-        let app_name = env::var(&APP_NAME).unwrap_or_else(|_| "Big Neon".to_string());
+        let app_name = env::var(&APP_NAME).unwrap_or_else(|_| SITE_NAME.to_string());
 
         let redis_connection_string = match environment {
             Environment::Test => None,

@@ -25,6 +25,8 @@ extern crate serde_json;
 #[macro_use]
 extern crate validator_derive;
 
+pub const SITE_NAME: &str = "Big Neon";
+
 pub mod auth;
 pub mod communications;
 pub mod config;

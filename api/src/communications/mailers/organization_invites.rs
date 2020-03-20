@@ -1,5 +1,6 @@
 use crate::config::Config;
 use crate::errors::*;
+use crate::SITE_NAME;
 use db::models::*;
 use diesel::pg::PgConnection;
 
@@ -18,7 +19,7 @@ pub fn invite_user_to_organization_email(
 
     let source = CommAddress::from(config.communication_default_source_email.clone());
     let destinations = CommAddress::from(invite.user_email.clone());
-    let title = "BigNeon Invites".to_string();
+    let title = format!("{} Invites", SITE_NAME);
     let template_id = config.email_templates.org_invite.to_string();
     let mut template_data = TemplateData::new();
     template_data.insert("name".to_string(), recipient_name.into());
