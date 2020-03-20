@@ -775,7 +775,7 @@ impl User {
             .to_db_error(ErrorCode::QueryError, "Could not load profile for organization fan")?;
 
         let result = result.remove(0);
-        if result.ticket_sales == 0 && result.tickets_owned == 0 && result.revenue_in_cents == 0 {
+        if !organization.has_fan(&self, conn)? {
             return DatabaseError::no_results("Could not load profile for organization fan, NotFound");
         }
         Ok(FanProfile {
