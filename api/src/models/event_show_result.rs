@@ -1,3 +1,4 @@
+use crate::models::UserDisplayTicketType;
 use chrono::NaiveDateTime;
 use db::prelude::*;
 use serde_json::Value;
@@ -31,15 +32,19 @@ pub struct EventShowResult {
     pub organization: ShortOrganization,
     pub venue: Option<DisplayVenue>,
     pub artists: Vec<DisplayEventArtist>,
+    pub ticket_types: Vec<UserDisplayTicketType>,
     pub total_interest: u32,
+    pub user_is_interested: bool,
     pub min_ticket_price: Option<i64>,
     pub max_ticket_price: Option<i64>,
     pub is_external: bool,
     pub external_url: Option<String>,
     pub override_status: Option<EventOverrideStatus>,
+    pub limited_tickets_remaining: Vec<TicketsRemaining>,
     pub localized_times: EventLocalizedTimeStrings,
     pub tracking_keys: TrackingKeys,
     pub event_type: EventTypes,
+    pub sales_start_date: Option<NaiveDateTime>,
     pub url: String,
     pub slug: String,
     pub facebook_pixel_key: Option<String>,

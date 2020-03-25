@@ -42,6 +42,8 @@ async fn show_event() {
         organization.clone(),
         venue.clone(),
         false,
+        None,
+        None,
         conn,
         1,
         None,
@@ -55,6 +57,9 @@ async fn show_event() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user.clone())),
+        RequestInfo {
+            user_agent: Some("test".to_string()),
+        },
     ))
     .await
     .into();
@@ -115,6 +120,9 @@ async fn show_redirect_to_primary_slug() {
             path,
             query_parameters,
             OptionalUser(Some(auth_user.clone())),
+            RequestInfo {
+                user_agent: Some("test".to_string()),
+            },
         ))
         .await
         .into();
@@ -177,14 +185,17 @@ async fn show_venue() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user.clone())),
+        RequestInfo {
+            user_agent: Some("test".to_string()),
+        },
     ))
     .await
     .into();
     let body = support::unwrap_body_to_string(&response).unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let expected_events = vec![
-        event_venue_entry(&event, &venue, &vec![], &*connection),
-        event_venue_entry(&event2, &venue, &vec![], &*connection),
+        event_venue_entry(&event, &venue, &vec![], None, &*connection),
+        event_venue_entry(&event2, &venue, &vec![], None, &*connection),
     ];
     let expected_json = serde_json::to_string(&SlugResponse::Venue {
         venue: venue.for_display(connection).unwrap(),
@@ -210,12 +221,15 @@ async fn show_venue() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user.clone())),
+        RequestInfo {
+            user_agent: Some("test".to_string()),
+        },
     ))
     .await
     .into();
     let body = support::unwrap_body_to_string(&response).unwrap();
     assert_eq!(response.status(), StatusCode::OK);
-    let expected_events = vec![event_venue_entry(&event3, &venue2, &vec![], &*connection)];
+    let expected_events = vec![event_venue_entry(&event3, &venue2, &vec![], None, &*connection)];
     let expected_json = serde_json::to_string(&SlugResponse::Venue {
         venue: venue2.for_display(connection).unwrap(),
         events: expected_events,
@@ -276,14 +290,17 @@ async fn show_organization() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user.clone())),
+        RequestInfo {
+            user_agent: Some("test".to_string()),
+        },
     ))
     .await
     .into();
     let body = support::unwrap_body_to_string(&response).unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let expected_events = vec![
-        event_venue_entry(&event, &venue, &vec![], &*connection),
-        event_venue_entry(&event3, &venue2, &vec![], &*connection),
+        event_venue_entry(&event, &venue, &vec![], None, &*connection),
+        event_venue_entry(&event3, &venue2, &vec![], None, &*connection),
     ];
     let expected_json = serde_json::to_string(&SlugResponse::Organization {
         organization: organization.for_display(connection).unwrap(),
@@ -309,12 +326,15 @@ async fn show_organization() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user.clone())),
+        RequestInfo {
+            user_agent: Some("test".to_string()),
+        },
     ))
     .await
     .into();
     let body = support::unwrap_body_to_string(&response).unwrap();
     assert_eq!(response.status(), StatusCode::OK);
-    let expected_events = vec![event_venue_entry(&event2, &venue, &vec![], &*connection)];
+    let expected_events = vec![event_venue_entry(&event2, &venue, &vec![], None, &*connection)];
     let expected_json = serde_json::to_string(&SlugResponse::Organization {
         organization: organization2.for_display(connection).unwrap(),
         events: expected_events,
@@ -384,14 +404,17 @@ async fn show_city() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user.clone())),
+        RequestInfo {
+            user_agent: Some("test".to_string()),
+        },
     ))
     .await
     .into();
     let body = support::unwrap_body_to_string(&response).unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let expected_events = vec![
-        event_venue_entry(&event, &venue, &vec![], &*connection),
-        event_venue_entry(&event2, &venue2, &vec![], &*connection),
+        event_venue_entry(&event, &venue, &vec![], None, &*connection),
+        event_venue_entry(&event2, &venue2, &vec![], None, &*connection),
     ];
     let expected_json = serde_json::to_string(&SlugResponse::City {
         city: CityData {
@@ -425,12 +448,15 @@ async fn show_city() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user.clone())),
+        RequestInfo {
+            user_agent: Some("test".to_string()),
+        },
     ))
     .await
     .into();
     let body = support::unwrap_body_to_string(&response).unwrap();
     assert_eq!(response.status(), StatusCode::OK);
-    let expected_events = vec![event_venue_entry(&event3, &venue3, &vec![], &*connection)];
+    let expected_events = vec![event_venue_entry(&event3, &venue3, &vec![], None, &*connection)];
     let expected_json = serde_json::to_string(&SlugResponse::City {
         city: CityData {
             city: "Oakland".to_string(),
@@ -514,6 +540,9 @@ async fn show_genre() {
         path,
         query_parameters,
         OptionalUser(Some(auth_user.clone())),
+        RequestInfo {
+            user_agent: Some("test".to_string()),
+        },
     ))
     .await
     .into();
@@ -531,6 +560,7 @@ async fn show_genre() {
         &event,
         &venue,
         &vec![display_event_artist],
+        None,
         &*connection,
     )];
     let expected_json = serde_json::to_string(&SlugResponse::Genre {

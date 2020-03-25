@@ -87,12 +87,13 @@ pub async fn update(
 }
 
 pub async fn show(
-    (state, conn, mut parameters, query, auth_user): (
+    (state, conn, mut parameters, query, auth_user, request): (
         Data<AppState>,
         ReadonlyConnection,
         Path<StringPathParameters>,
         Query<EventParameters>,
         OptionalUser,
+        RequestInfo,
     ),
 ) -> Result<HttpResponse, ApiError> {
     let user = auth_user
@@ -126,7 +127,7 @@ pub async fn show(
     let response = match slug.slug_type {
         SlugTypes::Event => {
             parameters.id = slug.main_table_id.to_string();
-            return events::show((state, conn, parameters, query, auth_user)).await;
+            return events::show((state, conn, parameters, query, auth_user, request)).await;
         }
         SlugTypes::Organization => {
             let organization = Organization::find(slug.main_table_id, connection)?;
@@ -150,7 +151,7 @@ pub async fn show(
                 connection,
             )?;
 
-            let events = EventVenueEntry::event_venues_from_events(events, &state, connection)?;
+            let events = EventVenueEntry::event_venues_from_events(events, user, &state, connection)?;
             SlugResponse::Organization {
                 organization: organization.for_display(connection)?,
                 events,
@@ -179,7 +180,7 @@ pub async fn show(
                 connection,
             )?;
 
-            let events = EventVenueEntry::event_venues_from_events(events, &state, connection)?;
+            let events = EventVenueEntry::event_venues_from_events(events, user, &state, connection)?;
             SlugResponse::Venue {
                 venue: venue.for_display(connection)?,
                 events,
@@ -217,7 +218,7 @@ pub async fn show(
                 connection,
             )?;
 
-            let events = EventVenueEntry::event_venues_from_events(events, &state, connection)?;
+            let events = EventVenueEntry::event_venues_from_events(events, user, &state, connection)?;
             SlugResponse::City { city, events, meta }
         }
         SlugTypes::Genre => {
@@ -242,7 +243,7 @@ pub async fn show(
                 connection,
             )?;
 
-            let events = EventVenueEntry::event_venues_from_events(events, &state, connection)?;
+            let events = EventVenueEntry::event_venues_from_events(events, user, &state, connection)?;
             SlugResponse::Genre {
                 genre: genre.name,
                 events,

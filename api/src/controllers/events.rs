@@ -234,7 +234,7 @@ pub async fn checkins(
 ) -> Result<HttpResponse, ApiError> {
     let events = auth_user.user.find_events_with_access_to_scan(conn.get())?;
     let mut payload = Payload::new(
-        EventVenueEntry::event_venues_from_events(events, &state, conn.get())?,
+        EventVenueEntry::event_venues_from_events(events, Some(auth_user.user), &state, conn.get())?,
         query.into_inner().into(),
     );
     payload.paging.total = payload.data.len() as u64;
@@ -300,7 +300,7 @@ pub async fn index(
     let (events, count) = events_count;
 
     let mut payload = Payload::new(
-        EventVenueEntry::event_venues_from_events(events, &state, connection)?,
+        EventVenueEntry::event_venues_from_events(events, user, &state, connection)?,
         query.into(),
     );
     payload.paging.total = count as u64;
@@ -331,12 +331,7 @@ fn confirm_can_view_event_details(
         match user {
             Some(ref user) => user.requires_scope_for_organization(Scopes::OrgReadEvents, &organization, connection)?,
             None => {
-                return Err(application::unauthorized_with_message::<HttpResponse>(
-                    "Unauthorized access of private event",
-                    None,
-                    None,
-                )
-                .unwrap_err());
+                return Err(AuthError::unauthorized("Unauthorized access of private event").into());
             }
         }
     };
@@ -367,30 +362,14 @@ fn confirm_can_view_event_details(
     Ok(user_has_privileges)
 }
 
-pub async fn availability(
-    (connection, parameters, query, user, request): (
-        ReadonlyConnection,
-        Path<StringPathParameters>,
-        Query<EventParameters>,
-        OptionalUser,
-        RequestInfo,
-    ),
-) -> Result<HttpResponse, ApiError> {
-    let connection = connection.get();
-    let user = user.into_inner();
-    let event_id = match parameters.id.parse() {
-        Ok(i) => i,
-        Err(_) => {
-            // Backwards compatibility for existing links
-            let slugs = Slug::find_by_slug(&parameters.id, connection)?;
-            if slugs.is_empty() || (slugs[0].main_table != Tables::Events || slugs[0].slug_type != SlugTypes::Event) {
-                return application::not_found();
-            }
-
-            slugs[0].main_table_id
-        }
-    };
-    let (event, _, _, fee_schedule) = Event::find_incl_org_venue_fees(event_id, connection)?;
+fn get_availability_by_event(
+    event: &Event,
+    fee_schedule: &FeeSchedule,
+    user: &Option<AuthUser>,
+    query: &Query<EventParameters>,
+    request: &RequestInfo,
+    connection: &PgConnection,
+) -> Result<EventAvailability, ApiError> {
     let ticket_types = TicketType::find_by_event_id(event.id, true, query.redemption_code.clone(), connection)?;
     let mut display_ticket_types = Vec::new();
     let mut sales_start_date = Some(times::infinity());
@@ -400,7 +379,7 @@ pub async fn availability(
         Platforms::BoxOffice
     } else {
         // If we can't determine the platform, then serve it as web
-        if let Some(user_agent) = request.user_agent {
+        if let Some(user_agent) = &request.user_agent {
             Platforms::from_user_agent(user_agent.as_str()).unwrap_or(Platforms::Web)
         } else {
             Platforms::Web
@@ -474,22 +453,21 @@ pub async fn availability(
         None => false,
     };
 
-    let availability = EventAvailability {
+    Ok(EventAvailability {
         ticket_types: display_ticket_types,
         limited_tickets_remaining,
         sales_start_date,
         user_is_interested,
-    };
-    Ok(HttpResponse::Ok().json(&availability))
+    })
 }
 
-pub async fn show(
-    (state, connection, parameters, query, user): (
-        Data<AppState>,
+pub async fn availability(
+    (connection, parameters, query, user, request): (
         ReadonlyConnection,
         Path<StringPathParameters>,
         Query<EventParameters>,
         OptionalUser,
+        RequestInfo,
     ),
 ) -> Result<HttpResponse, ApiError> {
     let connection = connection.get();
@@ -506,7 +484,36 @@ pub async fn show(
             slugs[0].main_table_id
         }
     };
-    let (event, organization, venue, _) = Event::find_incl_org_venue_fees(event_id, connection)?;
+    let (event, _, _, fee_schedule) = Event::find_incl_org_venue_fees(event_id, connection)?;
+    let availability = get_availability_by_event(&event, &fee_schedule, &user, &query, &request, connection)?;
+    Ok(HttpResponse::Ok().json(&availability))
+}
+
+pub async fn show(
+    (state, connection, parameters, query, user, request): (
+        Data<AppState>,
+        ReadonlyConnection,
+        Path<StringPathParameters>,
+        Query<EventParameters>,
+        OptionalUser,
+        RequestInfo,
+    ),
+) -> Result<HttpResponse, ApiError> {
+    let connection = connection.get();
+    let user = user.into_inner();
+    let event_id = match parameters.id.parse() {
+        Ok(i) => i,
+        Err(_) => {
+            // Backwards compatibility for existing links
+            let slugs = Slug::find_by_slug(&parameters.id, connection)?;
+            if slugs.is_empty() || (slugs[0].main_table != Tables::Events || slugs[0].slug_type != SlugTypes::Event) {
+                return application::not_found();
+            }
+
+            slugs[0].main_table_id
+        }
+    };
+    let (event, organization, venue, fee_schedule) = Event::find_incl_org_venue_fees(event_id, connection)?;
     let box_office_pricing = query.box_office_pricing.unwrap_or(false);
     let user_has_privileges = confirm_can_view_event_details(
         &user,
@@ -544,7 +551,7 @@ pub async fn show(
             (None, None)
         };
     // Show private access code to any admin with write access
-    let show_private_access_code = if let Some(user) = user {
+    let show_private_access_code = if let Some(user) = &user {
         user.has_scope_for_organization_event(Scopes::EventWrite, &organization, event.id, connection)?
     } else {
         false
@@ -564,6 +571,7 @@ pub async fn show(
         event.status.clone()
     };
 
+    let availability = get_availability_by_event(&event, &fee_schedule, &user, &query, &request, connection)?;
     let payload = &EventShowResult {
         id: event.id,
         response_type: "Event".to_string(),
@@ -617,6 +625,10 @@ pub async fn show(
             .and_then(|data| if user_has_privileges { Some(data) } else { None }),
         facebook_event_id: event.facebook_event_id,
         updated_at: event.updated_at,
+        ticket_types: availability.ticket_types,
+        limited_tickets_remaining: availability.limited_tickets_remaining,
+        sales_start_date: availability.sales_start_date,
+        user_is_interested: availability.user_is_interested,
     };
 
     Ok(HttpResponse::Ok().json(&payload))
