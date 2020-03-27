@@ -1082,7 +1082,7 @@ pub fn expected_show_json(
         artists: event_artists,
         ticket_types: display_ticket_types,
         total_interest: interested_users,
-        user_is_interested: true,
+        user_is_interested: false,
         min_ticket_price,
         max_ticket_price,
         is_external: event.is_external,

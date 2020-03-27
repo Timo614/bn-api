@@ -349,12 +349,7 @@ fn confirm_can_view_event_details(
                 user.requires_scope_for_organization(Scopes::BoxOfficeTicketRead, &organization, connection)?
             }
             None => {
-                return Err(application::unauthorized_with_message::<HttpResponse>(
-                    "Cannot access box office pricing",
-                    None,
-                    None,
-                )
-                .unwrap_err());
+                return Err(AuthError::unauthorized("Cannot access box office pricing").into());
             }
         }
     }
@@ -625,10 +620,12 @@ pub async fn show(
             .and_then(|data| if user_has_privileges { Some(data) } else { None }),
         facebook_event_id: event.facebook_event_id,
         updated_at: event.updated_at,
+        // Temporary support for old widget data to be retired in the future once no longer heavily relied on
         ticket_types: availability.ticket_types,
         limited_tickets_remaining: availability.limited_tickets_remaining,
         sales_start_date: availability.sales_start_date,
-        user_is_interested: availability.user_is_interested,
+        // Set to false as this endpoint is cached
+        user_is_interested: false,
     };
 
     Ok(HttpResponse::Ok().json(&payload))
