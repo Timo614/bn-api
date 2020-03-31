@@ -2079,6 +2079,8 @@ fn get_scopes_by_organization() {
             Scopes::BoxOfficeTicketWrite,
             Scopes::CodeRead,
             Scopes::CodeWrite,
+            Scopes::CollectionRead,
+            Scopes::CollectionWrite,
             Scopes::CompRead,
             Scopes::CompWrite,
             Scopes::DashboardRead,
@@ -2144,6 +2146,8 @@ fn get_scopes_by_organization() {
             Scopes::BoxOfficeTicketWrite,
             Scopes::CodeRead,
             Scopes::CodeWrite,
+            Scopes::CollectionRead,
+            Scopes::CollectionWrite,
             Scopes::CompRead,
             Scopes::CompWrite,
             Scopes::DashboardRead,
@@ -2214,6 +2218,8 @@ fn get_global_scopes() {
             .map(|scope| scope.to_string())
             .collect::<Vec<String>>(),
         vec![
+            "collection:read",
+            "collection:write",
             "event:interest",
             "listing:write",
             "order:read-own",
@@ -2230,6 +2236,8 @@ fn get_global_scopes() {
             .map(|scope| scope.to_string())
             .collect::<Vec<String>>(),
         vec![
+            "collection:read",
+            "collection:write",
             "event:interest",
             "listing:write",
             "order:read-own",
@@ -2255,6 +2263,8 @@ fn get_global_scopes() {
             "box-office-ticket:write",
             "code:read",
             "code:write",
+            "collection:read",
+            "collection:write",
             "comp:read",
             "comp:write",
             "dashboard:read",
@@ -2342,6 +2352,8 @@ fn get_global_scopes() {
             "box-office-ticket:write",
             "code:read",
             "code:write",
+            "collection:read",
+            "collection:write",
             "comp:read",
             "comp:write",
             "dashboard:read",

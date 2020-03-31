@@ -6,6 +6,8 @@ pub mod auth;
 pub mod broadcasts;
 pub mod cart;
 pub mod codes;
+pub mod collection_items;
+pub mod collections;
 pub mod comps;
 pub mod event_report_subscribers;
 pub mod events;

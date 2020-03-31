@@ -510,6 +510,8 @@ async fn current_user() {
     assert_eq!(user.id, user.id);
     assert_eq!(
         vec![
+            Scopes::CollectionRead,
+            Scopes::CollectionWrite,
             Scopes::EventInterest,
             Scopes::ListingWrite,
             Scopes::OrderReadOwn,
@@ -545,6 +547,8 @@ async fn current_user_organization_owner() {
             "box-office-ticket:write",
             "code:read",
             "code:write",
+            "collection:read",
+            "collection:write",
             "comp:read",
             "comp:write",
             "dashboard:read",
@@ -625,6 +629,8 @@ async fn current_user_organization_member() {
     assert_eq!(user.id, user.id);
     assert_eq!(
         vec![
+            Scopes::CollectionRead,
+            Scopes::CollectionWrite,
             Scopes::EventInterest,
             Scopes::ListingWrite,
             Scopes::OrderReadOwn,
@@ -645,6 +651,8 @@ async fn current_user_organization_member() {
             "box-office-ticket:write",
             "code:read",
             "code:write",
+            "collection:read",
+            "collection:write",
             "comp:read",
             "comp:write",
             "dashboard:read",

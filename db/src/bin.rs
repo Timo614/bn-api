@@ -8,6 +8,7 @@
 // Unused results is more often than not an error
 #![deny(unused_must_use)]
 #![deny(unused_extern_crates)]
+#![deny(deprecated)]
 
 #[macro_use]
 extern crate diesel_migrations;

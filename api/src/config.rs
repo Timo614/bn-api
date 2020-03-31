@@ -31,6 +31,7 @@ pub struct Config {
     pub client_cache_period: u64,
     pub domain: String,
     pub email_templates: EmailTemplates,
+    pub email_only_registration_allowed: bool,
     pub environment: Environment,
     pub facebook_app_id: Option<String>,
     pub facebook_app_secret: Option<String>,
@@ -74,6 +75,7 @@ pub struct Config {
     pub ssr_trigger_value: String,
     pub customer_io: CustomerIoSettings,
     pub sharetribe: SharetribeConfig,
+    pub product_context: ProductContext,
 }
 
 #[derive(Clone)]
@@ -107,6 +109,7 @@ pub struct EmailTemplates {
     pub password_reset: EmailTemplate,
     pub ticket_count_report: EmailTemplate,
     pub resend_download_link: EmailTemplate,
+    pub user_registered_magic_link: EmailTemplate,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -147,6 +150,12 @@ pub struct CustomerIoSettings {
     pub site_id: String,
 }
 
+#[derive(Clone)]
+pub enum ProductContext {
+    Collectibles,
+    BigNeon,
+}
+
 const CUSTOMER_IO_API_KEY: &str = "CUSTOMER_IO_API_KEY";
 const CUSTOMER_IO_SITE_ID: &str = "CUSTOMER_IO_SITE_ID";
 const CUSTOMER_IO_BASE_URL: &str = "CUSTOMER_IO_BASE_URL";
@@ -167,11 +176,13 @@ const REDIS_CACHE_PERIOD_MILLI: &str = "REDIS_CACHE_PERIOD_MILLI";
 const CLIENT_CACHE_PERIOD: &str = "CLIENT_CACHE_PERIOD";
 const READONLY_DATABASE_URL: &str = "READONLY_DATABASE_URL";
 const DOMAIN: &str = "DOMAIN";
+const EMAIL_ONLY_REGISTRATION_ALLOWED: &str = "EMAIL_ONLY_REGISTRATION_ALLOWED";
 const EMAIL_TEMPLATES_CUSTOM_BROADCAST: &str = "EMAIL_TEMPLATES_CUSTOM_BROADCAST";
 const EMAIL_TEMPLATES_ORG_INVITE: &str = "EMAIL_TEMPLATES_ORG_INVITE";
 const EMAIL_TEMPLATES_PASSWORD_RESET: &str = "EMAIL_TEMPLATES_PASSWORD_RESET";
 const EMAIL_TEMPLATES_TICKET_COUNT_REPORT: &str = "EMAIL_TEMPLATES_TICKET_COUNT_REPORT";
 const EMAIL_TEMPLATES_RESEND_DOWNLOAD_LINK: &str = "EMAIL_TEMPLATES_RESEND_DOWNLOAD_LINK";
+const EMAIL_TEMPLATES_USER_REGISTERED_MAGIC_LINK: &str = "EMAIL_TEMPLATES_USER_REGISTERED_MAGIC_LINK";
 const ENVIRONMENT: &str = "ENVIRONMENT";
 const FACEBOOK_APP_ID: &str = "FACEBOOK_APP_ID";
 const FACEBOOK_APP_SECRET: &str = "FACEBOOK_APP_SECRET";
@@ -237,6 +248,8 @@ const SSR_TRIGGER_VALUE: &str = "SSR_TRIGGER_VALUE";
 
 const SHARETRIBE_CLIENT_ID: &str = "SHARETRIBE_CLIENT_ID";
 const SHARETRIBE_CLIENT_SECRET: &str = "SHARETRIBE_CLIENT_SECRET";
+
+const PRODUCT_CONTEXT: &str = "PRODUCT_CONTEXT";
 
 fn get_env_var(var: &str) -> String {
     env::var(var).unwrap_or_else(|_| panic!("{} must be defined", var))
@@ -375,12 +388,14 @@ impl Config {
         let communication_default_source_email = get_env_var(COMMUNICATION_DEFAULT_SOURCE_EMAIL);
         let communication_default_source_phone = get_env_var(COMMUNICATION_DEFAULT_SOURCE_PHONE);
 
+        let email_only_registration_allowed = get_env_var(EMAIL_ONLY_REGISTRATION_ALLOWED).parse().unwrap();
         let email_templates = EmailTemplates {
             custom_broadcast: get_env_var(EMAIL_TEMPLATES_CUSTOM_BROADCAST).parse().unwrap(),
             org_invite: get_env_var(EMAIL_TEMPLATES_ORG_INVITE).parse().unwrap(),
             password_reset: get_env_var(EMAIL_TEMPLATES_PASSWORD_RESET).parse().unwrap(),
             ticket_count_report: get_env_var(EMAIL_TEMPLATES_TICKET_COUNT_REPORT).parse().unwrap(),
             resend_download_link: get_env_var(EMAIL_TEMPLATES_RESEND_DOWNLOAD_LINK).parse().unwrap(),
+            user_registered_magic_link: get_env_var(EMAIL_TEMPLATES_USER_REGISTERED_MAGIC_LINK).parse().unwrap(),
         };
 
         let customer_io_base_url = get_env_var(CUSTOMER_IO_BASE_URL);
@@ -466,6 +481,16 @@ impl Config {
             client_secret: get_env_var(SHARETRIBE_CLIENT_SECRET),
         };
 
+        let product_context = match env::var(&PRODUCT_CONTEXT)
+            .unwrap_or("bigneon".to_owned())
+            .to_lowercase()
+            .as_str()
+        {
+            "collectibles" => ProductContext::Collectibles,
+            "bigneon" => ProductContext::BigNeon,
+            _ => panic!("Invalid value for PRODUCT_CONTEXT"),
+        };
+
         Config {
             actix: Actix {
                 workers,
@@ -487,6 +512,7 @@ impl Config {
             client_cache_period,
             readonly_database_url,
             domain,
+            email_only_registration_allowed,
             email_templates,
             environment,
             facebook_app_id,
@@ -531,6 +557,7 @@ impl Config {
             ssr_trigger_header,
             ssr_trigger_value,
             sharetribe,
+            product_context,
         }
     }
 }

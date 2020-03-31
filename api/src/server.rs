@@ -1,12 +1,12 @@
-use crate::config::Config;
+use crate::config::{Config, ProductContext};
 use crate::database::*;
 use crate::domain_events::DomainActionMonitor;
 use crate::middleware::{ApiLogger, AppVersionHeader, DatabaseTransaction, Metatags};
 use crate::models::*;
-use crate::routing;
 use crate::utils::redis::*;
 use crate::utils::spotify;
 use crate::utils::ServiceLocator;
+use crate::{routing, routing_collectibles};
 use actix::Addr;
 use actix_cors::Cors;
 use actix_files as fs;
@@ -112,10 +112,9 @@ impl Server {
                 redis_pubsub_processor.start();
             }
 
-            //            let keep_alive = server::KeepAlive::Tcp(config.http_keep_alive);
             let mut server = HttpServer::new({
                 move || {
-                    App::new()
+                    let app = App::new()
                         .data(
                             AppState::new(conf.clone(), database.clone(), database_ro.clone(), clients.clone())
                                 .expect("Expected to generate app state"),
@@ -143,13 +142,21 @@ impl Server {
                         .wrap(DatabaseTransaction::new())
                         .wrap(AppVersionHeader::new())
                         .wrap(Metatags::new(&conf))
-                        .configure(routing::routes)
                         .configure(|conf| {
                             if let Some(static_file_path) = &static_file_conf.static_file_path {
                                 conf.service(fs::Files::new("/", static_file_path));
                             }
                         })
-                        .default_service(web::get().to(|| HttpResponse::NotFound().json(json!({"error": "Not found"}))))
+                        .default_service(
+                            web::get().to(|| HttpResponse::NotFound().json(json!({"error": "Not found"}))),
+                        );
+
+                    match conf.product_context {
+                        ProductContext::Collectibles => app
+                            .configure(routing_collectibles::routes_collectibles)
+                            .configure(routing::routes),
+                        ProductContext::BigNeon => app.configure(routing::routes),
+                    }
                 }
             });
             //            .keep_alive(keep_alive)

@@ -131,6 +131,28 @@ table! {
 }
 
 table! {
+    collection_items (id) {
+        id -> Uuid,
+        collection_id -> Uuid,
+        collectible_id -> Uuid,
+        next_collection_item_id -> Nullable<Uuid>,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+table! {
+    collections (id) {
+        id -> Uuid,
+        name -> Text,
+        user_id -> Uuid,
+        featured_collectible_id -> Nullable<Uuid>,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+table! {
     domain_actions (id) {
         id -> Uuid,
         domain_event_id -> Nullable<Uuid>,
@@ -948,6 +970,10 @@ joinable!(artists -> organizations (organization_id));
 joinable!(assets -> ticket_types (ticket_type_id));
 joinable!(broadcasts -> events (event_id));
 joinable!(codes -> events (event_id));
+joinable!(collection_items -> collections (collection_id));
+joinable!(collection_items -> ticket_types (collectible_id));
+joinable!(collections -> ticket_types (featured_collectible_id));
+joinable!(collections -> users (user_id));
 joinable!(domain_actions -> domain_events (domain_event_id));
 joinable!(domain_event_published -> domain_event_publishers (domain_event_publisher_id));
 joinable!(domain_event_published -> domain_events (domain_event_id));
@@ -1038,6 +1064,8 @@ allow_tables_to_appear_in_same_query!(
     assets,
     broadcasts,
     codes,
+    collection_items,
+    collections,
     domain_actions,
     domain_event_published,
     domain_event_publishers,
