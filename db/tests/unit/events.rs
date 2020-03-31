@@ -1631,7 +1631,7 @@ fn guest_list() {
         .with_last_name("Test")
         .finish();
     let user2 = project.create_user().finish();
-    let user3 = project.create_user().finish();
+    let user3 = project.create_user().with_last_name("Mc'Donald").finish();
     let user4 = project.create_user().finish();
     let user5 = project.create_user().finish();
     let user6 = project.create_user().finish();
@@ -1661,6 +1661,7 @@ fn guest_list() {
         .is_paid()
         .finish();
 
+    // First name
     let guest_list = event
         .guest_list(Some("Alex".to_string()), &None, None, connection)
         .unwrap()
@@ -1670,6 +1671,14 @@ fn guest_list() {
     assert_eq!(1, guest_list_length);
     assert_eq!(first_ticket.user_id.clone(), Some(user.id));
 
+    // Partial match fails as last name does not start with x
+    let guest_list = event
+        .guest_list(Some("Al x".to_string()), &None, None, connection)
+        .unwrap()
+        .0;
+    assert!(guest_list.is_empty());
+
+    // Not found
     let guest_list = event
         .guest_list(Some("Test".to_string()), &None, None, connection)
         .unwrap()
@@ -1679,18 +1688,35 @@ fn guest_list() {
 
     // With commas that are ignored
     let guest_list = event
-        .guest_list(Some("test, al".to_string()), &None, None, connection)
+        .guest_list(Some("te, al".to_string()), &None, None, connection)
         .unwrap()
         .0;
     assert_eq!(1, guest_list.len());
     assert_eq!(guest_list.first().unwrap().ticket.user_id, Some(user.id));
 
+    // Partial match
     let guest_list = event
-        .guest_list(Some("ex T".to_string()), &None, None, connection)
+        .guest_list(Some("Al T".to_string()), &None, None, connection)
         .unwrap()
         .0;
     assert_eq!(1, guest_list.len());
     assert_eq!(guest_list.first().unwrap().ticket.user_id, Some(user.id));
+
+    // Match without single quote in name
+    let guest_list = event
+        .guest_list(Some("McDonald".to_string()), &None, None, connection)
+        .unwrap()
+        .0;
+    assert_eq!(1, guest_list.len());
+    assert_eq!(guest_list.first().unwrap().ticket.user_id, Some(user3.id));
+
+    // Match with single quote in name
+    let guest_list = event
+        .guest_list(Some("Mc'Donald".to_string()), &None, None, connection)
+        .unwrap()
+        .0;
+    assert_eq!(1, guest_list.len());
+    assert_eq!(guest_list.first().unwrap().ticket.user_id, Some(user3.id));
 
     // Update ticket for user.id to override name
     let ticket = TicketInstance::find_for_user(user.id, connection)

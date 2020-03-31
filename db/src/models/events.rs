@@ -1712,14 +1712,41 @@ impl Event {
             query = query.filter(ticket_instances::id.nullable().eq(ticket_id))
         }
         if let Some(query_string) = query_string {
-            let fuzzy_query_string: String = str::replace(&query_string.trim(), ",", "");
-            let fuzzy_query_string = format!("%{}%", fuzzy_query_string.split_whitespace().join("%"));
+            let fuzzy_query_string: String = str::replace(&str::replace(&query_string.trim(), ",", ""), "'", "");
+            let fuzzy_query_string = format!("{}%", fuzzy_query_string.split_whitespace().join("% "));
 
-            query = query
-                .filter(sql("CONCAT(COALESCE(ticket_instances.first_name_override, users.first_name), ' ', COALESCE(ticket_instances.last_name_override, users.last_name)) ILIKE ")
-                    .bind::<Text, _>(fuzzy_query_string.clone())
-                    .or(sql("CONCAT(COALESCE(ticket_instances.last_name_override, users.last_name), ' ', COALESCE(ticket_instances.first_name_override, users.first_name)) ILIKE ")
-                    .bind::<Text, _>(fuzzy_query_string.clone())));
+            query = query.filter(
+                sql("
+                    CONCAT(
+                        TRANSLATE(
+                            COALESCE(ticket_instances.first_name_override, users.first_name),
+                            '''',
+                            ''
+                        ),
+                        ' ',
+                        TRANSLATE(
+                            COALESCE(ticket_instances.last_name_override, users.last_name),
+                            '''',
+                            ''
+                        )
+                    ) ILIKE ")
+                .bind::<Text, _>(fuzzy_query_string.clone())
+                .or(sql("
+                    CONCAT(
+                        TRANSLATE(
+                            COALESCE(ticket_instances.last_name_override, users.last_name),
+                            '''',
+                            ''
+                        ),
+                        ' ',
+                        TRANSLATE(
+                            COALESCE(ticket_instances.first_name_override, users.first_name),
+                            '''',
+                            ''
+                        )
+                    ) ILIKE ")
+                .bind::<Text, _>(fuzzy_query_string.clone())),
+            );
         }
 
         if let Some(changes_since) = changes_since {
