@@ -831,6 +831,7 @@ pub async fn holds(role: Roles, should_test_succeed: bool) {
         pub children_available: u32,
         pub children_quantity: u32,
         pub parent_hold_id: Option<Uuid>,
+        pub total_uses: u32,
     }
 
     let ticket_type = UserDisplayTicketType::from_ticket_type(
@@ -868,6 +869,7 @@ pub async fn holds(role: Roles, should_test_succeed: bool) {
             children_available: 2,
             children_quantity: 2,
             parent_hold_id: None,
+            total_uses: 0,
         },
         R {
             id: hold2.id,
@@ -886,6 +888,7 @@ pub async fn holds(role: Roles, should_test_succeed: bool) {
             children_available: 0,
             children_quantity: 0,
             parent_hold_id: None,
+            total_uses: 0,
         },
     ];
 
