@@ -10,11 +10,13 @@ env: &env
     CUSTOMER_IO_API_KEY: ""
     CUSTOMER_IO_SITE_ID: ""
     CUBE_JS_SECRET: ""
+    EMAIL_ONLY_REGISTRATION_ALLOWED: true
     EMAIL_TEMPLATES_TICKET_COUNT_REPORT: "CustomerIo:not-a-real-value"
     EMAIL_TEMPLATES_CUSTOM_BROADCAST: "CustomerIo:not-a-real-value"
     EMAIL_TEMPLATES_ORG_INVITE: "Sendgrid:d-19ea07c6169e4fe887b6527ef16cb1ea"
     EMAIL_TEMPLATES_PASSWORD_RESET: "Sendgrid:d-193ea5665fc54c8ca19c6325c8e46703"
     EMAIL_TEMPLATES_RESEND_DOWNLOAD_LINK: "CustomerIo:TEMPLATE_ID"
+    EMAIL_TEMPLATES_USER_REGISTERED_MAGIC_LINK: "CustomerIo:TEMPLATE_ID"
     # Globee will not allow a localhost url
     FRONT_END_URL: "https://ci-test.notreal.bigneon.com"
     BUILD_DIR: "api"
@@ -38,6 +40,9 @@ env: &env
     SENDGRID_TEMPLATE_BN_TRANSFER_TICKETS_RECEIPT: "d-3b5d9abc10ea41449b045eca7d1e31df"
     SENDGRID_TEMPLATE_BN_EVENT_UPCOMING_DRIP: "d-3b5d9abc10ea41449b045eca7d1e31df"
     SENDGRID_TEMPLATE_BN_EVENT_POST_PROMO_DRIP: "d-3b5d9abc10ea41449b045eca7d1e31df"
+    SHARETRIBE_CLIENT_ID: "d6c14940-e4cc-48c1-b8a3-afadc6c9f36f"
+    SHARETRIBE_CLIENT_SECRET:
+        from_secret: SHARETRIBE_CLIENT_SECRET
     HTTP_KEEP_ALIVE: 75
     BLOCK_EXTERNAL_COMMS: 1
     TWILIO_ACCOUNT_ID: " "
@@ -50,6 +55,7 @@ env: &env
     CONNECTION_POOL_MIN: 1
     BRANCH_IO_BRANCH_KEY:
         from_secret: BRANCH_IO_BRANCH_KEY
+    PRODUCT_CONTEXT: BigNeon
 
 kind: pipeline
 name: Build
@@ -317,6 +323,6 @@ services:
 
 ---
 kind: signature
-hmac: 46c921cacffcd650bb22424af0d71701b0f33034b3846f89abe48d654628181f
+hmac: f2113b7a565a42fc1a6a967b7568b36419422ddb1bfd2e3b882cdce1d6d60c0c
 
 ...

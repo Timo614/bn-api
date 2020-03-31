@@ -5,6 +5,8 @@ pub mod artists;
 pub mod assets;
 pub mod broadcasts;
 pub mod codes;
+pub mod collection_items;
+pub mod collections;
 pub mod communication;
 pub mod comps;
 pub mod concerns;

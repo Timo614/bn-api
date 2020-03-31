@@ -2,6 +2,7 @@ pub mod announcements;
 pub mod artists;
 pub mod cart;
 pub mod codes;
+pub mod collections;
 pub mod comps;
 pub mod event_report_subscribers;
 pub mod events;

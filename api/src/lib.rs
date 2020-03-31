@@ -40,5 +40,6 @@ pub mod middleware;
 pub mod models;
 mod payments;
 mod routing;
+mod routing_collectibles;
 pub mod server;
 pub mod utils;

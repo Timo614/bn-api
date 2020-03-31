@@ -123,10 +123,7 @@ impl Error for ParseError {
 use jsonwebtoken;
 impl From<jsonwebtoken::errors::Error> for DatabaseError {
     fn from(s: jsonwebtoken::errors::Error) -> DatabaseError {
-        DatabaseError::new(
-            ErrorCode::InternalError,
-            Some(format!("JSON Web Token error: {}", s.to_string())),
-        )
+        DatabaseError::new(ErrorCode::InternalError, Some(format!("JSON Web Token error: {}", s)))
     }
 }
 
@@ -432,6 +429,7 @@ fn error_with_known_code() {
 #[test]
 fn unknown_error_with_cause() {
     let cause = DatabaseError::new(ErrorCode::Unknown, None);
+
     let err = DatabaseError::new(ErrorCode::InvalidInput, Some(cause.message));
     assert_eq!(err.message, "Invalid input");
     assert_eq!(err.code, 1000);
