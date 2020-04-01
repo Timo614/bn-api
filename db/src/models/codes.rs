@@ -35,6 +35,7 @@ pub struct CodeAvailability {
     #[serde(flatten)]
     pub code: Code,
     pub available: Option<i64>,
+    pub total_uses: i64,
 }
 
 #[derive(Debug, Deserialize, PartialEq, QueryableByName, Serialize)]
@@ -76,6 +77,7 @@ pub struct DisplayCodeAvailability {
     #[serde(flatten)]
     pub display_code: DisplayCode,
     pub available: Option<i64>,
+    pub total_uses: i64,
 }
 
 #[derive(AsChangeset, Debug, Default, Deserialize, Validate)]
@@ -131,7 +133,12 @@ impl Code {
         };
 
         let available = code.available(conn)?;
-        Ok(CodeAvailability { code, available })
+        let total_uses = Code::find_number_of_uses(code.id, None, conn)?;
+        Ok(CodeAvailability {
+            code,
+            available,
+            total_uses,
+        })
     }
 
     pub fn available(&self, conn: &PgConnection) -> Result<Option<i64>, DatabaseError> {
@@ -234,9 +241,11 @@ impl Code {
         };
 
         let available = self.available(conn)?;
+        let total_uses = Code::find_number_of_uses(self.id, None, conn)?;
         Ok(DisplayCodeAvailability {
             display_code,
             available,
+            total_uses,
         })
     }
 
@@ -337,9 +346,11 @@ impl Code {
 
         for dc in display_codes {
             let available = Code::availablity_by_code_id_max_uses(dc.id, dc.max_uses, conn)?;
+            let total_uses = Code::find_number_of_uses(dc.id, None, conn)?;
             display_codes_availability.push(DisplayCodeAvailability {
                 display_code: dc,
                 available,
+                total_uses,
             });
         }
 
