@@ -105,6 +105,11 @@ fn clone_record() {
             true,
             true,
             true,
+            TicketTypeType::Token,
+            vec![],
+            None,
+            None,
+            None,
             None,
             connection,
         )
@@ -1631,7 +1636,7 @@ fn guest_list() {
         .with_last_name("Test")
         .finish();
     let user2 = project.create_user().finish();
-    let user3 = project.create_user().finish();
+    let user3 = project.create_user().with_last_name("Mc'Donald").finish();
     let user4 = project.create_user().finish();
     let user5 = project.create_user().finish();
     let user6 = project.create_user().finish();
@@ -1661,6 +1666,7 @@ fn guest_list() {
         .is_paid()
         .finish();
 
+    // First name
     let guest_list = event
         .guest_list(Some("Alex".to_string()), &None, None, connection)
         .unwrap()
@@ -1670,6 +1676,14 @@ fn guest_list() {
     assert_eq!(1, guest_list_length);
     assert_eq!(first_ticket.user_id.clone(), Some(user.id));
 
+    // Partial match fails as last name does not start with x
+    let guest_list = event
+        .guest_list(Some("Al x".to_string()), &None, None, connection)
+        .unwrap()
+        .0;
+    assert!(guest_list.is_empty());
+
+    // Not found
     let guest_list = event
         .guest_list(Some("Test".to_string()), &None, None, connection)
         .unwrap()
@@ -1679,18 +1693,35 @@ fn guest_list() {
 
     // With commas that are ignored
     let guest_list = event
-        .guest_list(Some("test, al".to_string()), &None, None, connection)
+        .guest_list(Some("te, al".to_string()), &None, None, connection)
         .unwrap()
         .0;
     assert_eq!(1, guest_list.len());
     assert_eq!(guest_list.first().unwrap().ticket.user_id, Some(user.id));
 
+    // Partial match
     let guest_list = event
-        .guest_list(Some("ex T".to_string()), &None, None, connection)
+        .guest_list(Some("Al T".to_string()), &None, None, connection)
         .unwrap()
         .0;
     assert_eq!(1, guest_list.len());
     assert_eq!(guest_list.first().unwrap().ticket.user_id, Some(user.id));
+
+    // Match without single quote in name
+    let guest_list = event
+        .guest_list(Some("McDonald".to_string()), &None, None, connection)
+        .unwrap()
+        .0;
+    assert_eq!(1, guest_list.len());
+    assert_eq!(guest_list.first().unwrap().ticket.user_id, Some(user3.id));
+
+    // Match with single quote in name
+    let guest_list = event
+        .guest_list(Some("Mc'Donald".to_string()), &None, None, connection)
+        .unwrap()
+        .0;
+    assert_eq!(1, guest_list.len());
+    assert_eq!(guest_list.first().unwrap().ticket.user_id, Some(user3.id));
 
     // Update ticket for user.id to override name
     let ticket = TicketInstance::find_for_user(user.id, connection)
@@ -4465,6 +4496,11 @@ fn add_ticket_type() {
             true,
             true,
             true,
+            TicketTypeType::Token,
+            vec![],
+            None,
+            None,
+            None,
             None,
             conn,
         )
@@ -4500,6 +4536,11 @@ fn ticket_types() {
             true,
             true,
             true,
+            TicketTypeType::Token,
+            vec![],
+            None,
+            None,
+            None,
             None,
             conn,
         )
@@ -4522,6 +4563,11 @@ fn ticket_types() {
             true,
             true,
             true,
+            TicketTypeType::Token,
+            vec![],
+            None,
+            None,
+            None,
             None,
             conn,
         )
@@ -4536,7 +4582,7 @@ fn ticket_types() {
 fn localized_time() {
     let utc_time = NaiveDateTime::parse_from_str("2019-01-01 12:00:00.000", "%Y-%m-%d %H:%M:%S%.f").unwrap();
     let localized_time = Event::localized_time(Some(utc_time), Some("Africa/Johannesburg")).unwrap();
-    assert_eq!(localized_time.to_rfc2822(), "Tue,  1 Jan 2019 14:00:00 +0200");
+    assert_eq!(localized_time.to_rfc2822(), "Tue, 01 Jan 2019 14:00:00 +0200");
 
     let invalid_localized_time = Event::localized_time(None, Some("Africa/Johannesburg"));
     assert_eq!(invalid_localized_time, None);
@@ -4566,15 +4612,15 @@ fn get_all_localized_times() {
     let localized_times: EventLocalizedTimes = event.get_all_localized_times(Some(&venue));
     assert_eq!(
         localized_times.event_start.unwrap().to_rfc2822(),
-        "Tue,  1 Jan 2019 14:00:00 +0200"
+        "Tue, 01 Jan 2019 14:00:00 +0200"
     );
     assert_eq!(
         localized_times.event_end.unwrap().to_rfc2822(),
-        "Thu,  3 Jan 2019 14:00:00 +0200"
+        "Thu, 03 Jan 2019 14:00:00 +0200"
     );
     assert_eq!(
         localized_times.door_time.unwrap().to_rfc2822(),
-        "Tue,  1 Jan 2019 13:00:00 +0200"
+        "Tue, 01 Jan 2019 13:00:00 +0200"
     );
 }
 

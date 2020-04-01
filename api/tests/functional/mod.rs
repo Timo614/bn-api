@@ -5,6 +5,8 @@ mod base;
 mod broadcast;
 mod cart;
 mod codes;
+mod collection_items;
+mod collections;
 mod comps;
 mod event_report_subscribers;
 mod events;

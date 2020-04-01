@@ -1,4 +1,4 @@
-FROM rust:1.41.1 as builder
+FROM rust:1.42 as builder
 
 RUN \
     wget https://github.com/openssl/openssl/archive/OpenSSL_1_1_0-stable.zip && \
@@ -41,6 +41,7 @@ ADD embed_dirs_derive ./embed_dirs_derive/
 ADD macros ./macros/
 ADD customer_io ./customer_io/
 ADD cache ./cache/
+ADD sharetribe_flex ./sharetribe_flex/
 ADD Cargo.lock Cargo.toml ./
 
 RUN cargo build --release

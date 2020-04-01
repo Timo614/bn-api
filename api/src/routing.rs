@@ -79,7 +79,7 @@ pub fn routes(app: &mut web::ServiceConfig) {
     .service(
         web::resource("/events")
         // In future it may be better to cache this for every user to save the database hit
-        .wrap(CacheResource::new(CacheUsersBy::GlobalRoles))
+        .wrap(CacheResource::new(CacheUsersBy::PublicUsersOnly))
         .route(web::get().to(events::index))
         .route(web::post().to(events::create)),
     )
@@ -127,6 +127,7 @@ pub fn routes(app: &mut web::ServiceConfig) {
             .route(web::put().to(broadcasts::update)),
     )
     .service(web::resource("/events/{id}/links").route(web::post().to(events::create_link)))
+    .service(web::resource("/events/{id}/rarities").route(web::post().to(rarities::create)))
     .service(web::resource("/events/{id}/redeem/{ticket_instance_id}").route(web::post().to(events::redeem_ticket)))
     .service(web::resource("/events/{id}/redeem").route(web::post().to(events::redeem_ticket)))
     .service(
@@ -181,6 +182,8 @@ pub fn routes(app: &mut web::ServiceConfig) {
             .route(web::get().to(holds::show))
             .route(web::delete().to(holds::destroy)),
     )
+    .service(web::resource("/listings").route(web::post().to(listings::create)))
+    .service(web::resource("/listings/{id}/publish").route(web::post().to(listings::publish)))
     .service(web::resource("/notes/{id}").route(web::delete().to(notes::destroy)))
     .service(
         web::resource("/notes/{main_table}/{id}")
@@ -362,6 +365,7 @@ pub fn routes(app: &mut web::ServiceConfig) {
     )
     .service(web::resource("/users/tokens/{id}").route(web::delete().to(users::remove_push_notification_token)))
     .service(web::resource("/users").route(web::post().to(users::register_and_login)))
+    .service(web::resource("/users/email_only").route(web::post().to(users::register_with_email_only)))
     .service(
         web::resource("/users/{id}")
             .route(web::get().to(users::show))
@@ -369,6 +373,7 @@ pub fn routes(app: &mut web::ServiceConfig) {
     )
     .service(web::resource("/user_invites").route(web::post().to(user_invites::create)))
     .service(web::resource("/users/{id}/organizations").route(web::get().to(users::list_organizations)))
+    .service(web::resource("/users/me/marketplace_account").route(web::post().to(users::create_marketplace_account)))
     .service(
         web::resource("/venues/{id}/organization_venues")
             .route(web::get().to(organization_venues::venues_index))

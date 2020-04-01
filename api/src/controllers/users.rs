@@ -7,18 +7,23 @@ use crate::errors::*;
 use crate::extractors::*;
 use crate::helpers::application;
 use crate::models::*;
+use crate::server::AppState;
 use crate::server::GetAppState;
 use crate::utils::google_recaptcha;
+use ::rand::rngs::OsRng;
+use ::rand::RngCore;
 use actix_web;
 use actix_web::Responder;
 use actix_web::{
     http::StatusCode,
-    web::{Path, Query},
+    web::{Data, Path, Query},
     HttpRequest, HttpResponse,
 };
+use chrono::Duration;
 use db::prelude::*;
 use diesel::PgConnection;
 use futures::future::{err, ok, Ready};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::str;
 use uuid::Uuid;
@@ -299,6 +304,49 @@ pub async fn register(
     Ok(HttpResponse::Created().finish())
 }
 
+pub async fn register_with_email_only(
+    (state, connection, parameters): (Data<AppState>, Connection, Json<RegisterEmailOnlyRequest>),
+) -> Result<HttpResponse, ApiError> {
+    if !state.config.email_only_registration_allowed {
+        return application::method_not_allowed();
+    }
+
+    let mut log_data = HashMap::<&str, Value>::new();
+    log_data.insert("email", parameters.email.clone().into());
+
+    let new_user: NewUser = parameters.into_inner().into();
+    let conn = connection.get();
+    let user = match new_user.commit(None, conn) {
+        Ok(user) => user,
+        Err(e) => match e.error_code {
+            ErrorCode::DuplicateKeyError => {
+                return application::unprocessable("A user with this email already exists");
+            }
+            _ => return Err(e.into()),
+        },
+    };
+
+    let refresh_token = match user.create_magic_link_token(
+        state.service_locator.token_issuer(),
+        Duration::minutes(120),
+        false,
+        conn,
+    )? {
+        Some(token) => token,
+        None => return application::unprocessable("Could not register this user via email only")?,
+    };
+
+    mailers::user::user_registered_magic_link(
+        &*state.service_locator.create_deep_linker()?,
+        &state.config,
+        &user.email.unwrap(),
+        refresh_token,
+        conn,
+    )?;
+
+    Ok(HttpResponse::Created().finish())
+}
+
 pub async fn register_and_login(
     (http_request, connection, parameters, request_info): (HttpRequest, Connection, Json<RegisterRequest>, RequestInfo),
 ) -> Result<HttpResponse, ApiError> {
@@ -398,4 +446,24 @@ pub async fn delete(
     let target_user = User::find(path.id, conn)?;
     target_user.disable(Some(&user.user), conn)?;
     Ok(HttpResponse::Ok().finish())
+}
+
+pub async fn create_marketplace_account(
+    (user, state, conn): (AuthUser, Data<AppState>, Connection),
+) -> Result<HttpResponse, ApiError> {
+    let conn = conn.get();
+    let db_user = &user.user;
+    if MarketplaceAccount::find_by_user_id(db_user.id, conn)?.len() > 0 {
+        return application::unprocessable("User already has a market place account");
+    }
+    if db_user.email.is_none() {
+        return application::unprocessable("Cannot create a market place account for a user with no email");
+    }
+    let password = OsRng.next_u64().to_string();
+    let account = MarketplaceAccount::create(user.id(), db_user.email.clone().unwrap(), password).commit(conn)?;
+
+    let marketplace_api = state.service_locator.create_marketplace_api()?;
+    let marketplace_account_id = marketplace_api.link_user(&db_user, &account)?;
+    account.update_marketplace_id(marketplace_account_id, conn)?;
+    Ok(HttpResponse::Created().finish())
 }

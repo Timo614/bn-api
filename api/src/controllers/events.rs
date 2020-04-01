@@ -1264,6 +1264,7 @@ pub async fn holds(
         pub children_available: u32,
         pub children_quantity: u32,
         pub parent_hold_id: Option<Uuid>,
+        pub total_uses: u32,
     }
 
     let mut list = Vec::<R>::new();
@@ -1290,6 +1291,7 @@ pub async fn holds(
             children_available,
             children_quantity,
             parent_hold_id: hold.parent_hold_id,
+            total_uses: quantity - available,
         };
 
         list.push(r);
