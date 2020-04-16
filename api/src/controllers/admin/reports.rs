@@ -60,28 +60,21 @@ impl From<ReportQueryParameters> for Paging {
 }
 
 pub async fn get_report(
-    (connection, query, path, user): (
-        Connection,
-        Query<ReportQueryParameters>,
-        Path<OptionalPathParameters>,
-        AuthUser,
-    ),
+    (connection, query, user): (Connection, Query<ReportQueryParameters>, AuthUser),
 ) -> Result<HttpResponse, ApiError> {
-    // Organization id required for specific reports, separate via |
-    match query.name.trim() {
-        "sales_summary" => {
-            if path.id.is_none() {
-                return application::bad_request("organization_id path parameter is required");
-            }
-        }
-        _ => {}
-    }
-
     match query.name.trim() {
         "domain_transaction_detail" => {
             Ok(domain_transaction_detail_report((connection, query, user))?.into_http_response()?)
         }
-        "sales_summary" => Ok(sales_summary_report((connection, query, path.id.unwrap(), user))?.into_http_response()?),
+        _ => application::not_found(),
+    }
+}
+
+pub async fn get_organization_report(
+    (connection, query, path, user): (Connection, Query<ReportQueryParameters>, Path<PathParameters>, AuthUser),
+) -> Result<HttpResponse, ApiError> {
+    match query.name.trim() {
+        "sales_summary" => Ok(sales_summary_report((connection, query, path.id, user))?.into_http_response()?),
         _ => application::not_found(),
     }
 }

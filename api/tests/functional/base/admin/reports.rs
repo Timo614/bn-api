@@ -1,13 +1,8 @@
 use crate::support;
 use crate::support::database::TestDatabase;
 use crate::support::test_request::TestRequest;
-use actix_web::{
-    http::StatusCode,
-    web::{Path, Query},
-    FromRequest,
-};
+use actix_web::{http::StatusCode, web::Query, FromRequest};
 use api::controllers::admin::reports::{self, *};
-use api::models::PathParameters;
 use chrono::prelude::*;
 use chrono::Duration;
 use db::models::*;
@@ -44,9 +39,6 @@ pub async fn sales_summary_report(role: Roles, should_succeed: bool) {
     let query = Query::<ReportQueryParameters>::extract(&test_request.request)
         .await
         .unwrap();
-    let mut path = Path::<PathParameters>::extract(&test_request.request).await.unwrap();
-    path.id = organization.id;
-
     let response =
         reports::sales_summary_report((database.connection.clone().into(), query, organization.id, auth_user));
     let wrapped_payload = Payload {
